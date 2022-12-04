@@ -12,12 +12,11 @@
 //using OfficeOpenXml.Drawing;
 //using System.Drawing;
 
-//!!!buggy!!! file size inflating!!!
-//namespace Cliver.HawkeyeInvoiceParser
+//namespace Cliver
 //{
 //    public class Excel : IDisposable
 //    {
-//        static Excel()//!!!5.3.2 version has changed index-base from 1 to 0 (at least for worksheets), against 4.*.*
+//        static Excel()
 //        {
 //            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 //        }
@@ -112,6 +111,16 @@
 //            //else
 //            //    throw e;
 //            //}
+//        }
+
+//        public int GetLastUsedColumn()
+//        {
+//            if (worksheet == null)
+//                throw new Exception("No active worksheet.");
+//            for (int column = worksheet.Dimension.End.Column; column > 0; column--)
+//                if (worksheet.Cells[1, column, worksheet.Dimension.End.Row, column].Any(c => !string.IsNullOrEmpty(c.Text)))
+//                    return column;
+//            return 0;
 //        }
 
 //        public int GetLastUsedRow()
@@ -229,8 +238,12 @@
 
 //        public void AddImage(int y, int x, string name, Bitmap image)
 //        {
-//            ExcelPicture ep = worksheet.Drawings.AddPicture(name, image);
-//            ep.SetPosition(y - 1, 0, x - 1, 0);//it seems to set to the next cell
+//            using (var stream = new MemoryStream())
+//            {
+//                image.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+//                ExcelPicture ep = worksheet.Drawings.AddPicture(name, stream);
+//                ep.SetPosition(y - 1, 0, x - 1, 0);//it seems to set to the next cell
+//            }
 //        }
 
 //        public Bitmap GetImage(int y, int x)
@@ -240,7 +253,8 @@
 //            ExcelDrawing ed = worksheet.Drawings.FirstOrDefault(a => a.From.Row == y && a.From.Column == x);
 //            if (ed == null)
 //                return null;
-//            return (Bitmap)((ExcelPicture)ed).Image;
+//            using (MemoryStream ms = new MemoryStream(((ExcelPicture)ed).Image.ImageBytes))
+//                return new Bitmap(ms);
 //        }
 
 //        public void FitColumnsWidth(params int[] columnIs)

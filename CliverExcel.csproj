@@ -8,7 +8,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>1.0.0</Version>
+	  <Version>1.1.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -16,6 +16,7 @@
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	  <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 	  <Platforms>AnyCPU;x64;x86</Platforms>
+	  <RootNamespace>Cliver</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
