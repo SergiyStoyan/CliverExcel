@@ -31,7 +31,7 @@ namespace Cliver
             return null;
         }
 
-        static public string GetValueAsString(this ICell cell, IFormulaEvaluator formulaEvaluator = null)
+        static public string GetValueAsString(this ICell cell)
         {
         GET_VALUE: if (cell == null)
                 return null;
@@ -59,15 +59,13 @@ namespace Cliver
                 case CellType.Boolean:
                     return cell.BooleanCellValue.ToString().ToUpper();
                 case CellType.Formula:
-                    if (formulaEvaluator == null)
-                    {
-                        if (cell.Sheet.Workbook is XSSFWorkbook)
-                            formulaEvaluator = new XSSFFormulaEvaluator(cell.Sheet.Workbook);
-                        else if (cell.Sheet.Workbook is HSSFWorkbook)
-                            formulaEvaluator = new HSSFFormulaEvaluator(cell.Sheet.Workbook);
-                        else
-                            throw new Exception("Unexpected Workbook type: " + cell.Sheet.Workbook.GetType());
-                    }
+                    IFormulaEvaluator formulaEvaluator;
+                    if (cell.Sheet.Workbook is XSSFWorkbook)
+                        formulaEvaluator = new XSSFFormulaEvaluator(cell.Sheet.Workbook);
+                    else if (cell.Sheet.Workbook is HSSFWorkbook)
+                        formulaEvaluator = new HSSFFormulaEvaluator(cell.Sheet.Workbook);
+                    else
+                        throw new Exception("Unexpected Workbook type: " + cell.Sheet.Workbook.GetType());
                     cell = formulaEvaluator.EvaluateInCell(cell);
                     goto GET_VALUE;
                 //        return c.CellFormula;
@@ -103,6 +101,9 @@ namespace Cliver
 
         static public void UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
         {
+            if (formulaCell?.CellType != CellType.Formula)
+                return;
+
             if (rangeY2Shift == null)
                 rangeY2Shift = rangeY1Shift;
             if (rangeX2Shift == null)
@@ -119,9 +120,6 @@ namespace Cliver
             else
                 throw new Exception("Unexpected Workbook type: " + formulaCell.Sheet.Workbook.GetType());
 
-            //ICell formulaCell = GetCell(formulaCellY, formulaCellX, false);
-            if (formulaCell?.CellType != CellType.Formula)
-                return;
             var ptgs = FormulaParser.Parse(formulaCell.CellFormula, evaluationWorkbook, FormulaType.Cell, formulaCell.Sheet.Workbook.GetSheetIndex(formulaCell.Sheet));
             foreach (Ptg ptg in ptgs)
             {
@@ -149,6 +147,31 @@ namespace Cliver
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
             }
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+        }
+
+        static public void Highlight(this IRow row, Excel.Color color)
+        {
+            row.RowStyle = Excel.highlight(row.Sheet.Workbook, row.RowStyle, color);
+        }
+
+        static public void Highlight(this ICell cell, Excel.Color color)
+        {
+            cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, cell.CellStyle, color);
+        }
+
+        static public int GetLastUsedColumnInRow(this IRow row)
+        {
+            if (row == null || row.Cells.Count < 1)
+                return -1;
+            return row.Cells[row.Cells.Count - 1].ColumnIndex + 1;
+        }
+
+        /// <summary>
+        /// (!) 0-based
+        /// </summary>
+        static public string GetStringAddress(this CellRangeAddress range)
+        {
+            return CellReference.ConvertNumToColString(range.FirstColumn) + (range.FirstRow + 1) + ":" + CellReference.ConvertNumToColString(range.LastColumn) + (range.LastRow + 1);
         }
     }
 }

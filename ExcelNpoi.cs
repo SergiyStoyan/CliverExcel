@@ -15,11 +15,14 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
+using Newtonsoft.Json.Serialization;
+using System.Reflection;
+using Newtonsoft.Json;
 
 //works  
 namespace Cliver
 {
-    public class Excel : IDisposable
+    public partial class Excel : IDisposable
     {
         static Excel()
         {
@@ -48,13 +51,13 @@ namespace Cliver
                     {
                         fs.Position = 0;//!!!prevents occasional error: EOF in header
                         Workbook = new XSSFWorkbook(fs);
-                        FormulaEvaluator = new XSSFFormulaEvaluator(Workbook);
+                        //FormulaEvaluator = new XSSFFormulaEvaluator(Workbook);
                     }
                     catch (ICSharpCode.SharpZipLib.Zip.ZipException)
                     {
                         fs.Position = 0;//!!!prevents error: EOF in header
                         Workbook = new HSSFWorkbook(fs);//old Excel 97-2003
-                        FormulaEvaluator = new HSSFFormulaEvaluator(Workbook);
+                        //FormulaEvaluator = new HSSFFormulaEvaluator(Workbook);
                     }
                 }
             else
@@ -62,7 +65,7 @@ namespace Cliver
         }
 
         public IWorkbook Workbook;
-        public IFormulaEvaluator FormulaEvaluator = null;
+        //public IFormulaEvaluator FormulaEvaluator = null;
 
         public readonly string File;
 
@@ -115,18 +118,18 @@ namespace Cliver
 
         public void OpenWorksheet(string name)
         {
-            worksheet = Workbook.GetSheet(name);
-            if (worksheet == null)
+            Sheet = Workbook.GetSheet(name);
+            if (Sheet == null)
             {
                 name = Regex.Replace(name, @"\:", "-");//npoi does not accept :
-                worksheet = Workbook.CreateSheet(WorkbookUtil.CreateSafeSheetName(name));
+                Sheet = Workbook.CreateSheet(WorkbookUtil.CreateSafeSheetName(name));
 
-                //!!!All worksheet must be formatted as text! Otherwise string dates are converted into numbers.
+                //!!!All Sheet must be formatted as text! Otherwise string dates are converted into numbers.
                 //!!!No way found to set default style for a whole sheet. However, NPOI presets ' before numeric values to keep them as strings.
                 //ICellStyle defaultStyle = (XSSFCellStyle)Workbook.CreateCellStyle();
                 //defaultStyle.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
                 //ICell c = GetCell(0, 0, true);
-                //worksheet.SetDefaultColumnStyle(0, defaultStyle);
+                //Sheet.SetDefaultColumnStyle(0, defaultStyle);
             }
         }
         //ICellStyle defaultStyle;
@@ -136,23 +139,23 @@ namespace Cliver
             index--;
             if (Workbook.NumberOfSheets > 0 && Workbook.NumberOfSheets > index)
             {
-                worksheet = Workbook.GetSheetAt(index);
+                Sheet = Workbook.GetSheetAt(index);
                 return true;
             }
             return false;
         }
-        ISheet worksheet; //NPOI.XSSF.UserModel.XSSFSheet s;
+        public ISheet Sheet;
 
         public string WorksheetName
         {
             get
             {
-                return worksheet.SheetName;
+                return Sheet.SheetName;
             }
             set
             {
-                if (worksheet != null)
-                    Workbook.SetSheetName(Workbook.GetSheetIndex(worksheet), value);
+                if (Sheet != null)
+                    Workbook.SetSheetName(Workbook.GetSheetIndex(Sheet), value);
             }
         }
 
@@ -160,21 +163,21 @@ namespace Cliver
         {
             using (var fileData = new FileStream(File, FileMode.Create))
             {
-                Workbook.Write(fileData);
+                Workbook.Write(fileData, true);
             }
         }
 
         public int GetLastUsedRow()
         {
-            if (worksheet == null)
+            if (Sheet == null)
                 throw new Exception("No active sheet.");
 
-            var rows = worksheet.GetRowEnumerator();
+            var rows = Sheet.GetRowEnumerator();
             int lur = 0;
             while (rows.MoveNext())
             {
                 IRow row = (IRow)rows.Current;
-                if (null != row.Cells.Find(a => !string.IsNullOrEmpty(a.ToString())))
+                if (null != row.Cells.Find(a => !string.IsNullOrEmpty(a.GetValueAsString())))
                     lur = row.RowNum;
             }
             return lur + 1;
@@ -226,7 +229,7 @@ namespace Cliver
             get
             {
                 ICell c = GetCell(y, x, false);
-                return ExcelExtensions.GetValueAsString(c, FormulaEvaluator);
+                return ExcelExtensions.GetValueAsString(c/*, FormulaEvaluator*/);
             }
             set
             {
@@ -239,13 +242,13 @@ namespace Cliver
 
         public IRow GetRow(int y, bool create)
         {
-            IRow r = worksheet.GetRow(y - 1);
+            IRow r = Sheet.GetRow(y - 1);
             if (r == null && create)
             {
-                r = worksheet.CreateRow(y - 1);
-                ICellStyle cs = Workbook.CreateCellStyle();
-                cs.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
-                r.RowStyle = cs;//!!!Cells must be formatted as text! Otherwise string dates are converted into numbers. (However, if no format set, NPOI presets ' before numeric values to keep them as strings.)
+                r = Sheet.CreateRow(y - 1);
+                //ICellStyle cs = Workbook.CreateCellStyle();!!!replace it with GetRegisteredStyle()
+                //cs.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
+                //r.RowStyle = cs;//!!!Cells must be formatted as text! Otherwise string dates are converted into numbers. (However, if no format set, NPOI presets ' before numeric values to keep them as strings.)
             }
             return r;
         }
@@ -260,8 +263,8 @@ namespace Cliver
 
         public void InsertLine(int y, IEnumerable<object> values = null)
         {
-            if (y <= worksheet.LastRowNum)
-                worksheet.ShiftRows(y - 1, worksheet.LastRowNum, 1);
+            if (y <= Sheet.LastRowNum)
+                Sheet.ShiftRows(y - 1, Sheet.LastRowNum, 1);
             GetRow(y, true);
             if (values != null)
                 WriteLine(y, values);
@@ -300,9 +303,9 @@ namespace Cliver
                     s = null;
                 vs.Add(s);
             }
-            IDataValidationHelper dvh = new XSSFDataValidationHelper((XSSFSheet)worksheet);
+            IDataValidationHelper dvh = new XSSFDataValidationHelper((XSSFSheet)Sheet);
             //string dvs = string.Join(",", vs);
-            //IDataValidationConstraint dvc = worksheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
+            //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
             //if (dvc == null)
             //dvc = dvh.CreateCustomConstraint(dvs);
             IDataValidationConstraint dvc = dvh.CreateExplicitListConstraint(vs.ToArray());
@@ -310,7 +313,7 @@ namespace Cliver
             IDataValidation dv = dvh.CreateValidation(dvc, cral);
             dv.SuppressDropDownArrow = true;
             dv.EmptyCellAllowed = allowBlank;
-            ((XSSFSheet)worksheet).AddValidationData(dv);
+            ((XSSFSheet)Sheet).AddValidationData(dv);
 
             {
                 string s;
@@ -324,36 +327,36 @@ namespace Cliver
             }
         }
 
-        public void AddImage(int y, int x, /*string name,*/ Bitmap image)//!!!!buggy
+        public void AddImage(int y, int x, /*string name,*/ byte[] pngImage)//!!!!buggy
         {
             throw new Exception("TBD");
-            int i = Workbook.AddPicture(ImageToPngByteArray(image), PictureType.PNG);
+            int i = Workbook.AddPicture(pngImage, PictureType.PNG);
             ICreationHelper h = Workbook.GetCreationHelper();
             IClientAnchor a = h.CreateClientAnchor();
             a.AnchorType = AnchorType.MoveDontResize;
             a.Col1 = x - 1;//0 index based column
             a.Row1 = y - 1;//0 index based row
-            XSSFDrawing d = (XSSFDrawing)worksheet.CreateDrawingPatriarch();
+            XSSFDrawing d = (XSSFDrawing)Sheet.CreateDrawingPatriarch();
             XSSFPicture p = (XSSFPicture)d.CreatePicture(a, i);
             p.IsNoFill = true;
             p.Resize();
         }
 
-        public static byte[] ImageToPngByteArray(Image img)
-        {
-            using (var stream = new MemoryStream())
-            {
-                img.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-                return stream.ToArray();
-            }
-        }
+        //public static byte[] ImageToPngByteArray(Image img)
+        //{
+        //    using (var stream = new MemoryStream())
+        //    {
+        //        img.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+        //        return stream.ToArray();
+        //    }
+        //}
 
-        public Bitmap GetImage(int y, int x/*, out string name*/)//!!!!buggy
+        public byte[] GetImage(int y, int x/*, out string name*/)//!!!!buggy
         {
             throw new Exception("TBD");
             //name = null;
 
-            XSSFDrawing d = worksheet.CreateDrawingPatriarch() as XSSFDrawing;
+            XSSFDrawing d = Sheet.CreateDrawingPatriarch() as XSSFDrawing;
             foreach (XSSFShape s in d.GetShapes())
             {
                 XSSFPicture p = s as XSSFPicture;
@@ -363,10 +366,7 @@ namespace Cliver
                 if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
                 {
                     XSSFPictureData pd = p.PictureData as XSSFPictureData;
-                    //String ext = pd.SuggestFileExtension();
-                    //name = pd.GetPackagePart().PartName?.ToString();
-                    using (Stream ms = new MemoryStream(pd.Data))
-                        return new Bitmap(ms);
+                    return pd.Data;
                 }
             }
             //name = null;
@@ -421,52 +421,32 @@ namespace Cliver
         public void FitColumnsWidth(IEnumerable<int> columnIs)
         {
             foreach (int i in columnIs)
-                worksheet.AutoSizeColumn(i - 1);
+                Sheet.AutoSizeColumn(i - 1);
         }
 
-        public void FitColumnsWidth(int x1, int x2)
+        public void FitColumnsWidth(params int[] columnIs)
         {
-            for (int x = x1 - 1; x < x2; x++)
-                worksheet.AutoSizeColumn(x);
+            FitColumnsWidth(columnIs);
         }
 
-        public void HighlightRow(int y, Color color)
+        public void FitColumnsWidthInRange(int x1, int x2)
         {
-            IRow r = GetRow(y, true);
-            XSSFCellStyle cs = (XSSFCellStyle)r.RowStyle;
-            if (cs == null)
-            {
-                cs = (XSSFCellStyle)Workbook.CreateCellStyle();
-                r.RowStyle = cs;
-            }
-            cs.SetFillForegroundColor(new XSSFColor(color));
-            cs.FillPattern = FillPattern.SolidForeground;
+            for (int x0 = x1 - 1; x0 <= x2; x0++)
+                Sheet.AutoSizeColumn(x0);
         }
 
-        public void ClearHighlighting()
+        public string GetColumnName(int x)
         {
-            var rows = worksheet.GetRowEnumerator();
-            while (rows.MoveNext())
-            {
-                IRow r = (IRow)rows.Current;
-                XSSFCellStyle cs = (XSSFCellStyle)r.RowStyle;
-                if (cs != null)
-                {
-                    cs.FillPattern = FillPattern.NoFill;
-                    cs.SetFillForegroundColor(null);
-                }
-                foreach (ICell c in r.Cells)
-                {
-                    cs = (XSSFCellStyle)c.CellStyle;
-                    if (cs != null)
-                    {
-                        cs.FillPattern = FillPattern.NoFill;
-                        cs.SetFillForegroundColor(null);
-                    }
-                }
-            }
+            return CellReference.ConvertNumToColString(x - 1);
         }
 
+        /// <summary>
+        /// !!!test
+        /// </summary>
+        /// <param name="rangeCells"></param>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
         public void CopyRange(CellRangeAddress range, ISheet sourceSheet, ISheet destinationSheet)
         {
             for (int y = range.FirstRow; y <= range.LastRow; y++)
@@ -540,23 +520,34 @@ namespace Cliver
             }
         }
 
-        public void CopyCell(ICell sourceCell, int destinationY, int destinationX)
+        public ICell CopyCell(ICell sourceCell, int destinationY, int destinationX)
         {
             if (sourceCell == null)
             {
                 IRow destinationRow = GetRow(destinationY, false);
                 if (destinationRow == null)
-                    return;
+                    return null;
                 ICell destinationCell = destinationRow.GetCell(destinationX, false);
                 if (destinationCell == null)
-                    return;
+                    return destinationCell;
                 destinationRow.RemoveCell(destinationCell);
+                return destinationCell;
             }
             else
             {
                 ICell destinationCell = GetCell(destinationY, destinationX, true);
                 CopyCell(sourceCell, destinationCell);
+                return destinationCell;
             }
+        }
+
+        public void MoveCell(ICell sourceCell, int destinationY, int destinationX, Action<ICell> onFormulaCellMoved = null)
+        {
+            ICell destinationCell = CopyCell(sourceCell, destinationY, destinationX);
+            if (sourceCell != null)
+                sourceCell.Row.RemoveCell(sourceCell);
+            if (destinationCell?.CellType == CellType.Formula)
+                onFormulaCellMoved?.Invoke(destinationCell);
         }
 
         public void CopyCell(int sourceY, int sourceX, int destinationY, int destinationX)
@@ -565,137 +556,35 @@ namespace Cliver
             CopyCell(sourceCell, destinationY, destinationX);
         }
 
-        public void CopyRange(Range sourceRange, Point destinationPoint)
+        public void MoveCell(int sourceY, int sourceX, int destinationY, int destinationX, Action<ICell> onFormulaCellMoved = null)
         {
-            ICell[,] sourceCells = new ICell[sourceRange.Bottom - sourceRange.Y + 1, sourceRange.Right - sourceRange.X + 1];
-            for (int y = sourceRange.Y - 1; y < sourceRange.Bottom; y++)
-            {
-                IRow sourceRow = worksheet.GetRow(y);
-                if (sourceRow == null)
-                    continue;
-                for (int x = sourceRange.X - 1; x <= sourceRow.LastCellNum && x < sourceRange.Right; x++)
-                    sourceCells[y, x] = sourceRow.GetCell(x);
-            }
-            int height = sourceCells.GetLength(0);
-            int width = sourceCells.GetLength(1);
-            for (int y = 0; y < height; y++)
-            {
-                IRow destinationRow = worksheet.GetRow(y + (destinationPoint.Y - sourceRange.Y));
-                for (int x = 0; x < width; x++)
-                {
-                    if (sourceCells[y, x] == null)
-                    {
-                        if (destinationRow == null)
-                            continue;
-                        ICell destinationCell = destinationRow.GetCell(x + (destinationPoint.X - sourceRange.X));
-                        if (destinationCell == null)
-                            continue;
-                        destinationRow.RemoveCell(destinationCell);
-                    }
-                    else
-                        CopyCell(sourceCells[y, x], y + (destinationPoint.Y - sourceRange.Y), x + (destinationPoint.X - sourceRange.X));
-                }
-            }
+            ICell sourceCell = GetCell(sourceY, sourceX, false);
+            MoveCell(sourceCell, destinationY, destinationX, onFormulaCellMoved);
         }
 
-        public class Range
+        public int GetLastUsedRowInColumns(params int[] xs)
         {
-            public int X;
-            public int Right;
-            public int Y;
-            public int Bottom;
-        }
-
-        public class Point
-        {
-            public int X;
-            public int Y;
-            //public ICell _Cell;
-        }
-
-        public int GetLastUsedRowInColumn(int x)
-        {
-            if (worksheet == null)
-                throw new Exception("No active sheet.");
-
-            var rows = worksheet.GetRowEnumerator();
+            var rows = Sheet.GetRowEnumerator();
             int lur = 0;
-            int x0 = x - 1;
             while (rows.MoveNext())
             {
                 IRow row = (IRow)rows.Current;
-                if (!string.IsNullOrEmpty(row.GetCell(x0)?.ToString()))
-                    lur = row.RowNum;
+                foreach (int x in xs)
+                    if (!string.IsNullOrEmpty(row.GetCell(x - 1)?.GetValueAsString()))
+                    {
+                        lur = row.RowNum;
+                        break;
+                    }
             }
             return lur + 1;
         }
 
-        public void ShiftCellsDown(int cellsY, int firstCellX, int lastCellX, int rowCount, Action<ICell> updateFormula = null)
+        public int GetLastUsedColumnInRow(int y)
         {
-            for (int x = firstCellX; x <= lastCellX; x++)
-            {
-                for (int y = GetLastUsedRowInColumn(x); y >= cellsY; y--)
-                {
-                    CopyCell(y, x, y + rowCount, x);
-                    if (updateFormula == null)
-                        continue;
-                    ICell formulaCell = GetCell(y + rowCount, x, false);
-                    if (formulaCell?.CellType != CellType.Formula)
-                        continue;
-                    updateFormula(formulaCell);
-                }
-                GetCell(cellsY, x, false)?.SetBlank();
-            }
-        }
-
-        public void UpdateFormulaRange(ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
-        {
-            if (rangeY2Shift == null)
-                rangeY2Shift = rangeY1Shift;
-            if (rangeX2Shift == null)
-                rangeX2Shift = rangeX1Shift;
-
-            IFormulaParsingWorkbook evaluationWorkbook;
-            if (Workbook is XSSFWorkbook)
-                evaluationWorkbook = XSSFEvaluationWorkbook.Create(Workbook);
-            else if (Workbook is HSSFWorkbook)
-                evaluationWorkbook = HSSFEvaluationWorkbook.Create(Workbook);
-            //else if (sheet is SXSSFWorkbook)
-            //{
-            //    evaluationWorkbook = SXSSFEvaluationWorkbook.Create((SXSSFWorkbook)Workbook);
-            else
-                throw new Exception("Unexpected Workbook type: " + Workbook.GetType());
-
-            //ICell formulaCell = GetCell(formulaCellY, formulaCellX, false);
-            if (formulaCell?.CellType != CellType.Formula)
-                return;
-            var ptgs = FormulaParser.Parse(formulaCell.CellFormula, evaluationWorkbook, FormulaType.Cell, Workbook.GetSheetIndex(worksheet));
-            foreach (Ptg ptg in ptgs)
-            {
-                if (ptg is RefPtgBase)
-                {
-                    RefPtgBase ref2 = (RefPtgBase)ptg;
-                    if (ref2.IsRowRelative)
-                        ref2.Row = ref2.Row + rangeY1Shift;
-                    if (ref2.IsColRelative)
-                        ref2.Column = ref2.Column + rangeX1Shift;
-                }
-                else if (ptg is AreaPtgBase)
-                {
-                    AreaPtgBase ref2 = (AreaPtgBase)ptg;
-                    if (ref2.IsFirstRowRelative)
-                        ref2.FirstRow += rangeY1Shift;
-                    if (ref2.IsLastRowRelative)
-                        ref2.LastRow += rangeY2Shift.Value;
-                    if (ref2.IsFirstColRelative)
-                        ref2.FirstColumn += rangeX1Shift;
-                    if (ref2.IsLastColRelative)
-                        ref2.LastColumn += rangeX2Shift.Value;
-                }
-                //else
-                //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
-            }
-            formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+            IRow row = GetRow(y, false);
+            if (row == null)
+                return -1;
+            return row.GetLastUsedColumnInRow();
         }
     }
 }
