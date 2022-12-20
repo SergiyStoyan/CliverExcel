@@ -163,7 +163,13 @@ namespace Cliver
         {
             if (row == null || row.Cells.Count < 1)
                 return -1;
-            return row.Cells[row.Cells.Count - 1].ColumnIndex + 1;
+            for (int x0 = row.Cells.Count - 1; x0 >= 0; x0--)
+            {
+                var c = row.Cells[x0];
+                if (!string.IsNullOrWhiteSpace(c.GetValueAsString()))
+                    return c.ColumnIndex + 1;
+            }
+            return -1;
         }
 
         /// <summary>
