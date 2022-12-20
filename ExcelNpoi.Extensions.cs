@@ -159,7 +159,7 @@ namespace Cliver
             cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, cell.CellStyle, color);
         }
 
-        static public int GetLastUsedColumnInRow(this IRow row)
+        static public int GetLastUsedColumnInRow(this IRow row, bool includeMerged = true)
         {
             if (row == null || row.Cells.Count < 1)
                 return -1;
@@ -167,9 +167,25 @@ namespace Cliver
             {
                 var c = row.Cells[x0];
                 if (!string.IsNullOrWhiteSpace(c.GetValueAsString()))
+                {
+                    if (includeMerged)
+                    {
+                        var r = c.GetMergedRange();
+                        if (r != null)
+                            return r.LastX;
+                    }
                     return c.ColumnIndex + 1;
+                }
             }
             return -1;
+        }
+
+        static public Excel.Range GetMergedRange(this ICell cell)
+        {
+            foreach (var mr in cell.Row.Sheet.MergedRegions)
+                if (mr.IsInRange(cell.RowIndex, cell.ColumnIndex))
+                    return new Excel.Range(mr.FirstRow + 1, mr.LastRow + 1, mr.FirstColumn + 1, mr.LastColumn + 1);
+            return null;
         }
 
         /// <summary>

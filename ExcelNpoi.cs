@@ -167,25 +167,14 @@ namespace Cliver
             }
         }
 
-        public int GetLastUsedRow()
+        public int GetLastUsedRow(bool includeMerged = true)
         {
-            if (Sheet == null)
-                throw new Exception("No active sheet.");
-
-            var rows = Sheet.GetRowEnumerator();
-            int lur = 0;
-            while (rows.MoveNext())
-            {
-                IRow row = (IRow)rows.Current;
-                if (null != row.Cells.Find(a => !string.IsNullOrEmpty(a.GetValueAsString())))
-                    lur = row.RowNum;
-            }
-            return lur + 1;
+            return GetLastUsedRowInColumnRange(1, null, includeMerged);
         }
 
         public int AppendLine(IEnumerable<object> values)
         {
-            int y = GetLastUsedRow() + 1;
+            int y = GetLastUsedRow(true) + 1;
             int i = 1;
             foreach (object v in values)
             {
@@ -418,23 +407,6 @@ namespace Cliver
             //  }
         }
 
-        public void FitColumnsWidth(IEnumerable<int> columnIs)
-        {
-            foreach (int i in columnIs)
-                Sheet.AutoSizeColumn(i - 1);
-        }
-
-        public void FitColumnsWidth(params int[] columnIs)
-        {
-            FitColumnsWidth(columnIs);
-        }
-
-        public void FitColumnsWidthInRange(int x1, int x2)
-        {
-            for (int x0 = x1 - 1; x0 <= x2; x0++)
-                Sheet.AutoSizeColumn(x0);
-        }
-
         public string GetColumnName(int x)
         {
             return CellReference.ConvertNumToColString(x - 1);
@@ -562,29 +534,103 @@ namespace Cliver
             MoveCell(sourceCell, destinationY, destinationX, onFormulaCellMoved);
         }
 
-        public int GetLastUsedRowInColumns(params int[] xs)
+        public int GetLastUsedRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
         {
+            if (x2 == null)
+                x2 = int.MaxValue;
             var rows = Sheet.GetRowEnumerator();
-            int lur = 0;
+            ICell luc = null;
             while (rows.MoveNext())
             {
                 IRow row = (IRow)rows.Current;
-                foreach (int x in xs)
-                    if (!string.IsNullOrEmpty(row.GetCell(x - 1)?.GetValueAsString()))
-                    {
-                        lur = row.RowNum;
-                        break;
-                    }
+                var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a.GetValueAsString()));
+                if (c != null)
+                    luc = c;
             }
-            return lur + 1;
+            if (luc == null)
+                return -1;
+            if (includeMerged)
+            {
+                var r = luc.GetMergedRange();
+                if (r != null)
+                    return r.LastY;
+            }
+            return luc.RowIndex + 1;
         }
 
-        public int GetLastUsedColumnInRow(int y)
+        public int GetLastUsedRowInColumns(bool includeMerged, params int[] xs)
+        {
+            var rows = Sheet.GetRowEnumerator();
+            ICell luc = null;
+            while (rows.MoveNext())
+            {
+                IRow row = (IRow)rows.Current;
+                var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a.GetValueAsString()));
+                if (c != null)
+                    luc = c;
+            }
+            if (luc == null)
+                return -1;
+            if (includeMerged)
+            {
+                var r = luc.GetMergedRange();
+                if (r != null)
+                    return r.LastY;
+            }
+            return luc.RowIndex + 1;
+        }
+
+        public int GetLastUsedRowInColumn(int x, bool includeMerged = true)
+        {
+            var rows = Sheet.GetRowEnumerator();
+            ICell luc = null;
+            while (rows.MoveNext())
+            {
+                IRow row = (IRow)rows.Current;
+                var c = row.GetCell(x);
+                if (!string.IsNullOrEmpty(c?.GetValueAsString()))
+                    luc = c;
+            }
+            if (luc == null)
+                return -1;
+            if (includeMerged)
+            {
+                var r = luc.GetMergedRange();
+                if (r != null)
+                    return r.LastY;
+            }
+            return luc.RowIndex + 1;
+        }
+
+        public int GetLastUsedColumnInRow(int y, bool includeMerged = true)
         {
             IRow row = GetRow(y, false);
             if (row == null)
                 return -1;
-            return row.GetLastUsedColumnInRow();
+            return row.GetLastUsedColumnInRow(includeMerged);
+        }
+
+        public int GetLastUsedColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        {
+            var rows = Sheet.GetRowEnumerator();
+            int luc = -2;
+            while (rows.MoveNext())
+            {
+                IRow row = (IRow)rows.Current;
+                if (row.RowNum + 1 < y1)
+                    continue;
+                if (row.RowNum >= y2)
+                    break;
+                int i = row.GetLastUsedColumnInRow(includeMerged);
+                if (luc < i)
+                    luc = i;
+            }
+            return luc + 1;
+        }
+
+        public int GetLastUsedColumn(bool includeMerged)
+        {
+            return GetLastUsedColumnInRowRange(1, null, includeMerged);
         }
     }
 }

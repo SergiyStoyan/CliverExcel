@@ -16,7 +16,6 @@ using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
 
-//works  
 namespace Cliver
 {
     public partial class Excel
@@ -25,7 +24,7 @@ namespace Cliver
         {
             for (int x = firstCellX; x <= lastCellX; x++)
             {
-                for (int y = GetLastUsedRowInColumns(x); y >= cellsY; y--)
+                for (int y = GetLastUsedRowInColumn(x); y >= cellsY; y--)
                 {
                     CopyCell(y, x, y + rowCount, x);
                     if (updateFormula == null)
@@ -47,7 +46,7 @@ namespace Cliver
             while (rows.MoveNext())
             {
                 IRow row = (IRow)rows.Current;
-                int columnX = row.GetLastUsedColumnInRow();
+                int columnX = row.GetLastUsedColumnInRow(true);
                 if (lastColumnX < columnX)
                 {
                     for (int i = columnX; i > lastColumnX; i--)
@@ -63,11 +62,11 @@ namespace Cliver
 
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
-            for (int i = row.GetLastUsedColumnInRow(); i >= x; i--)
+            for (int i = row.GetLastUsedColumnInRow(true); i >= x; i--)
                 MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
         }
 
-        public void AutosizeRows(int y1 = 1, int? y2 = null)
+        public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
             var rows = Sheet.GetRowEnumerator();
             while (rows.MoveNext())
@@ -75,18 +74,42 @@ namespace Cliver
                 IRow row = (IRow)rows.Current;
                 if (row.RowNum + 1 < y1)
                     continue;
-                if (row.RowNum + 1 >= y2)
+                if (row.RowNum >= y2)
                     return;
                 row.Height = -1;
             }
-            //if (y2 == null)
-            //    y2 = GetLastUsedRow();
-            //for (int y = y1; y <= y2; y++)
-            //{
-            //    var r = Sheet.GetRow(y - 1);
-            //    if (r != null)
-            //        r.Height = -1;
-            //}
+        }
+
+        public void AutosizeRows()
+        {
+            AutosizeRowsInRange();
+        }
+
+        public void AutosizeColumns(IEnumerable<int> columnIs, int padding = 0)
+        {
+            foreach (int i in columnIs)
+            {
+                Sheet.AutoSizeColumn(i - 1);
+                if (padding > 0)
+                    Sheet.SetColumnWidth(i - 1, Sheet.GetColumnWidth(i - 1) + padding);
+            }
+        }
+
+        public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, int padding = 0)
+        {
+            if (x2 == null)
+                x2 = GetLastUsedColumnInRowRange(x1, null, true);
+            for (int x0 = x1 - 1; x0 <= x2; x0++)
+            {
+                Sheet.AutoSizeColumn(x0);
+                if (padding > 0)
+                    Sheet.SetColumnWidth(x0, Sheet.GetColumnWidth(x0) + padding);
+            }
+        }
+
+        public void AutosizeColumns(int padding = 0)
+        {
+            AutosizeColumnsInRange(1, null, padding);
         }
 
         public ICell[,] CutRange(Range range)
@@ -153,19 +176,20 @@ namespace Cliver
             {
                 return CellReference.ConvertNumToColString(X - 1) + Y + ":" + CellReference.ConvertNumToColString(LastX - 1) + LastY;
             }
+
+            public CellRangeAddress GetCellRangeAddress()
+            {
+                return new CellRangeAddress(Y - 1, LastY - 1, X - 1, LastX - 1);
+            }
         }
 
         public void Highlight(Range range, Color color)
         {
-            Highlight(new CellRangeAddress(range.Y, range.LastY, range.X, range.LastX), color);
-        }
-
-        public void Highlight(CellRangeAddress range, Color color)
-        {
-            for (int y0 = range.FirstRow; y0 <= range.LastRow; y0++)
+            CellRangeAddress cra = range.GetCellRangeAddress();
+            for (int y0 = cra.FirstRow; y0 <= cra.LastRow; y0++)
             {
                 IRow row = GetRow(y0 + 1, true);
-                for (int x0 = range.FirstColumn; x0 < row.LastCellNum && x0 <= range.LastColumn; x0++)
+                for (int x0 = cra.FirstColumn; x0 < row.LastCellNum && x0 <= cra.LastColumn; x0++)
                 {
                     ICell c = row.GetCell(x0 + 1, true);
                     c.CellStyle = highlight(Workbook, c.CellStyle, color);
@@ -173,17 +197,26 @@ namespace Cliver
             }
         }
 
-        public void SetStyle(CellRangeAddress range, ICellStyle style)
+        public void SetStyle(Range range, ICellStyle style)
         {
-            for (int y0 = range.FirstRow; y0 <= range.LastRow; y0++)
+            CellRangeAddress cra = range.GetCellRangeAddress();
+            for (int y0 = cra.FirstRow; y0 <= cra.LastRow; y0++)
             {
                 IRow row = GetRow(y0 + 1, true);
-                for (int x0 = range.FirstColumn; x0 < row.LastCellNum && x0 <= range.LastColumn; x0++)
+                for (int x0 = cra.FirstColumn; x0 < row.LastCellNum && x0 <= cra.LastColumn; x0++)
                 {
                     ICell c = row.GetCell(x0 + 1, true);
                     c.CellStyle = style;
                 }
             }
+        }
+
+        public void ClearMerging(Range range)
+        {
+            CellRangeAddress cra = range.GetCellRangeAddress();
+            for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                if (Sheet.MergedRegions[i].Intersects(cra))
+                    Sheet.RemoveMergedRegion(i);
         }
     }
 }
