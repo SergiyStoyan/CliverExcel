@@ -33,7 +33,7 @@ namespace Cliver
 
         static public string GetValueAsString(this ICell cell)
         {
-        GET_VALUE: if (cell == null)
+            if (cell == null)
                 return null;
             switch (cell.CellType)
             {
@@ -59,6 +59,7 @@ namespace Cliver
                 case CellType.Boolean:
                     return cell.BooleanCellValue.ToString().ToUpper();
                 case CellType.Formula:
+                    //return c.CellFormula;
                     IFormulaEvaluator formulaEvaluator;
                     if (cell.Sheet.Workbook is XSSFWorkbook)
                         formulaEvaluator = new XSSFFormulaEvaluator(cell.Sheet.Workbook);
@@ -66,9 +67,24 @@ namespace Cliver
                         formulaEvaluator = new HSSFFormulaEvaluator(cell.Sheet.Workbook);
                     else
                         throw new Exception("Unexpected Workbook type: " + cell.Sheet.Workbook.GetType());
-                    cell = formulaEvaluator.EvaluateInCell(cell);
-                    goto GET_VALUE;
-                //        return c.CellFormula;
+                    var cv = formulaEvaluator.Evaluate(cell);
+                    switch (cv.CellType)
+                    {
+                        case CellType.Unknown:
+                            return cv.ToString();
+                        case CellType.Numeric:
+                            return cv.NumberValue.ToString();
+                        case CellType.String:
+                            return cv.StringValue;
+                        case CellType.Boolean:
+                            return cv.BooleanValue.ToString().ToUpper();
+                        case CellType.Error:
+                            return FormulaError.ForInt(cv.ErrorValue).String;
+                        case CellType.Blank:
+                            return string.Empty;
+                        default:
+                            throw new Exception("Unknown type: " + cv.CellType);
+                    }
                 case CellType.Error:
                     //return c.ErrorCellValue.ToString();
                     return FormulaError.ForInt(cell.ErrorCellValue).String;

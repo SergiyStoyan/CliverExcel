@@ -42,6 +42,7 @@ namespace Cliver
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
             int lastColumnX = x;
+            columnXs2width[lastColumnX] = Sheet.GetColumnWidth(lastColumnX - 1);
             var rows = Sheet.GetRowEnumerator();
             while (rows.MoveNext())
             {
@@ -49,8 +50,8 @@ namespace Cliver
                 int columnX = row.GetLastUsedColumnInRow(true);
                 if (lastColumnX < columnX)
                 {
-                    for (int i = columnX; i > lastColumnX; i--)
-                        columnXs2width[i] = Sheet.GetColumnWidth(i);
+                    for (int i = lastColumnX; i < columnX; i++)
+                        columnXs2width[i + 1] = Sheet.GetColumnWidth(i);
                     lastColumnX = columnX;
                 }
                 for (int i = columnX; i >= x; i--)
@@ -177,6 +178,10 @@ namespace Cliver
                 return CellReference.ConvertNumToColString(X - 1) + Y + ":" + CellReference.ConvertNumToColString(LastX - 1) + LastY;
             }
 
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns>(!) 0-based</returns>
             public CellRangeAddress GetCellRangeAddress()
             {
                 return new CellRangeAddress(Y - 1, LastY - 1, X - 1, LastX - 1);
@@ -185,13 +190,12 @@ namespace Cliver
 
         public void Highlight(Range range, Color color)
         {
-            CellRangeAddress cra = range.GetCellRangeAddress();
-            for (int y0 = cra.FirstRow; y0 <= cra.LastRow; y0++)
+            for (int y = range.Y; y <= range.LastY; y++)
             {
-                IRow row = GetRow(y0 + 1, true);
-                for (int x0 = cra.FirstColumn; x0 < row.LastCellNum && x0 <= cra.LastColumn; x0++)
+                IRow row = GetRow(y, true);
+                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
                 {
-                    ICell c = row.GetCell(x0 + 1, true);
+                    ICell c = row.GetCell(x, true);
                     c.CellStyle = highlight(Workbook, c.CellStyle, color);
                 }
             }
@@ -199,13 +203,12 @@ namespace Cliver
 
         public void SetStyle(Range range, ICellStyle style)
         {
-            CellRangeAddress cra = range.GetCellRangeAddress();
-            for (int y0 = cra.FirstRow; y0 <= cra.LastRow; y0++)
+            for (int y = range.Y; y <= range.LastY; y++)
             {
-                IRow row = GetRow(y0 + 1, true);
-                for (int x0 = cra.FirstColumn; x0 < row.LastCellNum && x0 <= cra.LastColumn; x0++)
+                IRow row = GetRow(y, true);
+                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
                 {
-                    ICell c = row.GetCell(x0 + 1, true);
+                    ICell c = row.GetCell(x, true);
                     c.CellStyle = style;
                 }
             }
@@ -217,6 +220,14 @@ namespace Cliver
             for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (Sheet.MergedRegions[i].Intersects(cra))
                     Sheet.RemoveMergedRegion(i);
+        }
+
+        public Range GetMergedRange(int y, int x)
+        {
+            foreach (var mr in Sheet.MergedRegions)
+                if (mr.IsInRange(y - 1, x - 1))
+                    return new Range(mr.FirstRow + 1, mr.LastRow + 1, mr.FirstColumn + 1, mr.LastColumn + 1);
+            return null;
         }
     }
 }
