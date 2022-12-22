@@ -100,7 +100,7 @@ namespace Cliver
         {
             if (x2 == null)
                 x2 = GetLastUsedColumnInRowRange(x1, null, true);
-            for (int x0 = x1 - 1; x0 <= x2; x0++)
+            for (int x0 = x1 - 1; x0 < x2; x0++)
             {
                 Sheet.AutoSizeColumn(x0);
                 if (padding > 0)
@@ -118,23 +118,23 @@ namespace Cliver
             if (range.LastY <= 0)
                 range.LastY = Sheet.LastRowNum + 1;
             if (range.LastX <= 0)
-                for (int y = range.Y - 1; y < range.LastY; y++)
+                for (int y0 = range.Y - 1; y0 < range.LastY; y0++)
                 {
-                    IRow row = Sheet.GetRow(y);
+                    IRow row = Sheet.GetRow(y0);
                     if (range.LastX < row?.LastCellNum)
                         range.LastX = row.LastCellNum;
                 }
 
             ICell[,] rangeCells = new ICell[range.LastY - range.Y + 1, range.LastX - range.X + 1];
-            for (int y = range.Y - 1; y < range.LastY; y++)
+            for (int y = range.Y; y <= range.LastY; y++)
             {
-                IRow row = Sheet.GetRow(y);
-                if (row == null || row.PhysicalNumberOfCells < 1)
+                IRow row = Sheet.GetRow(y - 1);
+                if (row == null)
                     continue;
-                for (int x = range.X - 1; x <= row.LastCellNum && x < range.LastX; x++)
+                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
                 {
-                    ICell cell = row.GetCell(x);
-                    rangeCells[y - range.Y + 1, x - range.X + 1] = cell;
+                    ICell cell = row.GetCell(x - 1);
+                    rangeCells[y - range.Y, x - range.X] = cell;
                     row.RemoveCell(cell);
                 }
             }
@@ -192,7 +192,9 @@ namespace Cliver
         {
             for (int y = range.Y; y <= range.LastY; y++)
             {
-                IRow row = GetRow(y, true);
+                IRow row = GetRow(y, color != null);
+                if (row == null)
+                    continue;
                 for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
                 {
                     ICell c = row.GetCell(x, true);
@@ -222,9 +224,21 @@ namespace Cliver
                     Sheet.RemoveMergedRegion(i);
         }
 
+        public void Merge(Range range, bool clearOldMerging = false)
+        {
+            if (clearOldMerging)
+                ClearMerging(range);
+            Sheet.AddMergedRegion(range.GetCellRangeAddress());
+        }
+
         public Range GetMergedRange(int y, int x)
         {
-            foreach (var mr in Sheet.MergedRegions)
+            return getMergedRange(Sheet, y, x);
+        }
+
+        static internal Range getMergedRange(ISheet sheet, int y, int x)
+        {
+            foreach (var mr in sheet.MergedRegions)
                 if (mr.IsInRange(y - 1, x - 1))
                     return new Range(mr.FirstRow + 1, mr.LastRow + 1, mr.FirstColumn + 1, mr.LastColumn + 1);
             return null;

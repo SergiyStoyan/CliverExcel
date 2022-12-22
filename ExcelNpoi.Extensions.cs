@@ -198,10 +198,7 @@ namespace Cliver
 
         static public Excel.Range GetMergedRange(this ICell cell)
         {
-            foreach (var mr in cell.Row.Sheet.MergedRegions)
-                if (mr.IsInRange(cell.RowIndex, cell.ColumnIndex))
-                    return new Excel.Range(mr.FirstRow + 1, mr.LastRow + 1, mr.FirstColumn + 1, mr.LastColumn + 1);
-            return null;
+            return Excel.getMergedRange(cell.Row.Sheet, cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
         /// <summary>

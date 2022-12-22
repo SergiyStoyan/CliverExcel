@@ -407,7 +407,7 @@ namespace Cliver
             //  }
         }
 
-        public string GetColumnName(int x)
+        static public string GetColumnName(int x)
         {
             return CellReference.ConvertNumToColString(x - 1);
         }
