@@ -19,18 +19,8 @@ using NPOI.SS.Formula;
 //works  
 namespace Cliver
 {
-    static public class ExcelExtensions
+    static public partial class ExcelExtensions
     {
-        static public ICell GetCell(this IRow r, int x, bool create)
-        {
-            ICell c = r.GetCell(x - 1);
-            if (c != null)
-                return c;
-            if (create)
-                return r.CreateCell(x - 1);
-            return null;
-        }
-
         static public string GetValueAsString(this ICell cell)
         {
             if (cell == null)
@@ -165,35 +155,9 @@ namespace Cliver
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
 
-        static public void Highlight(this IRow row, Excel.Color color)
-        {
-            row.RowStyle = Excel.highlight(row.Sheet.Workbook, row.RowStyle, color);
-        }
-
         static public void Highlight(this ICell cell, Excel.Color color)
         {
             cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, cell.CellStyle, color);
-        }
-
-        static public int GetLastUsedColumnInRow(this IRow row, bool includeMerged = true)
-        {
-            if (row == null || row.Cells.Count < 1)
-                return -1;
-            for (int x0 = row.Cells.Count - 1; x0 >= 0; x0--)
-            {
-                var c = row.Cells[x0];
-                if (!string.IsNullOrWhiteSpace(c.GetValueAsString()))
-                {
-                    if (includeMerged)
-                    {
-                        var r = c.GetMergedRange();
-                        if (r != null)
-                            return r.LastX;
-                    }
-                    return c.ColumnIndex + 1;
-                }
-            }
-            return -1;
         }
 
         static public Excel.Range GetMergedRange(this ICell cell)
@@ -201,12 +165,14 @@ namespace Cliver
             return Excel.getMergedRange(cell.Row.Sheet, cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
-        /// <summary>
-        /// (!) 0-based
-        /// </summary>
-        static public string GetStringAddress(this CellRangeAddress range)
+        static public void ClearMerging(this ICell cell)
         {
-            return CellReference.ConvertNumToColString(range.FirstColumn) + (range.FirstRow + 1) + ":" + CellReference.ConvertNumToColString(range.LastColumn) + (range.LastRow + 1);
+            for (int i = cell.Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                if (cell.Sheet.MergedRegions[i].IsInRange(cell.RowIndex, cell.ColumnIndex))
+                {
+                    cell.Sheet.RemoveMergedRegion(i);
+                    return;//there can be only one MergedRegion
+                }
         }
     }
 }

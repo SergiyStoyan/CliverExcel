@@ -146,7 +146,7 @@ namespace Cliver
         }
         public ISheet Sheet;
 
-        public string WorksheetName
+        public string SheetName
         {
             get
             {
@@ -165,11 +165,6 @@ namespace Cliver
             {
                 Workbook.Write(fileData, true);
             }
-        }
-
-        public int GetLastUsedRow(bool includeMerged = true)
-        {
-            return GetLastUsedRowInColumnRange(1, null, includeMerged);
         }
 
         public int AppendLine(IEnumerable<object> values)
@@ -227,27 +222,6 @@ namespace Cliver
                 //c.SetCellType(CellType.String);
                 c.SetCellValue(value);
             }
-        }
-
-        public IRow GetRow(int y, bool create)
-        {
-            IRow r = Sheet.GetRow(y - 1);
-            if (r == null && create)
-            {
-                r = Sheet.CreateRow(y - 1);
-                //ICellStyle cs = Workbook.CreateCellStyle();!!!replace it with GetRegisteredStyle()
-                //cs.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
-                //r.RowStyle = cs;//!!!Cells must be formatted as text! Otherwise string dates are converted into numbers. (However, if no format set, NPOI presets ' before numeric values to keep them as strings.)
-            }
-            return r;
-        }
-
-        public ICell GetCell(int y, int x, bool create)
-        {
-            IRow r = GetRow(y, create);
-            if (r == null)
-                return null;
-            return r.GetCell(x, create);
         }
 
         public void InsertLine(int y, IEnumerable<object> values = null)
@@ -405,232 +379,6 @@ namespace Cliver
             //    NPOI.OpenXml4Net.OPC.PackagePart pp = dp.GetPackagePart();
             //    pp.GetInputStream
             //  }
-        }
-
-        static public string GetColumnName(int x)
-        {
-            return CellReference.ConvertNumToColString(x - 1);
-        }
-
-        /// <summary>
-        /// !!!test
-        /// </summary>
-        /// <param name="rangeCells"></param>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public void CopyRange(CellRangeAddress range, ISheet sourceSheet, ISheet destinationSheet)
-        {
-            for (int y = range.FirstRow; y <= range.LastRow; y++)
-            {
-                IRow sourceRow = sourceSheet.GetRow(y);
-                if (sourceRow == null)
-                    continue;
-                IRow destinationRow = destinationSheet.GetRow(y);
-                if (destinationRow == null)
-                    destinationRow = destinationSheet.CreateRow(y);
-                for (int x = range.FirstColumn; x < sourceRow.LastCellNum && x <= range.LastColumn; x++)
-                {
-                    ICell sourceCell = sourceRow.GetCell(x);
-                    ICell destinationCell = destinationRow.GetCell(x);
-                    if (sourceCell == null)
-                    {
-                        if (destinationCell == null)
-                            continue;
-                        destinationRow.RemoveCell(destinationCell);
-                    }
-                    else
-                    {
-                        destinationCell = destinationRow.CreateCell(x);
-                        CopyCell(sourceCell, destinationCell);
-                    }
-                }
-            }
-        }
-
-        public void CopyColumn(string columnName, ISheet sourceSheet, ISheet destinationSheet)
-        {
-            int x = CellReference.ConvertColStringToIndex(columnName);
-            CopyColumn(x, sourceSheet, destinationSheet);
-        }
-
-        public void CopyColumn(int x, ISheet sourceSheet, ISheet destinationSheet)
-        {
-            var range = new CellRangeAddress(0, sourceSheet.LastRowNum, x - 1, x - 1);
-            CopyRange(range, sourceSheet, destinationSheet);
-        }
-
-        public void CopyCell(ICell source, ICell destination)
-        {
-            destination.SetBlank();
-            destination.SetCellType(source.CellType);
-            destination.CellStyle = source.CellStyle;
-            destination.CellComment = source.CellComment;
-            destination.Hyperlink = source.Hyperlink;
-            switch (source.CellType)
-            {
-                case CellType.Formula:
-                    destination.CellFormula = source.CellFormula;
-                    break;
-                case CellType.Numeric:
-                    destination.SetCellValue(source.NumericCellValue);
-                    break;
-                case CellType.String:
-                    destination.SetCellValue(source.StringCellValue);
-                    break;
-                case CellType.Boolean:
-                    destination.SetCellValue(source.BooleanCellValue);
-                    break;
-                case CellType.Error:
-                    destination.SetCellErrorValue(source.ErrorCellValue);
-                    break;
-                case CellType.Blank:
-                    destination.SetBlank();
-                    break;
-                default:
-                    throw new Exception("Unknown cell type: " + source.CellType);
-            }
-        }
-
-        public ICell CopyCell(ICell sourceCell, int destinationY, int destinationX)
-        {
-            if (sourceCell == null)
-            {
-                IRow destinationRow = GetRow(destinationY, false);
-                if (destinationRow == null)
-                    return null;
-                ICell destinationCell = destinationRow.GetCell(destinationX, false);
-                if (destinationCell == null)
-                    return destinationCell;
-                destinationRow.RemoveCell(destinationCell);
-                return destinationCell;
-            }
-            else
-            {
-                ICell destinationCell = GetCell(destinationY, destinationX, true);
-                CopyCell(sourceCell, destinationCell);
-                return destinationCell;
-            }
-        }
-
-        public void MoveCell(ICell sourceCell, int destinationY, int destinationX, Action<ICell> onFormulaCellMoved = null)
-        {
-            ICell destinationCell = CopyCell(sourceCell, destinationY, destinationX);
-            if (sourceCell != null)
-                sourceCell.Row.RemoveCell(sourceCell);
-            if (destinationCell?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(destinationCell);
-        }
-
-        public void CopyCell(int sourceY, int sourceX, int destinationY, int destinationX)
-        {
-            ICell sourceCell = GetCell(sourceY, sourceX, false);
-            CopyCell(sourceCell, destinationY, destinationX);
-        }
-
-        public void MoveCell(int sourceY, int sourceX, int destinationY, int destinationX, Action<ICell> onFormulaCellMoved = null)
-        {
-            ICell sourceCell = GetCell(sourceY, sourceX, false);
-            MoveCell(sourceCell, destinationY, destinationX, onFormulaCellMoved);
-        }
-
-        public int GetLastUsedRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
-        {
-            if (x2 == null)
-                x2 = int.MaxValue;
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
-            {
-                IRow row = (IRow)rows.Current;
-                var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a.GetValueAsString()));
-                if (c != null)
-                    luc = c;
-            }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
-            {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
-            }
-            return luc.RowIndex + 1;
-        }
-
-        public int GetLastUsedRowInColumns(bool includeMerged, params int[] xs)
-        {
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
-            {
-                IRow row = (IRow)rows.Current;
-                var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a.GetValueAsString()));
-                if (c != null)
-                    luc = c;
-            }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
-            {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
-            }
-            return luc.RowIndex + 1;
-        }
-
-        public int GetLastUsedRowInColumn(int x, bool includeMerged = true)
-        {
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
-            {
-                IRow row = (IRow)rows.Current;
-                var c = row.GetCell(x);
-                if (!string.IsNullOrEmpty(c?.GetValueAsString()))
-                    luc = c;
-            }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
-            {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
-            }
-            return luc.RowIndex + 1;
-        }
-
-        public int GetLastUsedColumnInRow(int y, bool includeMerged = true)
-        {
-            IRow row = GetRow(y, false);
-            if (row == null)
-                return -1;
-            return row.GetLastUsedColumnInRow(includeMerged);
-        }
-
-        public int GetLastUsedColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
-        {
-            var rows = Sheet.GetRowEnumerator();
-            int luc = -2;
-            while (rows.MoveNext())
-            {
-                IRow row = (IRow)rows.Current;
-                if (row.RowNum + 1 < y1)
-                    continue;
-                if (row.RowNum >= y2)
-                    break;
-                int i = row.GetLastUsedColumnInRow(includeMerged);
-                if (luc < i)
-                    luc = i;
-            }
-            return luc + 1;
-        }
-
-        public int GetLastUsedColumn(bool includeMerged)
-        {
-            return GetLastUsedColumnInRowRange(1, null, includeMerged);
         }
     }
 }

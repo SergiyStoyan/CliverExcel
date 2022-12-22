@@ -24,27 +24,6 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
-        public void HighlightRow(int y, Color color)
-        {
-            Highlight(GetRow(y, true), color);
-        }
-
-        public void Highlight(IRow row, Color color)
-        {
-            row.RowStyle = highlight(Workbook, row.RowStyle, color);
-        }
-
-        public void HighlightCell(int y, int x, Color color)
-        {
-            ICell c = GetCell(y, x, true);
-            c.CellStyle = highlight(Workbook, c.CellStyle, color);
-        }
-
-        public void Highlight(ICell cell, Color color)
-        {
-            cell.CellStyle = highlight(Workbook, cell.CellStyle, color);
-        }
-
         public class Color
         {
             public readonly byte R;
@@ -222,6 +201,14 @@ namespace Cliver
             return CopyStyle(unregisteredStyle, style);
         }
 
+        /// <summary>
+        /// Both styles can be unregistered. Nevertheless, font and format used by them must be registered in the respective workbooks.
+        /// </summary>
+        /// <param name="fromStyle"></param>
+        /// <param name="toStyle"></param>
+        /// <param name="toStyleWorkbook"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public ICellStyle CopyStyle(ICellStyle fromStyle, ICellStyle toStyle, IWorkbook toStyleWorkbook = null)
         {
             toStyle.Alignment = fromStyle.Alignment;
@@ -278,6 +265,12 @@ namespace Cliver
             throw new Exception("Unexpected Workbook type: " + Workbook.GetType());
         }
 
+        /// <summary>
+        /// Creates an unregistered copy of a style.
+        /// </summary>
+        /// <param name="style"></param>
+        /// <param name="styleCloneWorkbook"></param>
+        /// <returns></returns>
         public ICellStyle CloneUnregisteredStyle(ICellStyle style, IWorkbook styleCloneWorkbook = null)
         {
             ICellStyle s = CreateUnregisteredStyle();
