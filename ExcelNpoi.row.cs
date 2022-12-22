@@ -138,5 +138,20 @@ namespace Cliver
         {
             AutosizeRowsInRange();
         }
+
+        public void ClearRow(int y, bool clearMerging)
+        {
+            if (clearMerging)
+                ClearMergingForRow(y);
+            var r = GetRow(y, false);
+            if (r != null)
+                Sheet.RemoveRow(r);
+        }
+
+        public void ClearMergingForRow(int y)
+        {
+            Range r = new Range(y, y, 1, int.MaxValue);
+            ClearMerging(r);
+        }
     }
 }

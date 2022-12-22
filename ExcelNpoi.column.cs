@@ -119,5 +119,25 @@ namespace Cliver
         {
             AutosizeColumnsInRange(1, null, padding);
         }
+
+        public void ClearColumn(int x, bool clearMerging)
+        {
+            if (clearMerging)
+                ClearMergingForColumn(x);
+            var rows = Sheet.GetRowEnumerator();
+            while (rows.MoveNext())
+            {
+                IRow row = (IRow)rows.Current;
+                ICell c = row.GetCell(x);
+                if (c != null)
+                    row.RemoveCell(c);
+            }
+        }
+
+        public void ClearMergingForColumn(int x)
+        {
+            Range r = new  Range(1, int.MaxValue, x , x);
+            ClearMerging(r);
+        }
     }
 }
