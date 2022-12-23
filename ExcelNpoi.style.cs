@@ -130,7 +130,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Looks for an equal style in the workbook and creates a new one if it does not exists.
+        /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
         /// <param name="style">it must be a style created by CreateUnregisteredStyle() and then modified as needed</param>

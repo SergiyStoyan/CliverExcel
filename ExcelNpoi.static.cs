@@ -28,5 +28,10 @@ namespace Cliver
         {
             return CellReference.ConvertNumToColString(x - 1);
         }
+
+        static public int GetY(string columnName)
+        {
+            return CellReference.ConvertColStringToIndex(columnName);
+        }
     }
 }

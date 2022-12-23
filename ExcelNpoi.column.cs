@@ -21,6 +21,14 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public int FindColumnByHeader(Regex header, int headerY = 1)
+        {
+            for (int x = GetLastUsedColumnInRow(headerY, false); x > 0; x--)
+                if (header.IsMatch(this[headerY, x]))
+                    return x;
+            return -1;
+        }
+
         public void ShiftColumns(int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
@@ -136,7 +144,7 @@ namespace Cliver
 
         public void ClearMergingForColumn(int x)
         {
-            Range r = new  Range(1, int.MaxValue, x , x);
+            Range r = new Range(1, int.MaxValue, x, x);
             ClearMerging(r);
         }
     }

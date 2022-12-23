@@ -30,6 +30,7 @@ namespace Cliver
                 return r.CreateCell(x - 1);
             return null;
         }
+
         static public void Highlight(this IRow row, Excel.Color color)
         {
             row.RowStyle = Excel.highlight(row.Sheet.Workbook, row.RowStyle, color);
