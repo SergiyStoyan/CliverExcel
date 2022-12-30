@@ -87,6 +87,13 @@ namespace Cliver
 
         static public void SetLink(this ICell cell, Uri uri)
         {
+            if (uri == null)
+            {
+                //if (cell.GetValueAsString() == LinkEmptyValueFiller)
+                //    cell.SetCellValue("");
+                cell.Hyperlink = null;
+                return;
+            }
             if (string.IsNullOrEmpty(cell.GetValueAsString()))
                 cell.SetCellValue(LinkEmptyValueFiller);
             if (cell.Sheet.Workbook is XSSFWorkbook)
