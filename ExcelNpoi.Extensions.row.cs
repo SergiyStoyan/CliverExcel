@@ -24,11 +24,9 @@ namespace Cliver
         static public ICell GetCell(this IRow r, int x, bool create)
         {
             ICell c = r.GetCell(x - 1);
-            if (c != null)
-                return c;
-            if (create)
+            if (c == null && create)
                 return r.CreateCell(x - 1);
-            return null;
+            return c;
         }
 
         static public void Highlight(this IRow row, Excel.Color color)
@@ -36,7 +34,7 @@ namespace Cliver
             row.RowStyle = Excel.highlight(row.Sheet.Workbook, row.RowStyle, color);
         }
 
-        static public int GetLastUsedColumnInRow(this IRow row, bool includeMerged = true)
+        static public int GetLastNotEmptyColumnInRow(this IRow row, bool includeMerged = true)
         {
             if (row == null || row.Cells.Count < 1)
                 return -1;
@@ -53,6 +51,24 @@ namespace Cliver
                     }
                     return c.ColumnIndex + 1;
                 }
+            }
+            return -1;
+        }
+
+        static public int GetLastColumnInRow(this IRow row, bool includeMerged = true)
+        {
+            if (row == null || row.Cells.Count < 1)
+                return -1;
+            var c = row.Cells[row.Cells.Count - 1];
+            if (c != null)
+            {
+                if (includeMerged)
+                {
+                    var r = c.GetMergedRange();
+                    if (r != null)
+                        return r.LastX;
+                }
+                return c.ColumnIndex + 1;
             }
             return -1;
         }

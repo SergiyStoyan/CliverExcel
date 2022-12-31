@@ -22,16 +22,30 @@ using Newtonsoft.Json;
 //works  
 namespace Cliver
 {
-    public partial class Excel : IDisposable
+    public partial class Excel
     {
         static public string GetColumnName(int x)
         {
             return CellReference.ConvertNumToColString(x - 1);
         }
 
-        static public int GetY(string columnName)
+        static public int GetX(string columnName)
         {
-            return CellReference.ConvertColStringToIndex(columnName);
+            return CellReference.ConvertColStringToIndex(columnName) + 1;
+        }
+
+        static public (int Y, int X) GetCoordinates(string address)
+        {
+            var a = ParseAddress(address);
+            return (a.Y, GetX(a.ColumnName));
+        }
+
+        static public (int Y, string ColumnName) ParseAddress(string address)
+        {
+            Match m = Regex.Match(address, @"^\s*([a-z]+)(\d+)\s*$", RegexOptions.IgnoreCase);
+            if (!m.Success)
+                throw new Exception("Address is not parsable: " + address);
+            return (int.Parse(m.Groups[2].Value), m.Groups[1].Value);
         }
     }
 }

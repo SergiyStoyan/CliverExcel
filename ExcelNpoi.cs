@@ -169,19 +169,13 @@ namespace Cliver
 
         public int AppendLine(IEnumerable<object> values)
         {
-            int y = GetLastUsedRow(true) + 1;
-            int i = 1;
+            int y = GetLastNotEmptyRow(true) + 1;
+            var row = GetRow(y, true);
+            int x = 1;
             foreach (object v in values)
             {
-                string s;
-                if (v is string)
-                    s = (string)v;
-                else if (v != null)
-                    s = v.ToString();
-                else
-                    s = null;
-
-                this[y, i++] = s;
+                var c = row.GetCell(x++, true);
+                c.SetValue(v);
             }
             return y;
         }
@@ -189,7 +183,7 @@ namespace Cliver
         public void SetLink(int y, int x, Uri uri)
         {
             ICell c = GetCell(y, x, true);
-            if (string.IsNullOrEmpty(this[y, x]))
+            if (string.IsNullOrEmpty(GetValueAsString(y, x)))
                 c.SetCellValue(LinkEmptyValueFiller);
             if (Workbook is XSSFWorkbook)
                 c.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
@@ -208,18 +202,39 @@ namespace Cliver
             return new Uri(c.Hyperlink.Address, UriKind.RelativeOrAbsolute);
         }
 
+        public string GetValueAsString(int y, int x, bool allowNull = false)
+        {
+            ICell c = GetCell(y, x, false);
+            return c?.GetValueAsString(allowNull);
+        }
+
+        public object GetValue(int y, int x)
+        {
+            ICell c = GetCell(y, x, false);
+            return c?.GetValue();
+        }
+
+        public void SetValue(int y, int x, object value)
+        {
+            ICell c = GetCell(y, x, true);
+            c.SetValue(value);
+        }
+
+        /// <summary>
+        /// (!)Never returns NULL.
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
         public string this[int y, int x]
         {
             get
             {
-                ICell c = GetCell(y, x, false);
-                return ExcelExtensions.GetValueAsString(c/*, FormulaEvaluator*/);
+                return GetValueAsString(y, x, false);
             }
             set
             {
                 ICell c = GetCell(y, x, true);
-                //c.SetBlank();
-                //c.SetCellType(CellType.String);
                 c.SetCellValue(value);
             }
         }

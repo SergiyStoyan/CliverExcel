@@ -21,33 +21,45 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public string GetValueAsString(this ICell cell)
+        static public string GetValueAsString(this ICell cell, bool allowNull = false)
+        {
+            object o = cell?.GetValue();
+            if (!allowNull && o == null)
+                return string.Empty;
+            DateTime? dt = o as DateTime?;
+            if (dt != null)
+                return dt?.ToString("yyyy-MM-dd hh:mm:ss");
+            return o?.ToString();
+        }
+
+        static public object GetValue(this ICell cell)
         {
             if (cell == null)
                 return null;
             switch (cell.CellType)
             {
                 case CellType.Unknown:
-                    return cell.ToString();
+                    //return cell.ToString();
+                    throw new Exception("Needs debugging for this cell type: " + cell.CellType);
                 case CellType.Numeric:
                     if (DateUtil.IsCellDateFormatted(cell))
                     {
                         try
                         {
-                            return cell.DateCellValue.ToString("yyyy-MM-dd hh:mm:ss");
+                            return cell.DateCellValue;
                         }
                         catch (Exception e)//!!!bug in NPOI2.5.1: after called Save(), it throws NullReferenceException: GetLocaleCalendar()  https://github.com/nissl-lab/npoi/issues/358
                         {
                             //Log.Warning("NPOI bug", e);
-                            return DateTime.FromOADate(cell.NumericCellValue).ToString("yyyy-MM-dd hh:mm:ss");
+                            return DateTime.FromOADate(cell.NumericCellValue);
                         }
                         //return formatter.FormatCellValue(c);
                     }
-                    return cell.NumericCellValue.ToString();
+                    return cell.NumericCellValue;
                 case CellType.String:
                     return cell.StringCellValue;
                 case CellType.Boolean:
-                    return cell.BooleanCellValue.ToString().ToUpper();
+                    return cell.BooleanCellValue;
                 case CellType.Formula:
                     //return c.CellFormula;
                     IFormulaEvaluator formulaEvaluator;
@@ -61,17 +73,18 @@ namespace Cliver
                     switch (cv.CellType)
                     {
                         case CellType.Unknown:
-                            return cv.ToString();
+                            //return cv.ToString();
+                            throw new Exception("Needs debugging for this cell type: " + cell.CellType);
                         case CellType.Numeric:
-                            return cv.NumberValue.ToString();
+                            return cv.NumberValue;
                         case CellType.String:
                             return cv.StringValue;
                         case CellType.Boolean:
-                            return cv.BooleanValue.ToString().ToUpper();
+                            return cv.BooleanValue;
                         case CellType.Error:
                             return FormulaError.ForInt(cv.ErrorValue).String;
                         case CellType.Blank:
-                            return string.Empty;
+                            return null;
                         default:
                             throw new Exception("Unknown type: " + cv.CellType);
                     }
@@ -79,10 +92,38 @@ namespace Cliver
                     //return c.ErrorCellValue.ToString();
                     return FormulaError.ForInt(cell.ErrorCellValue).String;
                 case CellType.Blank:
-                    return string.Empty;
+                    return null;
                 default:
                     throw new Exception("Unknown type: " + cell.CellType);
             }
+        }
+
+        static public void SetValue(this ICell cell, object value)
+        {
+            if (value == null)
+            {
+                cell.SetBlank();
+                return;
+            }
+            double? d = value as double?;
+            if (d != null)
+            {
+                cell.SetCellValue(d.Value);
+                return;
+            }
+            bool? b = value as bool?;
+            if (b != null)
+            {
+                cell.SetCellValue(b.Value);
+                return;
+            }
+            DateTime? dt = value as DateTime?;
+            if (dt != null)
+            {
+                cell.SetCellValue(dt.Value);
+                return;
+            }
+            cell.SetCellValue(value.ToString());
         }
 
         static public void SetLink(this ICell cell, Uri uri)

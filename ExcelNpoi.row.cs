@@ -24,90 +24,157 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
-        public int GetLastUsedRow(bool includeMerged = true)
+        public int GetLastNotEmptyRow(bool includeMerged = true)
         {
-            return GetLastUsedRowInColumnRange(1, null, includeMerged);
+            return GetLastNotEmptyRowInColumnRange(1, null, includeMerged);
         }
 
         public IRow GetRow(int y, bool create)
         {
             IRow r = Sheet.GetRow(y - 1);
             if (r == null && create)
-            {
                 r = Sheet.CreateRow(y - 1);
-                //ICellStyle cs = Workbook.CreateCellStyle();!!!replace it with GetRegisteredStyle()
-                //cs.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
-                //r.RowStyle = cs;//!!!Cells must be formatted as text! Otherwise string dates are converted into numbers. (However, if no format set, NPOI presets ' before numeric values to keep them as strings.)
-            }
             return r;
         }
 
-        public int GetLastUsedRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
+        public int GetLastNotEmptyRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
         {
             if (x2 == null)
                 x2 = int.MaxValue;
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //ICell luc = null;
+            //while (rows.MoveNext())
+            //{
+            //    IRow row = (IRow)rows.Current;
+            //    var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a.GetValueAsString()));
+            //    if (c != null)
+            //        luc = c;
+            //}
+            //if (luc == null)
+            //    return -1;
+            //if (includeMerged)
+            //{
+            //    var r = luc.GetMergedRange();
+            //    if (r != null)
+            //        return r.LastY;
+            //}
+            //return luc.RowIndex + 1;
+            for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
-                IRow row = (IRow)rows.Current;
+                IRow row = Sheet.GetRow(i);
+                if (row == null)
+                    continue;
                 var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a.GetValueAsString()));
-                if (c != null)
-                    luc = c;
+                if (string.IsNullOrEmpty(c?.GetValueAsString()))
+                    continue;
+                if (includeMerged)
+                {
+                    var r = c.GetMergedRange();
+                    if (r != null)
+                        return r.LastY;
+                }
+                return c.RowIndex + 1;
             }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
-            {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
-            }
-            return luc.RowIndex + 1;
+            return -1;
         }
 
-        public int GetLastUsedRowInColumns(bool includeMerged, params int[] xs)
+        public int GetLastNotEmptyRowInColumns(bool includeMerged, params int[] xs)
         {
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //ICell luc = null;
+            //while (rows.MoveNext())
+            //{
+            //    IRow row = (IRow)rows.Current;
+            //    var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a.GetValueAsString()));
+            //    if (c != null)
+            //        luc = c;
+            //}
+            //if (luc == null)
+            //    return -1;
+            //if (includeMerged)
+            //{
+            //    var r = luc.GetMergedRange();
+            //    if (r != null)
+            //        return r.LastY;
+            //}
+            //return luc.RowIndex + 1;
+            for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
-                IRow row = (IRow)rows.Current;
+                IRow row = Sheet.GetRow(i);
+                if (row == null)
+                    continue;
                 var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a.GetValueAsString()));
-                if (c != null)
-                    luc = c;
+                if (string.IsNullOrEmpty(c?.GetValueAsString()))
+                    continue;
+                if (includeMerged)
+                {
+                    var r = c.GetMergedRange();
+                    if (r != null)
+                        return r.LastY;
+                }
+                return c.RowIndex + 1;
             }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
-            {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
-            }
-            return luc.RowIndex + 1;
+            return -1;
         }
 
-        public int GetLastUsedRowInColumn(int x, bool includeMerged = true)
+        public int GetLastNotEmptyRowInColumn(int x, bool includeMerged = true)
         {
-            var rows = Sheet.GetRowEnumerator();
-            ICell luc = null;
-            while (rows.MoveNext())
+            //ICell luc = null;
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            //{
+            //    IRow row = (IRow)rows.Current;
+            //    var c = row.GetCell(x - 1);
+            //    if (!string.IsNullOrEmpty(c?.GetValueAsString()))
+            //        luc = c;
+            //}
+            for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
-                IRow row = (IRow)rows.Current;
-                var c = row.GetCell(x);
-                if (!string.IsNullOrEmpty(c?.GetValueAsString()))
-                    luc = c;
+                IRow row = Sheet.GetRow(i);
+                if (row == null)
+                    continue;
+                var c = row.GetCell(x - 1);
+                if (string.IsNullOrEmpty(c?.GetValueAsString()))
+                    continue;
+                if (includeMerged)
+                {
+                    var r = c.GetMergedRange();
+                    if (r != null)
+                        return r.LastY;
+                }
+                return c.RowIndex + 1;
             }
-            if (luc == null)
-                return -1;
-            if (includeMerged)
+            return -1;
+        }
+
+        public int GetLastRowInColumn(int x, bool includeMerged = true)
+        {
+            //ICell luc = null;
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            //{
+            //    IRow row = (IRow)rows.Current;
+            //    var c = row.GetCell(x - 1);
+            //    if (c != null)
+            //        luc = c;
+            //}
+            for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
-                var r = luc.GetMergedRange();
-                if (r != null)
-                    return r.LastY;
+                IRow row = Sheet.GetRow(i);
+                if (row == null)
+                    continue;
+                var c = row.GetCell(x - 1);
+                if (c == null)
+                    continue;
+                if (includeMerged)
+                {
+                    var r = c.GetMergedRange();
+                    if (r != null)
+                        return r.LastY;
+                }
+                return c.RowIndex + 1;
             }
-            return luc.RowIndex + 1;
+            return -1;
         }
 
         public void HighlightRow(int y, Color color)
@@ -122,14 +189,13 @@ namespace Cliver
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            var rows = Sheet.GetRowEnumerator();
-            while (rows.MoveNext())
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            for (int y0 = y1 - 1; y0 < y2; y0++)
             {
-                IRow row = (IRow)rows.Current;
-                if (row.RowNum + 1 < y1)
+                IRow row = Sheet.GetRow(y0);
+                if (row == null)
                     continue;
-                if (row.RowNum >= y2)
-                    return;
                 row.Height = -1;
             }
         }

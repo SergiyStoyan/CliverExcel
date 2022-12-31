@@ -23,8 +23,8 @@ namespace Cliver
     {
         public int FindColumnByHeader(Regex header, int headerY = 1)
         {
-            for (int x = GetLastUsedColumnInRow(headerY, false); x > 0; x--)
-                if (header.IsMatch(this[headerY, x]))
+            for (int x = GetLastColumnInRow(headerY, false); x > 0; x--)
+                if (header.IsMatch(GetValueAsString(headerY, x, false)))
                     return x;
             return -1;
         }
@@ -34,11 +34,14 @@ namespace Cliver
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
             int lastColumnX = x;
             columnXs2width[lastColumnX] = Sheet.GetColumnWidth(lastColumnX - 1);
-            var rows = Sheet.GetRowEnumerator();
-            while (rows.MoveNext())
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            for (int y0 = Sheet.LastRowNum; y0 >= 0; y0--)
             {
-                IRow row = (IRow)rows.Current;
-                int columnX = row.GetLastUsedColumnInRow(true);
+                IRow row = Sheet.GetRow(y0);
+                if (row == null)
+                    continue;
+                int columnX = row.GetLastColumnInRow(true);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)
@@ -54,39 +57,58 @@ namespace Cliver
 
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
-            for (int i = row.GetLastUsedColumnInRow(true); i >= x; i--)
+            for (int i = row.GetLastColumnInRow(true); i >= x; i--)
                 MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
         }
 
-        public int GetLastUsedColumnInRow(int y, bool includeMerged = true)
+        public int GetLastNotEmptyColumnInRow(int y, bool includeMerged = true)
         {
             IRow row = GetRow(y, false);
             if (row == null)
                 return -1;
-            return row.GetLastUsedColumnInRow(includeMerged);
+            return row.GetLastNotEmptyColumnInRow(includeMerged);
         }
 
-        public int GetLastUsedColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        public int GetLastColumnInRow(int y, bool includeMerged = true)
         {
-            var rows = Sheet.GetRowEnumerator();
+            IRow row = GetRow(y, false);
+            if (row == null)
+                return -1;
+            return row.GetLastColumnInRow(includeMerged);
+        }
+
+        public int GetLastNotEmptyColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        {
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //int luc = -2;
+            //while (rows.MoveNext())
+            //{
+            //    IRow row = (IRow)rows.Current;
+            //    if (row.RowNum + 1 < y1)
+            //        continue;
+            //    if (row.RowNum >= y2)
+            //        break;
+            //    int i = row.GetLastNotEmptyColumnInRow(includeMerged);
+            //    if (luc < i)
+            //        luc = i;
+            //}
+            //return luc + 1;
             int luc = -2;
-            while (rows.MoveNext())
+            for (int y0 = y1 - 1; y0 < y2; y0++)
             {
-                IRow row = (IRow)rows.Current;
-                if (row.RowNum + 1 < y1)
+                IRow row = Sheet.GetRow(y0);
+                if (row == null)
                     continue;
-                if (row.RowNum >= y2)
-                    break;
-                int i = row.GetLastUsedColumnInRow(includeMerged);
+                int i = row.GetLastNotEmptyColumnInRow(includeMerged);
                 if (luc < i)
                     luc = i;
             }
             return luc + 1;
         }
 
-        public int GetLastUsedColumn(bool includeMerged)
+        public int GetLastNotEmptyColumn(bool includeMerged)
         {
-            return GetLastUsedColumnInRowRange(1, null, includeMerged);
+            return GetLastNotEmptyColumnInRowRange(1, null, includeMerged);
         }
 
         public void CopyColumn(string columnName, ISheet sourceSheet, ISheet destinationSheet)
@@ -114,7 +136,7 @@ namespace Cliver
         public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, int padding = 0)
         {
             if (x2 == null)
-                x2 = GetLastUsedColumnInRowRange(x1, null, true);
+                x2 = GetLastNotEmptyColumnInRowRange(x1, null, true);
             for (int x0 = x1 - 1; x0 < x2; x0++)
             {
                 Sheet.AutoSizeColumn(x0);
@@ -132,10 +154,13 @@ namespace Cliver
         {
             if (clearMerging)
                 ClearMergingForColumn(x);
-            var rows = Sheet.GetRowEnumerator();
-            while (rows.MoveNext())
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            for (int y0 = Sheet.LastRowNum; y0 >= 0; y0--)
             {
-                IRow row = (IRow)rows.Current;
+                IRow row = Sheet.GetRow(y0);
+                if (row == null)
+                    continue;
                 ICell c = row.GetCell(x);
                 if (c != null)
                     row.RemoveCell(c);

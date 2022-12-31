@@ -25,7 +25,7 @@ namespace Cliver
         {
             for (int x = firstCellX; x <= lastCellX; x++)
             {
-                for (int y = GetLastUsedRowInColumn(x); y >= cellsY; y--)
+                for (int y = GetLastNotEmptyRowInColumn(x); y >= cellsY; y--)
                 {
                     CopyCell(y, x, y + rowCount, x);
                     if (updateFormula == null)
@@ -119,6 +119,15 @@ namespace Cliver
             if (r == null)
                 return null;
             return r.GetCell(x, create);
+        }
+
+        public ICell GetCell(string address, bool create)
+        {
+            var cs = GetCoordinates(address);
+            IRow r = GetRow(cs.Y, create);
+            if (r == null)
+                return null;
+            return r.GetCell(cs.X, create);
         }
 
         public void HighlightCell(int y, int x, Color color)
