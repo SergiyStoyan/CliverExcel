@@ -191,6 +191,8 @@ namespace Cliver
         {
             //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
             //while (rows.MoveNext())
+            if (y2 == null)
+                y2 = GetLastNotEmptyRow();
             for (int y0 = y1 - 1; y0 < y2; y0++)
             {
                 IRow row = Sheet.GetRow(y0);

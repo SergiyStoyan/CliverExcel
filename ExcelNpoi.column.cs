@@ -93,6 +93,8 @@ namespace Cliver
             //        luc = i;
             //}
             //return luc + 1;
+            if (y2 == null)
+                y2 = GetLastNotEmptyRow();
             int luc = -2;
             for (int y0 = y1 - 1; y0 < y2; y0++)
             {
