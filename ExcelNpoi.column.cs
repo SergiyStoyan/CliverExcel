@@ -52,7 +52,7 @@ namespace Cliver
                     MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
-                Sheet.SetColumnWidth(columnX + shift - 1, columnXs2width[columnX]);
+                SetColumnWidth(columnX + shift, columnXs2width[columnX]);
         }
 
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
@@ -131,8 +131,20 @@ namespace Cliver
             {
                 Sheet.AutoSizeColumn(i - 1);
                 if (padding > 0)
-                    Sheet.SetColumnWidth(i - 1, Sheet.GetColumnWidth(i - 1) + padding);
+                    SetColumnWidth(i, Sheet.GetColumnWidth(i - 1) + padding);
             }
+        }
+
+        /// <summary>
+        /// Safe against the API's one
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="width"></param>
+        public void SetColumnWidth(int x, int width)
+        {
+            const int cellMaxWidth = 256 * 255;
+            int w = MathRoutines.Truncate(width, cellMaxWidth);
+            Sheet.SetColumnWidth(x - 1, w);
         }
 
         public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, int padding = 0)
@@ -143,7 +155,7 @@ namespace Cliver
             {
                 Sheet.AutoSizeColumn(x0);
                 if (padding > 0)
-                    Sheet.SetColumnWidth(x0, Sheet.GetColumnWidth(x0) + padding);
+                    SetColumnWidth(x0 + 1, Sheet.GetColumnWidth(x0) + padding);
             }
         }
 
