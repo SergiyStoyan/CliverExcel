@@ -19,7 +19,6 @@ using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Newtonsoft.Json;
 
-//works  
 namespace Cliver
 {
     public partial class Excel : IDisposable

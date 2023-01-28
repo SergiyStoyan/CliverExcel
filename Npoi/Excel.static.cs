@@ -15,15 +15,18 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
-using Newtonsoft.Json;
 
 //works  
 namespace Cliver
 {
     public partial class Excel
     {
+        static public string GetSafeSheetName(string name)
+        {
+            name = Regex.Replace(name, @"\:", "-");//npoi does not accept :
+            return WorkbookUtil.CreateSafeSheetName(name);
+        }
+
         static public string GetColumnName(int x)
         {
             return CellReference.ConvertNumToColString(x - 1);

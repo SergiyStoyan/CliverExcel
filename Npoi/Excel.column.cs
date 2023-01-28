@@ -15,18 +15,28 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
+using NPOI.SS.Formula.Functions;
+using static Cliver.Excel;
 
-//works  
 namespace Cliver
 {
     public partial class Excel
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="headerY"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int FindColumnByHeader(Regex header, int headerY = 1)
         {
-            for (int x = GetLastColumnInRow(headerY, false); x > 0; x--)
+            IRow row = GetRow(headerY, false);
+            if (row == null)
+                return 0;
+            for (int x = 1; x <= row.Cells.Count; x++)
                 if (header.IsMatch(GetValueAsString(headerY, x, false)))
                     return x;
-            return -1;
+            return 0;
         }
 
         public void ShiftColumns(int x, int shift, Action<ICell> onFormulaCellMoved = null)
@@ -61,85 +71,108 @@ namespace Cliver
                 MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyColumnInRow(int y, bool includeMerged = true)
         {
             IRow row = GetRow(y, false);
             if (row == null)
-                return -1;
+                return 0;
             return row.GetLastNotEmptyColumnInRow(includeMerged);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastColumnInRow(int y, bool includeMerged = true)
         {
             IRow row = GetRow(y, false);
             if (row == null)
-                return -1;
+                return 0;
             return row.GetLastColumnInRow(includeMerged);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
         {
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //int luc = -2;
-            //while (rows.MoveNext())
-            //{
-            //    IRow row = (IRow)rows.Current;
-            //    if (row.RowNum + 1 < y1)
-            //        continue;
-            //    if (row.RowNum >= y2)
-            //        break;
-            //    int i = row.GetLastNotEmptyColumnInRow(includeMerged);
-            //    if (luc < i)
-            //        luc = i;
-            //}
-            //return luc + 1;
             if (y2 == null)
-                y2 = GetLastNotEmptyRow();
-            int luc = -2;
-            for (int y0 = y1 - 1; y0 < y2; y0++)
-            {
-                IRow row = Sheet.GetRow(y0);
-                if (row == null)
-                    continue;
-                int i = row.GetLastNotEmptyColumnInRow(includeMerged);
-                if (luc < i)
-                    luc = i;
-            }
-            return luc + 1;
+                y2 = Sheet.LastRowNum + 1;
+            return GetRowsInRange(y1, y2).Max(a => a.GetLastNotEmptyColumnInRow(includeMerged));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyColumn(bool includeMerged)
         {
             return GetLastNotEmptyColumnInRowRange(1, null, includeMerged);
         }
 
-        public void CopyColumn(string columnName, ISheet sourceSheet, ISheet destinationSheet)
+        public void CopyColumn(string columnName, ISheet destinationSheet)
         {
             int x = CellReference.ConvertColStringToIndex(columnName);
-            CopyColumn(x, sourceSheet, destinationSheet);
+            CopyColumn(x, destinationSheet);
         }
 
-        public void CopyColumn(int x, ISheet sourceSheet, ISheet destinationSheet)
+        public void CopyColumn(int x, ISheet destinationSheet)
         {
-            var range = new CellRangeAddress(0, sourceSheet.LastRowNum, x - 1, x - 1);
-            CopyRange(range, sourceSheet, destinationSheet);
+            var range = new Range(1, Sheet.LastRowNum + 1, x, x);
+            CopyRange(range, destinationSheet);
         }
 
-        public void AutosizeColumns(IEnumerable<int> columnIs, int padding = 0)
+        /// <summary>
+        /// (!)Very slow on large data.
+        /// </summary>
+        /// <param name="columnIs"></param>
+        /// <param name="padding">a character width</param>
+        public void AutosizeColumns(IEnumerable<int> Xs, float padding = 0)
         {
-            foreach (int i in columnIs)
-            {
-                Sheet.AutoSizeColumn(i - 1);
-                if (padding > 0)
-                    SetColumnWidth(i, Sheet.GetColumnWidth(i - 1) + padding);
-            }
+            foreach (int y in Xs)
+                AutosizeColumn(y, padding);
+        }
+
+        /// <summary>
+        /// (!)Very slow on large data.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="padding">a character width</param>
+        public void AutosizeColumn(int x, float padding = 0)
+        {
+            Sheet.AutoSizeColumn(x - 1, false);
+
+            //GetCellsInColumn(x).Max(a => a.GetValueAsString())
+            //int width = ((int)(maxNumCharacters * 1.14388)) * 256;
+            //sheet.setColumnWidth(i, width);
+
+            if (padding > 0)
+                SetColumnWidth(x, Sheet.GetColumnWidth(x - 1) + (int)(padding * 256));
+        }
+
+        public IEnumerable<ICell> GetCellsInColumn(int x)
+        {
+            return GetRows().Select(a => a.GetCell(x));
         }
 
         /// <summary>
         /// Safe against the API's one
         /// </summary>
         /// <param name="x"></param>
-        /// <param name="width"></param>
+        /// <param name="width">units of 1/256th of a character width</param>
         public void SetColumnWidth(int x, int width)
         {
             const int cellMaxWidth = 256 * 255;
@@ -147,19 +180,45 @@ namespace Cliver
             Sheet.SetColumnWidth(x - 1, w);
         }
 
-        public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, int padding = 0)
+        /// <summary>
+        /// Safe against the API's one
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="width">a character width</param>
+        public void SetColumnWidth(int x, float width)
         {
-            if (x2 == null)
-                x2 = GetLastNotEmptyColumnInRowRange(x1, null, true);
-            for (int x0 = x1 - 1; x0 < x2; x0++)
-            {
-                Sheet.AutoSizeColumn(x0);
-                if (padding > 0)
-                    SetColumnWidth(x0 + 1, Sheet.GetColumnWidth(x0) + padding);
-            }
+            SetColumnWidth(x, (int)(width * 255));
         }
 
-        public void AutosizeColumns(int padding = 0)
+        /// <summary>
+        /// (!)Very slow on large data.
+        /// </summary>
+        /// <param name="x1"></param>
+        /// <param name="x2"></param>
+        /// <param name="padding">a character width</param>
+        public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, float padding = 0)
+        {
+            if (x2 == null)
+                x2 = GetLastColumn();
+            for (int x = x1; x <= x2; x++)
+                AutosizeColumn(x, padding);
+        }
+
+        public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        {
+            return GetRowsInRange(y1, y2).Max(a => a.GetLastColumnInRow(includeMerged));
+        }
+
+        public int GetLastColumn(bool includeMerged = true)
+        {
+            return GetLastColumnInRowRange(1, null, includeMerged);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="padding">a character width</param>
+        public void AutosizeColumns(float padding = 0)
         {
             AutosizeColumnsInRange(1, null, padding);
         }
@@ -185,6 +244,13 @@ namespace Cliver
         {
             Range r = new Range(1, int.MaxValue, x, x);
             ClearMerging(r);
+        }
+
+        public void SetStyleForColumn(int x, ICellStyle style, bool createCells)
+        {
+            int y2 = Sheet.LastRowNum + 1;
+            for (int y = 1; y <= y2; y++)
+                GetRow(y, true).GetCell(x, createCells).CellStyle = style;
         }
     }
 }

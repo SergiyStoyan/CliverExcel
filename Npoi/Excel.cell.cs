@@ -16,7 +16,6 @@ using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
 
-//works  
 namespace Cliver
 {
     public partial class Excel
@@ -130,16 +129,14 @@ namespace Cliver
             return r.GetCell(cs.X, create);
         }
 
-        public void HighlightCell(int y, int x, Color color)
+        public void HighlightCell(int y, int x, ICellStyle style, Color color)
         {
-            ICell c = GetCell(y, x, true);
-            c.CellStyle = highlight(Workbook, c.CellStyle, color);
+            GetCell(y, x, true).Highlight(style, color);
         }
 
-        public void Highlight(ICell cell, Color color)
+        public void Highlight(ICell cell, ICellStyle style, Color color)
         {
-            cell.CellStyle = highlight(Workbook, cell.CellStyle, color);
+            cell.Highlight(style, color);
         }
-
     }
 }

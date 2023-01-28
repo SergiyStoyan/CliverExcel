@@ -8,38 +8,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Drawing;
 using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
-using Newtonsoft.Json;
 
-//works  
 namespace Cliver
 {
+    /// <summary>
+    /// It can have only one sheet active at time. Changing the active sheet is done by OpenSheet().
+    /// (!)Row and column numbers, indexes of objects like sheets, are 1-based, when native NPOI objects tend to use 0-based indexes.
+    /// </summary>
     public partial class Excel : IDisposable
     {
         static Excel()
         {
         }
 
-        public Excel(string file, int worksheetId = 1)
+        public Excel(string file, int sheetIndex = 1)
         {
             File = file;
             init();
-            OpenWorksheet(worksheetId);
+            OpenSheet(sheetIndex);
         }
 
-        public Excel(string file, string worksheetName)
+        public Excel(string file, string sheetName)
         {
             File = file;
             init();
-            OpenWorksheet(worksheetName);
+            OpenSheet(sheetName);
         }
 
         void init()
@@ -61,13 +60,15 @@ namespace Cliver
                     }
                 }
             else
+            {
+                //System.IO.File.Create(File).Dispose();
                 Workbook = new XSSFWorkbook();
+            }
         }
 
-        public IWorkbook Workbook;
-        //public IFormulaEvaluator FormulaEvaluator = null;
+        public IWorkbook Workbook { get; private set; }
 
-        public readonly string File;
+        public string File { get; private set; }
 
         ~Excel()
         {
@@ -83,6 +84,73 @@ namespace Cliver
                     Workbook.Close();
                     Workbook = null;
                 }
+            }
+        }
+
+        public bool Disposed { get { return Workbook == null; } }
+
+        /// <summary>
+        /// Set the active sheet. If no sheet with such name exists, a new sheet is created.
+        /// </summary>
+        /// <param name="name">(!)name can be auto-corrected</param>
+        public void OpenSheet(string name)
+        {
+            Sheet = Workbook.GetSheet(name);
+            if (Sheet == null)
+            {
+                Sheet = Workbook.CreateSheet(GetSafeSheetName(name));
+
+                //!!!All Sheet must be formatted as text! Otherwise string dates are converted into numbers.
+                //!!!No way found to set default style for a whole sheet. However, NPOI presets ' before numeric values to keep them as strings.
+                //ICellStyle defaultStyle = (XSSFCellStyle)Workbook.CreateCellStyle();
+                //defaultStyle.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
+                //ICell c = GetCell(0, 0, true);
+                //Sheet.SetDefaultColumnStyle(0, defaultStyle);
+            }
+        }
+        //ICellStyle defaultStyle;
+
+        /// <summary>
+        /// Set the active sheet.
+        /// </summary>
+        /// <param name="index">1-based</param>
+        /// <returns>true if the index exists, otherwise false</returns>
+        public bool OpenSheet(int index)
+        {
+            if (Workbook.NumberOfSheets > 0 && Workbook.NumberOfSheets >= index)
+            {
+                Sheet = Workbook.GetSheetAt(index - 1);
+                return true;
+            }
+            return false;
+        }
+
+        public ISheet Sheet { get; private set; }
+
+        /// <summary>
+        /// Get name/rename the active sheet.
+        /// (!)When setting, name can be auto-corrected.
+        /// </summary>
+        public string SheetName
+        {
+            get
+            {
+                return Sheet?.SheetName;
+            }
+            set
+            {
+                if (Sheet != null)
+                    Workbook.SetSheetName(Workbook.GetSheetIndex(Sheet), GetSafeSheetName(value));
+            }
+        }
+
+        public void Save(string file = null)
+        {
+            if (file != null)
+                File = file;
+            using (var fileData = new FileStream(File, FileMode.Create))
+            {
+                Workbook.Write(fileData, true);
             }
         }
 
@@ -116,90 +184,14 @@ namespace Cliver
             }
         }
 
-        public void OpenWorksheet(string name)
-        {
-            Sheet = Workbook.GetSheet(name);
-            if (Sheet == null)
-            {
-                name = Regex.Replace(name, @"\:", "-");//npoi does not accept :
-                Sheet = Workbook.CreateSheet(WorkbookUtil.CreateSafeSheetName(name));
-
-                //!!!All Sheet must be formatted as text! Otherwise string dates are converted into numbers.
-                //!!!No way found to set default style for a whole sheet. However, NPOI presets ' before numeric values to keep them as strings.
-                //ICellStyle defaultStyle = (XSSFCellStyle)Workbook.CreateCellStyle();
-                //defaultStyle.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
-                //ICell c = GetCell(0, 0, true);
-                //Sheet.SetDefaultColumnStyle(0, defaultStyle);
-            }
-        }
-        //ICellStyle defaultStyle;
-
-        public bool OpenWorksheet(int index)
-        {
-            index--;
-            if (Workbook.NumberOfSheets > 0 && Workbook.NumberOfSheets > index)
-            {
-                Sheet = Workbook.GetSheetAt(index);
-                return true;
-            }
-            return false;
-        }
-        public ISheet Sheet;
-
-        public string SheetName
-        {
-            get
-            {
-                return Sheet.SheetName;
-            }
-            set
-            {
-                if (Sheet != null)
-                    Workbook.SetSheetName(Workbook.GetSheetIndex(Sheet), value);
-            }
-        }
-
-        public void Save()
-        {
-            using (var fileData = new FileStream(File, FileMode.Create))
-            {
-                Workbook.Write(fileData, true);
-            }
-        }
-
-        public int AppendLine(IEnumerable<object> values)
-        {
-            int y = GetLastNotEmptyRow(true) + 1;
-            var row = GetRow(y, true);
-            int x = 1;
-            foreach (object v in values)
-            {
-                var c = row.GetCell(x++, true);
-                c.SetValue(v);
-            }
-            return y;
-        }
-
         public void SetLink(int y, int x, Uri uri)
         {
-            ICell c = GetCell(y, x, true);
-            if (string.IsNullOrEmpty(GetValueAsString(y, x)))
-                c.SetCellValue(LinkEmptyValueFiller);
-            if (Workbook is XSSFWorkbook)
-                c.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
-            else if (Workbook is HSSFWorkbook)
-                c.Hyperlink = new HSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
+            GetCell(y, x, true).SetLink(uri);
         }
-        public string LinkEmptyValueFiller = "           ";
 
         public Uri GetLink(int y, int x)
         {
-            ICell c = GetCell(y, x, false);
-            if (c == null)
-                return null;
-            if (c.Hyperlink == null)
-                return null;
-            return new Uri(c.Hyperlink.Address, UriKind.RelativeOrAbsolute);
+            return GetCell(y, x, false)?.GetLink();
         }
 
         public string GetValueAsString(int y, int x, bool allowNull = false)
@@ -239,70 +231,9 @@ namespace Cliver
             }
         }
 
-        public void InsertLine(int y, IEnumerable<object> values = null)
-        {
-            if (y <= Sheet.LastRowNum)
-                Sheet.ShiftRows(y - 1, Sheet.LastRowNum, 1);
-            GetRow(y, true);
-            if (values != null)
-                WriteLine(y, values);
-        }
-
-        public void WriteLine(int y, IEnumerable<object> values)
-        {
-            IRow r = GetRow(y, true);
-
-            int x = 1;
-            foreach (object v in values)
-            {
-                string s;
-                if (v is string)
-                    s = (string)v;
-                else if (v != null)
-                    s = v.ToString();
-                else
-                    s = null;
-
-                r.GetCell(x++, true).SetCellValue(s);
-            }
-        }
-
         public void CreateDropdown(int y, int x, IEnumerable<object> values, object value, bool allowBlank = true)
         {
-            List<string> vs = new List<string>();
-            foreach (object v in values)
-            {
-                string s;
-                if (v is string)
-                    s = (string)v;
-                else if (v != null)
-                    s = v.ToString();
-                else
-                    s = null;
-                vs.Add(s);
-            }
-            IDataValidationHelper dvh = new XSSFDataValidationHelper((XSSFSheet)Sheet);
-            //string dvs = string.Join(",", vs);
-            //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
-            //if (dvc == null)
-            //dvc = dvh.CreateCustomConstraint(dvs);
-            IDataValidationConstraint dvc = dvh.CreateExplicitListConstraint(vs.ToArray());
-            CellRangeAddressList cral = new CellRangeAddressList(y - 1, y - 1, x - 1, x - 1);
-            IDataValidation dv = dvh.CreateValidation(dvc, cral);
-            dv.SuppressDropDownArrow = true;
-            dv.EmptyCellAllowed = allowBlank;
-            ((XSSFSheet)Sheet).AddValidationData(dv);
-
-            {
-                string s;
-                if (value is string)
-                    s = (string)value;
-                else if (value != null)
-                    s = value.ToString();
-                else
-                    s = null;
-                GetCell(y, x, true).SetCellValue(s);
-            }
+            GetCell(y, x, true).CreateDropdown(values, value, allowBlank);
         }
 
         public void AddImage(int y, int x, /*string name,*/ byte[] pngImage)//!!!!buggy

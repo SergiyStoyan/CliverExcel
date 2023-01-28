@@ -19,11 +19,15 @@ using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Newtonsoft.Json;
 
-//works  
 namespace Cliver
 {
     public partial class Excel : IDisposable
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyRow(bool includeMerged = true)
         {
             return GetLastNotEmptyRowInColumnRange(1, null, includeMerged);
@@ -37,28 +41,17 @@ namespace Cliver
             return r;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x1"></param>
+        /// <param name="x2"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
         {
             if (x2 == null)
                 x2 = int.MaxValue;
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //ICell luc = null;
-            //while (rows.MoveNext())
-            //{
-            //    IRow row = (IRow)rows.Current;
-            //    var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a.GetValueAsString()));
-            //    if (c != null)
-            //        luc = c;
-            //}
-            //if (luc == null)
-            //    return -1;
-            //if (includeMerged)
-            //{
-            //    var r = luc.GetMergedRange();
-            //    if (r != null)
-            //        return r.LastY;
-            //}
-            //return luc.RowIndex + 1;
             for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
                 IRow row = Sheet.GetRow(i);
@@ -71,33 +64,21 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.LastY;
+                        return r.Y2;
                 }
                 return c.RowIndex + 1;
             }
-            return -1;
+            return 0;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="includeMerged"></param>
+        /// <param name="xs"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyRowInColumns(bool includeMerged, params int[] xs)
         {
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //ICell luc = null;
-            //while (rows.MoveNext())
-            //{
-            //    IRow row = (IRow)rows.Current;
-            //    var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a.GetValueAsString()));
-            //    if (c != null)
-            //        luc = c;
-            //}
-            //if (luc == null)
-            //    return -1;
-            //if (includeMerged)
-            //{
-            //    var r = luc.GetMergedRange();
-            //    if (r != null)
-            //        return r.LastY;
-            //}
-            //return luc.RowIndex + 1;
             for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
                 IRow row = Sheet.GetRow(i);
@@ -110,24 +91,21 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.LastY;
+                        return r.Y2;
                 }
                 return c.RowIndex + 1;
             }
-            return -1;
+            return 0;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyRowInColumn(int x, bool includeMerged = true)
         {
-            //ICell luc = null;
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //while (rows.MoveNext())
-            //{
-            //    IRow row = (IRow)rows.Current;
-            //    var c = row.GetCell(x - 1);
-            //    if (!string.IsNullOrEmpty(c?.GetValueAsString()))
-            //        luc = c;
-            //}
             for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
                 IRow row = Sheet.GetRow(i);
@@ -140,24 +118,21 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.LastY;
+                        return r.Y2;
                 }
                 return c.RowIndex + 1;
             }
-            return -1;
+            return 0;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
         public int GetLastRowInColumn(int x, bool includeMerged = true)
         {
-            //ICell luc = null;
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //while (rows.MoveNext())
-            //{
-            //    IRow row = (IRow)rows.Current;
-            //    var c = row.GetCell(x - 1);
-            //    if (c != null)
-            //        luc = c;
-            //}
             for (int i = Sheet.LastRowNum; i >= 0; i--)
             {
                 IRow row = Sheet.GetRow(i);
@@ -170,36 +145,26 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.LastY;
+                        return r.Y2;
                 }
                 return c.RowIndex + 1;
             }
-            return -1;
+            return 0;
         }
 
-        public void HighlightRow(int y, Color color)
+        public void HighlightRow(int y, ICellStyle style, Color color)
         {
-            Highlight(GetRow(y, true), color);
+            GetRow(y, true).Highlight(style, color);
         }
 
-        public void Highlight(IRow row, Color color)
+        public void Highlight(IRow row, ICellStyle style, Color color)
         {
-            row.RowStyle = highlight(Workbook, row.RowStyle, color);
+            row.Highlight(style, color);
         }
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //while (rows.MoveNext())
-            if (y2 == null)
-                y2 = GetLastNotEmptyRow();
-            for (int y0 = y1 - 1; y0 < y2; y0++)
-            {
-                IRow row = Sheet.GetRow(y0);
-                if (row == null)
-                    continue;
-                row.Height = -1;
-            }
+            GetRowsInRange(y1, y2).ForEach(a => a.Height = -1);
         }
 
         public void AutosizeRows()
@@ -220,6 +185,55 @@ namespace Cliver
         {
             Range r = new Range(y, y, 1, int.MaxValue);
             ClearMerging(r);
+        }
+
+        public IEnumerable<IRow> GetRowsInRange(int y1 = 1, int? y2 = null)
+        {
+            if (y2 == null)
+                y2 = Sheet.LastRowNum + 1;
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            for (int i = y1 - 1; i < y2; i++)
+                yield return Sheet.GetRow(i);
+        }
+
+        public IEnumerable<IRow> GetRows()
+        {
+            return GetRowsInRange();
+        }
+
+        public IRow AppendRow(IEnumerable<object> values)
+        {
+            int y = Sheet.LastRowNum + 2;
+            return WriteRow(y, values);
+        }
+
+        public IRow AppendRow(params object[] values)
+        {
+            return AppendRow(values);
+        }
+
+        public IRow InsertRow(int y, IEnumerable<object> values = null)
+        {
+            if (y <= Sheet.LastRowNum)
+                Sheet.ShiftRows(y - 1, Sheet.LastRowNum, 1);
+            return WriteRow(y, values);
+        }
+
+        public IRow InsertRow(params object[] values)
+        {
+            return InsertRow((IEnumerable<object>)values);
+        }
+
+        public IRow WriteRow(int y, IEnumerable<object> values)
+        {
+            IRow r = GetRow(y, true);
+            r.WriteRow(values);
+            return r;
+        }
+
+        public IRow WriteRow(int y, params object[] values)
+        {
+            return WriteRow(y, (IEnumerable<object>)values);
         }
     }
 }

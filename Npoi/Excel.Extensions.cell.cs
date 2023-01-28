@@ -16,7 +16,6 @@ using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
 
-//works  
 namespace Cliver
 {
     static public partial class ExcelExtensions
@@ -126,6 +125,15 @@ namespace Cliver
             cell.SetCellValue(value.ToString());
         }
 
+        static public Uri GetLink(this ICell cell)
+        {
+            if (cell == null)
+                return null;
+            if (cell.Hyperlink == null)
+                return null;
+            return new Uri(cell.Hyperlink.Address, UriKind.RelativeOrAbsolute);
+        }
+
         static public void SetLink(this ICell cell, Uri uri)
         {
             if (uri == null)
@@ -143,15 +151,6 @@ namespace Cliver
                 cell.Hyperlink = new HSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
         }
         public static string LinkEmptyValueFiller = "           ";
-
-        static public Uri GetLink(this ICell cell)
-        {
-            if (cell == null)
-                return null;
-            if (cell.Hyperlink == null)
-                return null;
-            return new Uri(cell.Hyperlink.Address, UriKind.RelativeOrAbsolute);
-        }
 
         static public void UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
         {
@@ -203,9 +202,9 @@ namespace Cliver
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
 
-        static public void Highlight(this ICell cell, Excel.Color color)
+        static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
         {
-            cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, cell.CellStyle, color);
+            cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
         }
 
         static public Excel.Range GetMergedRange(this ICell cell)
@@ -222,5 +221,63 @@ namespace Cliver
                     return;//there can be only one MergedRegion
                 }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns>1-based</returns>
+        static public int Y(this ICell cell)
+        {
+            return cell.RowIndex + 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns>1-based</returns>
+        static public int X(this ICell cell)
+        {
+            return cell.ColumnIndex + 1;
+        }
+
+        static public void CreateDropdown(this ICell cell, IEnumerable<object> values, object value, bool allowBlank = true)
+        {
+            List<string> vs = new List<string>();
+            foreach (object v in values)
+            {
+                string s;
+                if (v is string)
+                    s = (string)v;
+                else if (v != null)
+                    s = v.ToString();
+                else
+                    s = null;
+                vs.Add(s);
+            }
+            IDataValidationHelper dvh = new XSSFDataValidationHelper((XSSFSheet)cell.Sheet);
+            //string dvs = string.Join(",", vs);
+            //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
+            //if (dvc == null)
+            //dvc = dvh.CreateCustomConstraint(dvs);
+            IDataValidationConstraint dvc = dvh.CreateExplicitListConstraint(vs.ToArray());
+            CellRangeAddressList cral = new CellRangeAddressList(cell.RowIndex, cell.RowIndex, cell.ColumnIndex, cell.ColumnIndex);
+            IDataValidation dv = dvh.CreateValidation(dvc, cral);
+            dv.SuppressDropDownArrow = true;
+            dv.EmptyCellAllowed = allowBlank;
+            ((XSSFSheet)cell.Sheet).AddValidationData(dv);
+
+            {
+                string s;
+                if (value is string)
+                    s = (string)value;
+                else if (value != null)
+                    s = value.ToString();
+                else
+                    s = null;
+                cell.SetCellValue(s);
+            }
+        }       
     }
 }

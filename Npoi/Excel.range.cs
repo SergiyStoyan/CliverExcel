@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Drawing;
 using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -25,27 +24,27 @@ namespace Cliver
         /// </summary>
         public class Range
         {
-            public int X;
-            public int LastX = 0;
-            public int Y;
-            public int LastY = 0;
+            public int X1;
+            public int X2;
+            public int Y1;
+            public int Y2;
 
-            public Range(int y, int lastY, int x, int lastX)
+            public Range(int y1, int y2, int x1, int x2)
             {
-                Y = y;
-                LastY = lastY;
-                X = x;
-                LastX = lastX;
+                Y1 = y1;
+                Y2 = y2;
+                X1 = x1;
+                X2 = x2;
             }
 
             public ICell GetMainCell(Excel excel, bool create)
             {
-                return excel.GetCell(Y, X, create);
+                return excel.GetCell(Y1, X1, create);
             }
 
             public string GetStringAddress()
             {
-                return CellReference.ConvertNumToColString(X - 1) + Y + ":" + CellReference.ConvertNumToColString(LastX - 1) + LastY;
+                return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + CellReference.ConvertNumToColString(X2 - 1) + Y2;
             }
 
             /// <summary>
@@ -54,33 +53,48 @@ namespace Cliver
             /// <returns>(!) 0-based</returns>
             public CellRangeAddress GetCellRangeAddress()
             {
-                return new CellRangeAddress(Y - 1, LastY - 1, X - 1, LastX - 1);
+                return new CellRangeAddress(Y1 - 1, Y2 - 1, X1 - 1, X2 - 1);
             }
         }
 
+        /// <summary>
+        /// (!)Each call registers a new style for non-styled cells. If many calls, consider rather highlighting styles.
+        /// </summary>
+        /// <param name="range"></param>
+        /// <param name="color"></param>
         public void Highlight(Range range, Color color)
         {
-            for (int y = range.Y; y <= range.LastY; y++)
+            ICellStyle newStyle = null;
+            for (int y = range.Y1; y <= range.Y2; y++)
             {
                 IRow row = GetRow(y, color != null);
                 if (row == null)
                     continue;
-                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
+                for (int x = range.X1; x <= row.LastCellNum && x <= range.X2; x++)
                 {
                     ICell c = row.GetCell(x, true);
+                    var cs = c.CellStyle;
+                    if (cs == null)
+                    {
+                        if (newStyle == null)
+                            newStyle = highlight(Workbook, null, color);
+                        cs = newStyle;
+                    }
                     c.CellStyle = highlight(Workbook, c.CellStyle, color);
                 }
             }
         }
 
-        public void SetStyle(Range range, ICellStyle style)
+        public void SetStyle(Range range, ICellStyle style, bool createCells)
         {
-            for (int y = range.Y; y <= range.LastY; y++)
+            for (int y = range.Y1; y <= range.Y2; y++)
             {
-                IRow row = GetRow(y, true);
-                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
+                IRow row = GetRow(y, createCells);
+                if (row == null)
+                    continue;
+                for (int x = range.X1; x <= row.LastCellNum && x <= range.X2; x++)
                 {
-                    ICell c = row.GetCell(x, true);
+                    ICell c = row.GetCell(x, createCells);
                     c.CellStyle = style;
                 }
             }
@@ -121,17 +135,19 @@ namespace Cliver
         /// <param name="y"></param>
         /// <param name="x"></param>
         /// <returns></returns>
-        public void CopyRange(CellRangeAddress range, ISheet sourceSheet, ISheet destinationSheet)
+        public void CopyRange(Range range, ISheet destinationSheet)
         {
-            for (int y = range.FirstRow; y <= range.LastRow; y++)
+            int maxY = Math.Max(range.Y2, Sheet.LastRowNum + 1);
+            for (int y = range.Y1; y <= maxY; y++)
             {
-                IRow sourceRow = sourceSheet.GetRow(y);
+                IRow sourceRow = Sheet.GetRow(y);
                 if (sourceRow == null)
                     continue;
                 IRow destinationRow = destinationSheet.GetRow(y);
                 if (destinationRow == null)
                     destinationRow = destinationSheet.CreateRow(y);
-                for (int x = range.FirstColumn; x < sourceRow.LastCellNum && x <= range.LastColumn; x++)
+                int maxX = Math.Max(range.X2, sourceRow.LastCellNum);
+                for (int x = range.X1; x < maxX; x++)
                 {
                     ICell sourceCell = sourceRow.GetCell(x);
                     ICell destinationCell = destinationRow.GetCell(x);
@@ -152,26 +168,18 @@ namespace Cliver
 
         public ICell[,] CutRange(Range range)
         {
-            if (range.LastY <= 0)
-                range.LastY = Sheet.LastRowNum + 1;
-            if (range.LastX <= 0)
-                for (int y0 = range.Y - 1; y0 < range.LastY; y0++)
-                {
-                    IRow row = Sheet.GetRow(y0);
-                    if (range.LastX < row?.LastCellNum)
-                        range.LastX = row.LastCellNum;
-                }
-
-            ICell[,] rangeCells = new ICell[range.LastY - range.Y + 1, range.LastX - range.X + 1];
-            for (int y = range.Y; y <= range.LastY; y++)
+            ICell[,] rangeCells = new ICell[range.Y2 - range.Y1 + 1, range.X2 - range.X1 + 1];
+            int maxY = Math.Max(range.Y2, Sheet.LastRowNum + 1);
+            for (int y = range.Y1; y <= maxY; y++)
             {
                 IRow row = Sheet.GetRow(y - 1);
                 if (row == null)
                     continue;
-                for (int x = range.X; x <= row.LastCellNum && x <= range.LastX; x++)
+                int maxX = Math.Max(range.X2, row.LastCellNum);
+                for (int x = range.X1; x <= maxX; x++)
                 {
                     ICell cell = row.GetCell(x - 1);
-                    rangeCells[y - range.Y, x - range.X] = cell;
+                    rangeCells[y - range.Y1, x - range.X1] = cell;
                     row.RemoveCell(cell);
                 }
             }
