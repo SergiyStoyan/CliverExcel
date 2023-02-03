@@ -51,7 +51,7 @@ namespace Cliver
                 IRow row = Sheet.GetRow(y0);
                 if (row == null)
                     continue;
-                int columnX = row.GetLastColumnInRow(true);
+                int columnX = row.GetLastColumn(true);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)
@@ -67,7 +67,7 @@ namespace Cliver
 
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
-            for (int i = row.GetLastColumnInRow(true); i >= x; i--)
+            for (int i = row.GetLastColumn(true); i >= x; i--)
                 MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
         }
 
@@ -82,7 +82,7 @@ namespace Cliver
             IRow row = GetRow(y, false);
             if (row == null)
                 return 0;
-            return row.GetLastNotEmptyColumnInRow(includeMerged);
+            return row.GetLastNotEmptyColumn(includeMerged);
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Cliver
             IRow row = GetRow(y, false);
             if (row == null)
                 return 0;
-            return row.GetLastColumnInRow(includeMerged);
+            return row.GetLastColumn(includeMerged);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace Cliver
         {
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
-            return GetRowsInRange(y1, y2).Max(a => a.GetLastNotEmptyColumnInRow(includeMerged));
+            return GetRowsInRange(y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace Cliver
 
         public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
         {
-            return GetRowsInRange(y1, y2).Max(a => a.GetLastColumnInRow(includeMerged));
+            return GetRowsInRange(y1, y2).Max(a => a.GetLastColumn(includeMerged));
         }
 
         public int GetLastColumn(bool includeMerged = true)
@@ -250,7 +250,11 @@ namespace Cliver
         {
             int y2 = Sheet.LastRowNum + 1;
             for (int y = 1; y <= y2; y++)
-                GetRow(y, true).GetCell(x, createCells).CellStyle = style;
+            {
+                var c = GetRow(y, createCells).GetCell(x, createCells);
+                if (c != null)
+                    c.CellStyle = style;
+            }
         }
     }
 }

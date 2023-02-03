@@ -268,12 +268,12 @@ namespace Cliver
         /// Creates an unregistered copy of a style.
         /// </summary>
         /// <param name="style"></param>
-        /// <param name="styleCloneWorkbook"></param>
+        /// <param name="cloneStyleWorkbook"></param>
         /// <returns></returns>
-        public ICellStyle CloneUnregisteredStyle(ICellStyle style, IWorkbook styleCloneWorkbook = null)
+        public ICellStyle CloneUnregisteredStyle(ICellStyle style, IWorkbook cloneStyleWorkbook = null)
         {
             ICellStyle s = CreateUnregisteredStyle();
-            return CopyStyle(style, s, styleCloneWorkbook);
+            return CopyStyle(style, s, cloneStyleWorkbook);
         }
 
         /// <summary>

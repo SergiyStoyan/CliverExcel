@@ -44,7 +44,7 @@ namespace Cliver
                 set
                 {
                     headers = value;
-                    Excel.GetRow(1, true).WriteRow(headers);
+                    Excel.GetRow(1, true).Write(headers);
                 }
             }
             ReadOnlyCollection<string> headers;
@@ -216,6 +216,16 @@ namespace Cliver
             public ICell GetCell(IRow row, string header, bool create)
             {
                 return row.GetCell(GetHeaderX(header), create);
+            }
+
+            public void SetStyles(IRow row, params ICellStyle[] styles)
+            {
+                row.SetStyles(1, styles);
+            }
+
+            public void SetStyles(IRow row, IEnumerable<ICellStyle> styles)
+            {
+                SetStyles(row, styles.ToArray());
             }
         }
     }

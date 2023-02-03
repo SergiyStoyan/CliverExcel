@@ -227,7 +227,7 @@ namespace Cliver
         public IRow WriteRow(int y, IEnumerable<object> values)
         {
             IRow r = GetRow(y, true);
-            r.WriteRow(values);
+            r.Write(values);
             return r;
         }
 

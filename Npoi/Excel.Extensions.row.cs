@@ -47,7 +47,7 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int GetLastNotEmptyColumnInRow(this IRow row, bool includeMerged = true)
+        static public int GetLastNotEmptyColumn(this IRow row, bool includeMerged = true)
         {
             if (row == null || row.Cells.Count < 1)
                 return 0;
@@ -74,7 +74,7 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int GetLastColumnInRow(this IRow row, bool includeMerged = true)
+        static public int GetLastColumn(this IRow row, bool includeMerged = true)
         {
             if (row == null || row.Cells.Count < 1)
                 return 0;
@@ -89,21 +89,19 @@ namespace Cliver
             return row.LastCellNum;
         }
 
-        static public IEnumerable<ICell> GetCells(this IRow row, bool createMissingInnnerCells)
+        static public IEnumerable<ICell> GetCells(this IRow row, bool createCells)
         {
-            if (row == null || row.Cells.Count < 1)
+            return GetCellsInRange(row, createCells);
+        }
+
+        static public IEnumerable<ICell> GetCellsInRange(this IRow row, bool createCells, int y1 = 1, int? y2 = null)
+        {
+            if (row == null)
                 yield break;
-            for (int x0 = 0; x0 < row.Cells.Count; x0++)
-            {
-                var c = row.Cells[x0];
-                if (c == null)
-                {
-                    if (!createMissingInnnerCells)
-                        continue;
-                    c = row.CreateCell(x0);
-                }
-                yield return c;
-            }
+            if (y2 == null)
+                y2 = row.LastCellNum;
+            for (int x = y1; x <= y2; x++)
+                yield return row.GetCell(x, createCells);
         }
 
         /// <summary>
@@ -116,16 +114,28 @@ namespace Cliver
             return row.RowNum + 1;
         }
 
-        static public void WriteRow(this IRow row, IEnumerable<object> values)
+        static public void Write(this IRow row, IEnumerable<object> values)
         {
             int x = 1;
             foreach (object v in values)
                 row.GetCell(x++, true).SetValue(v);
         }
 
-        static public void WriteRow(this IRow row, params object[] values)
+        static public void Write(this IRow row, params object[] values)
         {
-            WriteRow(row, (IEnumerable<object>)values);
+            Write(row, (IEnumerable<object>)values);
+        }
+
+        static public void SetStyles(this IRow row, int y1, IEnumerable<ICellStyle> styles)
+        {
+            SetStyles(row, y1, styles.ToArray());
+        }
+
+        static public void SetStyles(this IRow row, int y1, params ICellStyle[] styles)
+        {
+            var cs = row.GetCellsInRange(true, y1, styles.Length).ToList();
+            for (int i = y1 - 1; i < styles.Length; i++)
+                cs[i].CellStyle = styles[i];
         }
     }
 }
