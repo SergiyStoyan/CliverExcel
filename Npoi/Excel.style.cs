@@ -201,7 +201,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Both styles can be unregistered. Nevertheless, font and format used by them must be registered in the respective workbooks.
+        /// Both styles can be unregistered. (!)However, font and format used by them must be registered in the respective workbooks.
         /// </summary>
         /// <param name="fromStyle"></param>
         /// <param name="toStyle"></param>
@@ -225,7 +225,16 @@ namespace Cliver
             {
                 var dataFormat1 = Workbook.CreateDataFormat();
                 var dataFormat2 = toStyleWorkbook.CreateDataFormat();
-                toStyle.DataFormat = dataFormat2.GetFormat(dataFormat1.GetFormat(fromStyle.DataFormat));
+                string sDataFormat;
+                try
+                {
+                    sDataFormat = dataFormat1.GetFormat(fromStyle.DataFormat);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Style fromStyle has DataFormat=" + fromStyle.DataFormat + " that does not exists in the workbook.", e);
+                }
+                toStyle.DataFormat = dataFormat2.GetFormat(sDataFormat);
             }
             toStyle.FillBackgroundColor = fromStyle.FillBackgroundColor;
             //if (toStyle.FillBackgroundColor != fromStyle.FillBackgroundColor)//it happens when FillBackgroundColor = 0 (bug?)
@@ -244,11 +253,20 @@ namespace Cliver
             toStyle.TopBorderColor = fromStyle.TopBorderColor;
             toStyle.VerticalAlignment = fromStyle.VerticalAlignment;
             toStyle.WrapText = fromStyle.WrapText;
+            IFont f1;
+            try
+            {
+                //f1 = fromStyle.GetFont(Workbook);!!!fails on XSSFWorkbook
+                f1 = Workbook.GetFontAt(fromStyle.FontIndex);
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Style fromStyle has font[@index=" + fromStyle.FontIndex + "] that does not exists in the workbook.", e);
+            }
             if (toStyleWorkbook == null)
-                toStyle.SetFont(fromStyle.GetFont(Workbook));
+                toStyle.SetFont(f1);
             else
             {
-                IFont f1 = fromStyle.GetFont(Workbook);
                 IFont f2 = GetRegisteredFont(f1.IsBold, (IndexedColors)Enum.ToObject(typeof(IndexedColors), f1.Color), (short)f1.FontHeight, f1.FontName, f1.IsItalic, f1.IsStrikeout, f1.TypeOffset, f1.Underline);
                 toStyle.SetFont(f2);
             }
@@ -267,13 +285,13 @@ namespace Cliver
         /// <summary>
         /// Creates an unregistered copy of a style.
         /// </summary>
-        /// <param name="style"></param>
+        /// <param name="fromStyle"></param>
         /// <param name="cloneStyleWorkbook"></param>
         /// <returns></returns>
-        public ICellStyle CloneUnregisteredStyle(ICellStyle style, IWorkbook cloneStyleWorkbook = null)
+        public ICellStyle CloneUnregisteredStyle(ICellStyle fromStyle, IWorkbook cloneStyleWorkbook = null)
         {
-            ICellStyle s = CreateUnregisteredStyle();
-            return CopyStyle(style, s, cloneStyleWorkbook);
+            ICellStyle toStyle = CreateUnregisteredStyle();
+            return CopyStyle(fromStyle, toStyle, cloneStyleWorkbook);
         }
 
         /// <summary>
