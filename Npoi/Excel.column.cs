@@ -110,7 +110,7 @@ namespace Cliver
         {
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
-            return GetRowsInRange(y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
+            return GetRowsInRange(false, y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace Cliver
 
         public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
         {
-            return GetRowsInRange(y1, y2).Max(a => a.GetLastColumn(includeMerged));
+            return GetRowsInRange(false, y1, y2).Max(a => a.GetLastColumn(includeMerged));
         }
 
         public int GetLastColumn(bool includeMerged = true)

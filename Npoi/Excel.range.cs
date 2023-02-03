@@ -92,10 +92,12 @@ namespace Cliver
                 IRow row = GetRow(y, createCells);
                 if (row == null)
                     continue;
-                for (int x = range.X1; x <= row.LastCellNum && x <= range.X2; x++)
+                int maxX = Math.Min(row.LastCellNum, range.X2);
+                for (int x = range.X1; x <= maxX; x++)
                 {
                     ICell c = row.GetCell(x, createCells);
-                    c.CellStyle = style;
+                    if (c != null)
+                        c.CellStyle = style;
                 }
             }
         }
@@ -137,7 +139,7 @@ namespace Cliver
         /// <returns></returns>
         public void CopyRange(Range range, ISheet destinationSheet)
         {
-            int maxY = Math.Max(range.Y2, Sheet.LastRowNum + 1);
+            int maxY = Math.Min(range.Y2, Sheet.LastRowNum + 1);
             for (int y = range.Y1; y <= maxY; y++)
             {
                 IRow sourceRow = Sheet.GetRow(y);
@@ -146,7 +148,7 @@ namespace Cliver
                 IRow destinationRow = destinationSheet.GetRow(y);
                 if (destinationRow == null)
                     destinationRow = destinationSheet.CreateRow(y);
-                int maxX = Math.Max(range.X2, sourceRow.LastCellNum);
+                int maxX = Math.Min(range.X2, sourceRow.LastCellNum);
                 for (int x = range.X1; x < maxX; x++)
                 {
                     ICell sourceCell = sourceRow.GetCell(x);
@@ -169,13 +171,13 @@ namespace Cliver
         public ICell[,] CutRange(Range range)
         {
             ICell[,] rangeCells = new ICell[range.Y2 - range.Y1 + 1, range.X2 - range.X1 + 1];
-            int maxY = Math.Max(range.Y2, Sheet.LastRowNum + 1);
+            int maxY = Math.Min(range.Y2, Sheet.LastRowNum + 1);
             for (int y = range.Y1; y <= maxY; y++)
             {
                 IRow row = Sheet.GetRow(y - 1);
                 if (row == null)
                     continue;
-                int maxX = Math.Max(range.X2, row.LastCellNum);
+                int maxX = Math.Min(range.X2, row.LastCellNum);
                 for (int x = range.X1; x <= maxX; x++)
                 {
                     ICell cell = row.GetCell(x - 1);

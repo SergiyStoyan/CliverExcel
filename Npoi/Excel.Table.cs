@@ -105,7 +105,7 @@ namespace Cliver
 
             public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
             {
-                return FindRows(/*cachedRows*/Excel.GetRowsInRange(2), rowKeys);
+                return FindRows(/*cachedRows*/Excel.GetRowsInRange(false, 2), rowKeys);
             }
 
             public NamedValue NewNamedValue(string header, object value)

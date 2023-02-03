@@ -164,7 +164,7 @@ namespace Cliver
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            GetRowsInRange(y1, y2).ForEach(a => a.Height = -1);
+            GetRowsInRange(false, y1, y2).ForEach(a => a.Height = -1);
         }
 
         public void AutosizeRows()
@@ -187,18 +187,22 @@ namespace Cliver
             ClearMerging(r);
         }
 
-        public IEnumerable<IRow> GetRowsInRange(int y1 = 1, int? y2 = null)
+        public IEnumerable<IRow> GetRowsInRange(bool includeNullRows = true, int y1 = 1, int? y2 = null)
         {
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
             //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
             for (int i = y1 - 1; i < y2; i++)
-                yield return Sheet.GetRow(i);
+            {
+                var r = Sheet.GetRow(i);
+                if (includeNullRows || r != null)
+                    yield return r;
+            }
         }
 
-        public IEnumerable<IRow> GetRows()
+        public IEnumerable<IRow> GetRows(bool includeNullRows = true)
         {
-            return GetRowsInRange();
+            return GetRowsInRange(includeNullRows);
         }
 
         public IRow AppendRow(IEnumerable<object> values)
