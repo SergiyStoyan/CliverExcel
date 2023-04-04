@@ -67,7 +67,7 @@ namespace Cliver
                     else if (cell.Sheet.Workbook is HSSFWorkbook)
                         formulaEvaluator = new HSSFFormulaEvaluator(cell.Sheet.Workbook);
                     else
-                        throw new Exception("Unexpected Workbook type: " + cell.Sheet.Workbook.GetType());
+                        throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
                     var cv = formulaEvaluator.Evaluate(cell);
                     switch (cv.CellType)
                     {
@@ -149,6 +149,8 @@ namespace Cliver
                 cell.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
             else if (cell.Sheet.Workbook is HSSFWorkbook)
                 cell.Hyperlink = new HSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
+            else
+                throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
         }
         public static string LinkEmptyValueFiller = "           ";
 
@@ -171,7 +173,7 @@ namespace Cliver
             //{
             //    evaluationWorkbook = SXSSFEvaluationWorkbook.Create((SXSSFWorkbook)Workbook);
             else
-                throw new Exception("Unexpected Workbook type: " + formulaCell.Sheet.Workbook.GetType());
+                throw new Exception("Unsupported workbook type: " + formulaCell.Sheet.Workbook.GetType().FullName);
 
             var ptgs = FormulaParser.Parse(formulaCell.CellFormula, evaluationWorkbook, FormulaType.Cell, formulaCell.Sheet.Workbook.GetSheetIndex(formulaCell.Sheet));
             foreach (Ptg ptg in ptgs)
@@ -202,10 +204,10 @@ namespace Cliver
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
 
-        static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
-        {
-            cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
-        }
+        //static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
+        //{
+        //    cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
+        //}
 
         static public Excel.Range GetMergedRange(this ICell cell)
         {

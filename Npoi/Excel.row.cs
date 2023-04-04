@@ -152,15 +152,15 @@ namespace Cliver
             return 0;
         }
 
-        public void HighlightRow(int y, ICellStyle style, Color color)
-        {
-            GetRow(y, true).Highlight(style, color);
-        }
+        //public void HighlightRow(int y, ICellStyle style, Color color)
+        //{
+        //    GetRow(y, true).Highlight(style, color);
+        //}
 
-        public void Highlight(IRow row, ICellStyle style, Color color)
-        {
-            row.Highlight(style, color);
-        }
+        //public void Highlight(IRow row, ICellStyle style, Color color)
+        //{
+        //    row.Highlight(style, color);
+        //}
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
@@ -200,6 +200,47 @@ namespace Cliver
             }
         }
 
+        public void SetStyleInRawRange(ICellStyle style, bool createCells, int y1 = 1, int? y2 = null)
+        {
+            if (y2 == null)
+                y2 = Sheet.LastRowNum + 1;
+            for (int y = y1; y <= y2; y++)
+            {
+                IRow row = GetRow(y, createCells);
+                if (row == null)
+                    continue;
+                row.RowStyle = style;
+                int maxX = row.LastCellNum;
+                for (int x = 1; x <= maxX; x++)
+                {
+                    ICell c = row.GetCell(x, createCells);
+                    if (c != null)
+                        c.CellStyle = null;
+                }
+            }
+        }
+
+        public void ReplaceStyleInRawRange(ICellStyle style1, ICellStyle style2, int y1 = 1, int? y2 = null)
+        {
+            if (y2 == null)
+                y2 = Sheet.LastRowNum + 1;
+            for (int y = y1; y <= y2; y++)
+            {
+                IRow row = GetRow(y, false);
+                if (row == null)
+                    continue;
+                if (row.RowStyle?.Index == style1.Index)
+                    row.RowStyle = style2;
+                int maxX = row.LastCellNum;
+                for (int x = 1; x <= maxX; x++)
+                {
+                    ICell c = row.GetCell(x, false);
+                    if (c != null && c.CellStyle?.Index == style1.Index)
+                        c.CellStyle = style2;
+                }
+            }
+        }
+
         public IEnumerable<IRow> GetRows(bool includeNullRows = true)
         {
             return GetRowsInRange(includeNullRows);
@@ -207,7 +248,8 @@ namespace Cliver
 
         public IRow AppendRow(IEnumerable<object> values)
         {
-            int y = Sheet.LastRowNum + 2;
+            int y0 = Sheet.LastRowNum;//(!)it is 0 when no row or 1 row
+            int y = y0 + (y0 == 0 && Sheet.GetRow(y0) == null ? 1 : 2);
             return WriteRow(y, values);
         }
 

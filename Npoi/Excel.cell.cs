@@ -129,14 +129,14 @@ namespace Cliver
             return r.GetCell(cs.X, create);
         }
 
-        public void HighlightCell(int y, int x, ICellStyle style, Color color)
-        {
-            GetCell(y, x, true).Highlight(style, color);
-        }
+        //public void HighlightCell(int y, int x, ICellStyle style, Color color)
+        //{
+        //    GetCell(y, x, true).Highlight(style, color);
+        //}
 
-        public void Highlight(ICell cell, ICellStyle style, Color color)
-        {
-            cell.Highlight(style, color);
-        }
+        //public void Highlight(ICell cell, ICellStyle style, Color color)
+        //{
+        //    cell.Highlight(style, color);
+        //}
     }
 }

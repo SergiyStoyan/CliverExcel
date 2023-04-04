@@ -24,10 +24,10 @@ namespace Cliver
         /// </summary>
         public class Range
         {
-            public int X1;
-            public int X2;
-            public int Y1;
-            public int Y2;
+            public int X1 = 1;
+            public int X2 = 0;
+            public int Y1 = 1;
+            public int Y2 = 0;
 
             public Range(int y1, int y2, int x1, int x2)
             {
@@ -35,6 +35,18 @@ namespace Cliver
                 Y2 = y2;
                 X1 = x1;
                 X2 = x2;
+            }
+
+            /// <summary>
+            /// The entire sheet.
+            /// </summary>
+            /// <param name="xls"></param>
+            public Range(Excel xls)
+            {
+                Y1 = 1;
+                Y2 = xls.GetLastNotEmptyColumnInRowRange(1, null, true);
+                X1 = 1;
+                X2 = xls.GetLastNotEmptyRow(true);
             }
 
             public ICell GetMainCell(Excel excel, bool create)
@@ -70,15 +82,15 @@ namespace Cliver
                 IRow row = GetRow(y, color != null);
                 if (row == null)
                     continue;
-                for (int x = range.X1; x <= row.LastCellNum && x <= range.X2; x++)
+                int maxX = Math.Min(row.LastCellNum, range.X2);
+                for (int x = range.X1; x <= maxX; x++)
                 {
                     ICell c = row.GetCell(x, true);
-                    var cs = c.CellStyle;
-                    if (cs == null)
+                    if (c.CellStyle == null)
                     {
                         if (newStyle == null)
                             newStyle = highlight(Workbook, null, color);
-                        cs = newStyle;
+                        c.CellStyle = newStyle;
                     }
                     c.CellStyle = highlight(Workbook, c.CellStyle, color);
                 }
@@ -98,6 +110,23 @@ namespace Cliver
                     ICell c = row.GetCell(x, createCells);
                     if (c != null)
                         c.CellStyle = style;
+                }
+            }
+        }
+
+        public void ReplaceStyle(Range range, ICellStyle style1, ICellStyle style2)
+        {
+            for (int y = range.Y1; y <= range.Y2; y++)
+            {
+                IRow row = GetRow(y, false);
+                if (row == null)
+                    continue;
+                int maxX = Math.Min(row.LastCellNum, range.X2);
+                for (int x = range.X1; x <= maxX; x++)
+                {
+                    ICell c = row.GetCell(x, false);
+                    if (c != null && c.CellStyle.Index == style1.Index)
+                        c.CellStyle = style2;
                 }
             }
         }

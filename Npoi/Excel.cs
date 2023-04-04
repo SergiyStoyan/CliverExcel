@@ -97,18 +97,8 @@ namespace Cliver
         {
             Sheet = Workbook.GetSheet(name);
             if (Sheet == null)
-            {
                 Sheet = Workbook.CreateSheet(GetSafeSheetName(name));
-
-                //!!!All Sheet must be formatted as text! Otherwise string dates are converted into numbers.
-                //!!!No way found to set default style for a whole sheet. However, NPOI presets ' before numeric values to keep them as strings.
-                //ICellStyle defaultStyle = (XSSFCellStyle)Workbook.CreateCellStyle();
-                //defaultStyle.DataFormat = Workbook.CreateDataFormat().GetFormat("text");
-                //ICell c = GetCell(0, 0, true);
-                //Sheet.SetDefaultColumnStyle(0, defaultStyle);
-            }
         }
-        //ICellStyle defaultStyle;
 
         /// <summary>
         /// Set the active sheet.
@@ -236,19 +226,34 @@ namespace Cliver
             GetCell(y, x, true).CreateDropdown(values, value, allowBlank);
         }
 
-        public void AddImage(int y, int x, /*string name,*/ byte[] pngImage)//!!!!buggy
+        /// <summary>
+        /// !!!BUGGY!!!
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <param name="name"></param>
+        /// <param name="pngImage"></param>
+        /// <exception cref="Exception"></exception>
+        public void AddImage(int y, int x, string name, byte[] pngImage)
         {
-            throw new Exception("TBD");
             int i = Workbook.AddPicture(pngImage, PictureType.PNG);
             ICreationHelper h = Workbook.GetCreationHelper();
             IClientAnchor a = h.CreateClientAnchor();
             a.AnchorType = AnchorType.MoveDontResize;
             a.Col1 = x - 1;//0 index based column
             a.Row1 = y - 1;//0 index based row
-            XSSFDrawing d = (XSSFDrawing)Sheet.CreateDrawingPatriarch();
-            XSSFPicture p = (XSSFPicture)d.CreatePicture(a, i);
-            p.IsNoFill = true;
-            p.Resize();
+            if (Workbook is XSSFWorkbook xSSFWorkbook)
+            {
+                XSSFDrawing d = (XSSFDrawing)Sheet.CreateDrawingPatriarch();
+                XSSFPicture p = (XSSFPicture)d.CreatePicture(a, i);
+                p.IsNoFill = true;
+                p.Resize();
+            }
+            else if (Workbook is HSSFWorkbook hSSFWorkbook)
+            {
+            }
+            else
+                throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
         }
 
         //public static byte[] ImageToPngByteArray(Image img)
@@ -260,10 +265,18 @@ namespace Cliver
         //    }
         //}
 
-        public byte[] GetImage(int y, int x/*, out string name*/)//!!!!buggy
+        /// <summary>
+        /// !!!BUGGY!!!
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public byte[] GetImage(int y, int x, out string name)
         {
-            throw new Exception("TBD");
-            //name = null;
+            name = null;
+            return null;
 
             XSSFDrawing d = Sheet.CreateDrawingPatriarch() as XSSFDrawing;
             foreach (XSSFShape s in d.GetShapes())
@@ -325,6 +338,16 @@ namespace Cliver
             //    NPOI.OpenXml4Net.OPC.PackagePart pp = dp.GetPackagePart();
             //    pp.GetInputStream
             //  }
+        }
+
+        public void SetStyle(ICellStyle style, bool createCells)
+        {
+            SetStyleInRawRange(style, createCells);
+        }
+
+        public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
+        {
+            ReplaceStyleInRawRange(style1, style2);
         }
     }
 }

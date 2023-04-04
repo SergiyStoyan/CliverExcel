@@ -18,6 +18,7 @@ using NPOI.SS.Formula;
 using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Newtonsoft.Json;
+using System.Xml.Linq;
 
 namespace Cliver
 {
@@ -29,6 +30,7 @@ namespace Cliver
             public readonly byte G;
             public readonly byte B;
             readonly public byte[] RGB = new byte[3];
+
             public Color(byte r, byte g, byte b)
             {
                 R = r;
@@ -38,11 +40,27 @@ namespace Cliver
                 RGB[1] = G;
                 RGB[2] = B;
             }
+
+            public Color(int aRGB) : this((byte)((aRGB >> 16) & 0xFF), (byte)((aRGB >> 8) & 0xFF), (byte)(aRGB & 0xFF))
+            {
+            }
+
+            public Color(System.Drawing.Color color) : this(color.ToArgb())
+            {
+            }
         }
 
         public ICellStyle Highlight(ICellStyle style, Color color)
         {
             return highlight(Workbook, style, color);
+        }
+
+        /// <summary>
+        /// Removes highlighting from all the styles.
+        /// </summary>
+        public void ClearStyle(ICellStyle style)
+        {
+            SetStyle(new Range(this), style, false);
         }
 
         /// <summary>
@@ -125,7 +143,7 @@ namespace Cliver
                 }
                 return cs;
             }
-            throw new Exception("Unexpected Workbook type: " + workbook.GetType());
+            throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
         }
 
         /// <summary>
@@ -137,10 +155,8 @@ namespace Cliver
         /// <returns></returns>
         public ICellStyle GetRegisteredStyle(ICellStyle unregisteredStyle, IWorkbook unregisteredStyleWorkbook = null)
         {
-            for (int i = 0; i < Workbook.NumCellStyles; i++)
+            foreach (ICellStyle s in GetStyles())
             {
-                var s = Workbook.GetCellStyleAt(i);
-
                 if (unregisteredStyle.Alignment != s.Alignment
                     || unregisteredStyle.BorderBottom != s.BorderBottom
                     || unregisteredStyle.BorderDiagonal != s.BorderDiagonal
@@ -256,7 +272,6 @@ namespace Cliver
             IFont f1;
             try
             {
-                //f1 = fromStyle.GetFont(Workbook);!!!fails on XSSFWorkbook
                 f1 = Workbook.GetFontAt(fromStyle.FontIndex);
             }
             catch (Exception e)
@@ -276,10 +291,22 @@ namespace Cliver
         public ICellStyle CreateUnregisteredStyle()
         {
             if (Workbook is XSSFWorkbook)
-                return new XSSFCellStyle(new XSSFWorkbook().GetStylesSource());
+            {
+                XSSFWorkbook w = new XSSFWorkbook();
+                ICellStyle s = new XSSFCellStyle(w.GetStylesSource());
+                IFont f = Workbook.NumberOfFonts > 0 ? Workbook.GetFontAt(0) : w.CreateFont();
+                s.SetFont(f);//otherwise it throws an exception on accessing font
+                return s;
+            }
             if (Workbook is HSSFWorkbook)
-                return new HSSFCellStyle(0, new NPOI.HSSF.Record.ExtendedFormatRecord(), new HSSFWorkbook());
-            throw new Exception("Unexpected Workbook type: " + Workbook.GetType());
+            {
+                HSSFWorkbook w = new HSSFWorkbook();
+                ICellStyle s = new HSSFCellStyle(0, new NPOI.HSSF.Record.ExtendedFormatRecord(), w);
+                IFont f = Workbook.NumberOfFonts > 0 ? Workbook.GetFontAt(0) : w.CreateFont();
+                s.SetFont(f);//set default font
+                return s;
+            }
+            throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
         }
 
         /// <summary>
@@ -323,6 +350,30 @@ namespace Cliver
                 f.Underline = underline;
             }
             return f;
+        }
+
+        public IEnumerable<ICellStyle> GetStyles()
+        {
+            for (int i = 0; i < Workbook.NumCellStyles; i++)
+            {
+                yield return Workbook.GetCellStyleAt(i);
+            }
+        }
+
+        public void OptimiseStyles()
+        {
+            if (Workbook is XSSFWorkbook xSSFWorkbook)
+            {
+                //xSSFWorkbook.GetStylesSource().RemoveNumberFormat().
+                //NPOI.XSSF.UserModel.XSSFBuiltinTableStyle h;
+                //h...sty.OptimiseCellStyles();
+            }
+            else if (Workbook is HSSFWorkbook hSSFWorkbook)
+            {
+                HSSFOptimiser.OptimiseCellStyles(hSSFWorkbook);
+            }
+            else
+                throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
         }
     }
 }

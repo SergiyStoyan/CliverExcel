@@ -36,10 +36,10 @@ namespace Cliver
             return c;
         }
 
-        static public void Highlight(this IRow row, ICellStyle style, Excel.Color color)
-        {
-            row.RowStyle = Excel.highlight(row.Sheet.Workbook, style, color);
-        }
+        //static public void Highlight(this IRow row, ICellStyle style, Excel.Color color)
+        //{
+        //    row.RowStyle = Excel.highlight(row.Sheet.Workbook, style, color);
+        //}
 
         /// <summary>
         /// 
