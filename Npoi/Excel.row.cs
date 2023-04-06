@@ -64,7 +64,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -91,7 +91,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -118,7 +118,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -145,7 +145,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -183,7 +183,7 @@ namespace Cliver
 
         public void ClearMergingForRow(int y)
         {
-            Range r = new Range(y, y, 1, int.MaxValue);
+            Range r = new Range(y, 1, y, null);
             ClearMerging(r);
         }
 
@@ -200,45 +200,24 @@ namespace Cliver
             }
         }
 
-        public void SetStyleInRawRange(ICellStyle style, bool createCells, int y1 = 1, int? y2 = null)
+        public void SetStyleInRow(ICellStyle style, bool createCells, int y)
         {
-            if (y2 == null)
-                y2 = Sheet.LastRowNum + 1;
-            for (int y = y1; y <= y2; y++)
-            {
-                IRow row = GetRow(y, createCells);
-                if (row == null)
-                    continue;
-                row.RowStyle = style;
-                int maxX = row.LastCellNum;
-                for (int x = 1; x <= maxX; x++)
-                {
-                    ICell c = row.GetCell(x, createCells);
-                    if (c != null)
-                        c.CellStyle = null;
-                }
-            }
+            SetStyleInRowRange(style, createCells, y, y);
         }
 
-        public void ReplaceStyleInRawRange(ICellStyle style1, ICellStyle style2, int y1 = 1, int? y2 = null)
+        public void SetStyleInRowRange(ICellStyle style, bool createCells, int y1, int? y2 = null)
         {
-            if (y2 == null)
-                y2 = Sheet.LastRowNum + 1;
-            for (int y = y1; y <= y2; y++)
-            {
-                IRow row = GetRow(y, false);
-                if (row == null)
-                    continue;
-                if (row.RowStyle?.Index == style1.Index)
-                    row.RowStyle = style2;
-                int maxX = row.LastCellNum;
-                for (int x = 1; x <= maxX; x++)
-                {
-                    ICell c = row.GetCell(x, false);
-                    if (c != null && c.CellStyle?.Index == style1.Index)
-                        c.CellStyle = style2;
-                }
-            }
+            SetStyle(new Range(y1, 1, y2, null), style, createCells);
+        }
+
+        public void ReplaceStyleInRowRange(ICellStyle style1, ICellStyle style2, int y1, int? y2 = null)
+        {
+            ReplaceStyle(new Range(y1, 1, y2, null), style1, style2);
+        }
+
+        public void ClearStyleInRowRange(ICellStyle style, int y1, int? y2 = null)
+        {
+            ReplaceStyleInRowRange(style, null, y1, y2);
         }
 
         public IEnumerable<IRow> GetRows(bool includeNullRows = true)

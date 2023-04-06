@@ -131,7 +131,7 @@ namespace Cliver
 
         public void CopyColumn(int x, ISheet destinationSheet)
         {
-            var range = new Range(1, Sheet.LastRowNum + 1, x, x);
+            var range = new Range(1, x, null, x);
             CopyRange(range, destinationSheet);
         }
 
@@ -226,7 +226,7 @@ namespace Cliver
         public void ClearColumn(int x, bool clearMerging)
         {
             if (clearMerging)
-                ClearMergingForColumn(x);
+                ClearMergingInColumn(x);
             //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
             //while (rows.MoveNext())
             for (int y0 = Sheet.LastRowNum; y0 >= 0; y0--)
@@ -240,21 +240,29 @@ namespace Cliver
             }
         }
 
-        public void ClearMergingForColumn(int x)
+        public void ClearMergingInColumn(int x)
         {
-            Range r = new Range(1, int.MaxValue, x, x);
-            ClearMerging(r);
+            ClearMerging(new Range(1, x, null, x));
         }
 
-        public void SetStyleForColumn(int x, ICellStyle style, bool createCells)
+        public void SetStyleInColumn(ICellStyle style, bool createCells, int x)
         {
-            int y2 = Sheet.LastRowNum + 1;
-            for (int y = 1; y <= y2; y++)
-            {
-                var c = GetRow(y, createCells).GetCell(x, createCells);
-                if (c != null)
-                    c.CellStyle = style;
-            }
+            SetStyleInColumnRange(style, createCells, x, x);
+        }
+
+        public void SetStyleInColumnRange(ICellStyle style, bool createCells, int x1, int? x2 = null)
+        {
+            SetStyle(new Range(1, x1, null, x2), style, createCells);
+        }
+
+        public void ReplaceStyleInColumnRange(ICellStyle style1, ICellStyle style2, int x1, int? x2 = null)
+        {
+            ReplaceStyle(new Range(1, x1, null, x2), style1, style2);
+        }
+
+        public void ClearStyleInColumnRange(ICellStyle style, int x1, int? x2 = null)
+        {
+            ReplaceStyleInColumnRange(style, null, x1, x2);
         }
     }
 }

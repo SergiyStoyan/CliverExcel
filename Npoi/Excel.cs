@@ -14,6 +14,7 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.Formula;
+using NPOI.XSSF.Streaming;
 
 namespace Cliver
 {
@@ -148,29 +149,48 @@ namespace Cliver
         {
             get
             {
-                XSSFWorkbook xSSFWorkbook = Workbook as XSSFWorkbook;
-                if (xSSFWorkbook == null)
-                    throw new Exception("TBD");
-                NPOI.OpenXmlFormats.CT_Property p = xSSFWorkbook.GetProperties().CustomProperties.GetProperty("HyperlinkBase");//so is in Epplus
-                return p?.Item?.ToString();
+                if (Workbook is XSSFWorkbook xSSFWorkbook)
+                {
+                    NPOI.OpenXmlFormats.CT_Property p = xSSFWorkbook.GetProperties().CustomProperties.GetProperty("HyperlinkBase");//so is in Epplus
+                    return p?.Item?.ToString();
+                }
+                else if (Workbook is HSSFWorkbook hSSFWorkbook)
+                {
+                    hSSFWorkbook.CreateInformationProperties();
+                    return hSSFWorkbook.DocumentSummaryInformation.CustomProperties["HyperlinkBase"]?.ToString();
+                }
+                else
+                    throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
             }
             set
             {
-                XSSFWorkbook xSSFWorkbook = Workbook as XSSFWorkbook;
-                if (xSSFWorkbook == null)
-                    throw new Exception("TBD");
-                List<NPOI.OpenXmlFormats.CT_Property> ps = xSSFWorkbook.GetProperties().CustomProperties.GetUnderlyingProperties().property;
-                NPOI.OpenXmlFormats.CT_Property p = ps.Find(a => a.name == "HyperlinkBase");//so is in Epplus
-                if (value == null)
+                if (Workbook is XSSFWorkbook xSSFWorkbook)
                 {
-                    if (p != null)
-                        ps.Remove(p);
-                    return;
+                    List<NPOI.OpenXmlFormats.CT_Property> ps = xSSFWorkbook.GetProperties().CustomProperties.GetUnderlyingProperties().property;
+                    NPOI.OpenXmlFormats.CT_Property p = ps.Find(a => a.name == "HyperlinkBase");//so is in Epplus
+                    if (value == null)
+                    {
+                        if (p != null)
+                            ps.Remove(p);
+                        return;
+                    }
+                    if (p == null)
+                        xSSFWorkbook.GetProperties().CustomProperties.AddProperty("HyperlinkBase", value);
+                    else
+                        p.Item = value;
                 }
-                if (p == null)
-                    xSSFWorkbook.GetProperties().CustomProperties.AddProperty("HyperlinkBase", value);
+                else if (Workbook is HSSFWorkbook hSSFWorkbook)
+                {
+                    hSSFWorkbook.CreateInformationProperties();
+                    if (value == null)
+                    {
+                        hSSFWorkbook.DocumentSummaryInformation.CustomProperties.Remove("HyperlinkBase");
+                        return;
+                    }
+                    hSSFWorkbook.DocumentSummaryInformation.CustomProperties.Put("HyperlinkBase", value);//so is in Epplus
+                }
                 else
-                    p.Item = value;
+                    throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
             }
         }
 
@@ -229,78 +249,66 @@ namespace Cliver
         /// <summary>
         /// !!!BUGGY!!!
         /// </summary>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <param name="name"></param>
-        /// <param name="pngImage"></param>
         /// <exception cref="Exception"></exception>
-        public void AddImage(int y, int x, string name, byte[] pngImage)
+        public void AddImage(Image image)
         {
-            int i = Workbook.AddPicture(pngImage, PictureType.PNG);
+            int i = Workbook.AddPicture(image.Data, image.Type);
             ICreationHelper h = Workbook.GetCreationHelper();
             IClientAnchor a = h.CreateClientAnchor();
             a.AnchorType = AnchorType.MoveDontResize;
-            a.Col1 = x - 1;//0 index based column
-            a.Row1 = y - 1;//0 index based row
-            if (Workbook is XSSFWorkbook xSSFWorkbook)
-            {
-                XSSFDrawing d = (XSSFDrawing)Sheet.CreateDrawingPatriarch();
-                XSSFPicture p = (XSSFPicture)d.CreatePicture(a, i);
-                p.IsNoFill = true;
-                p.Resize();
-            }
-            else if (Workbook is HSSFWorkbook hSSFWorkbook)
-            {
-            }
-            else
-                throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+            a.Col1 = image.X - 1;//0-based column index
+            a.Row1 = image.Y - 1;//0-based row index
+            IDrawing d = Sheet.CreateDrawingPatriarch();
+            IPicture p = d.CreatePicture(a, i);
+            if (p is XSSFPicture xSSFPicture)
+                xSSFPicture.IsNoFill = true;
+            //p.Resize();
         }
 
-        //public static byte[] ImageToPngByteArray(Image img)
-        //{
-        //    using (var stream = new MemoryStream())
-        //    {
-        //        img.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-        //        return stream.ToArray();
-        //    }
-        //}
+        public class Image
+        {
+            //public IClientAnchor Anchor;
+            public int Y;
+            public int X;
+            public string Name;
+            public PictureType Type;
+            public byte[] Data;
+        }
 
         /// <summary>
         /// !!!BUGGY!!!
         /// </summary>
         /// <param name="y"></param>
         /// <param name="x"></param>
-        /// <param name="name"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public byte[] GetImage(int y, int x, out string name)
+        public IEnumerable<Image> GetImages(int y, int x)
         {
-            name = null;
-            return null;
-
-            XSSFDrawing d = Sheet.CreateDrawingPatriarch() as XSSFDrawing;
-            foreach (XSSFShape s in d.GetShapes())
+            foreach (IPicture p in Workbook.GetAllPictures())
             {
-                XSSFPicture p = s as XSSFPicture;
                 if (p == null)
                     continue;
                 IClientAnchor a = p.GetPreferredSize();
                 if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
                 {
-                    XSSFPictureData pd = p.PictureData as XSSFPictureData;
-                    return pd.Data;
+                    IPictureData pictureData = p.PictureData;
+                    yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
                 }
             }
-            //name = null;
-            return null;
 
-            //var lst = Workbook.GetAllPictures();
-            //for (int i = 0; i < lst.Count; i++)
+            //XSSFDrawing d = Sheet.CreateDrawingPatriarch() as XSSFDrawing;
+            //foreach (XSSFShape s in d.GetShapes())
             //{
-            //    var pd = (XSSFPictureData)lst[i];
-            //    pd.RelationParts.Add[]
-            //    using (Stream s = new MemoryStream(pd.Data))
-            //        return new Bitmap(s);
+            //    XSSFPicture p = s as XSSFPicture;
+            //    if (p == null)
+            //        continue;
+            //    IClientAnchor a = p.GetPreferredSize();
+            //    if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
+            //    {
+            //        XSSFPictureData pd = p.PictureData as XSSFPictureData;
+            //        pictureType = pd.PictureType;
+            //        return pd.Data;
+            //    }
             //}
 
             //foreach (NPOI.POIXMLDocumentPart dp in Workbook.GetRelations())
@@ -325,29 +333,6 @@ namespace Cliver
             //        }
             //    }
             //}
-
-
-
-            //foreach (XSSFPictureData pd in Workbook.GetAllPictures())
-            //{
-            //    NPOI.OpenXml4Net.OPC.PackagePart pp = pd.GetPackagePart();
-            //    pp.GetInputStream
-            //  }
-            //foreach (NPOI.POIXMLDocumentPart dp in Workbook.GetRelations())
-            //{
-            //    NPOI.OpenXml4Net.OPC.PackagePart pp = dp.GetPackagePart();
-            //    pp.GetInputStream
-            //  }
-        }
-
-        public void SetStyle(ICellStyle style, bool createCells)
-        {
-            SetStyleInRawRange(style, createCells);
-        }
-
-        public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
-        {
-            ReplaceStyleInRawRange(style1, style2);
         }
     }
 }

@@ -56,14 +56,6 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Removes highlighting from all the styles.
-        /// </summary>
-        public void ClearStyle(ICellStyle style)
-        {
-            SetStyle(new Range(this), style, false);
-        }
-
-        /// <summary>
         /// Is intended for either adding or removing backgound color.
         /// </summary>
         /// <param name="workbook"></param>
@@ -374,6 +366,21 @@ namespace Cliver
             }
             else
                 throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+        }
+
+        public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
+        {
+            ReplaceStyle(null, style1, style2);
+        }
+
+        public void SetStyle(ICellStyle style, bool createCells)
+        {
+            SetStyle(null, style, createCells);
+        }
+
+        public void ClearStyle(ICellStyle style)
+        {
+            ClearStyle(null, style);
         }
     }
 }
