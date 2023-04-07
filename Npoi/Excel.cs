@@ -51,13 +51,11 @@ namespace Cliver
                     {
                         fs.Position = 0;//!!!prevents occasional error: EOF in header
                         Workbook = new XSSFWorkbook(fs);
-                        //FormulaEvaluator = new XSSFFormulaEvaluator(Workbook);
                     }
                     catch (ICSharpCode.SharpZipLib.Zip.ZipException)
                     {
                         fs.Position = 0;//!!!prevents error: EOF in header
                         Workbook = new HSSFWorkbook(fs);//old Excel 97-2003
-                        //FormulaEvaluator = new HSSFFormulaEvaluator(Workbook);
                     }
                 }
             else

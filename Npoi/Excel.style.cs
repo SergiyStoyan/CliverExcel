@@ -19,6 +19,8 @@ using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Xml.Linq;
+using NPOI.HSSF.Util;
+using NPOI.XSSF.Streaming;
 
 namespace Cliver
 {
@@ -50,103 +52,245 @@ namespace Cliver
             }
         }
 
-        public ICellStyle Highlight(ICellStyle style, Color color)
+        public ICellStyle Highlight(ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createUniqueStyleOnly = true)
         {
-            return highlight(Workbook, style, color);
+            return highlight(this, style, createUniqueStyleOnly, color, fillPattern);
         }
 
+        ///// <summary>
+        ///// Is intended for either adding or removing backgound color.
+        ///// </summary>
+        ///// <exception cref="Exception"></exception>
+        //static internal ICellStyle highlight(IWorkbook workbook, ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        //{
+        //    if (workbook is XSSFWorkbook)
+        //    {
+        //        XSSFCellStyle cs = style == null ? (XSSFCellStyle)workbook.CreateCellStyle() : (XSSFCellStyle)style;
+        //        if (color == null)
+        //        {
+        //            cs.SetFillForegroundColor(null);
+        //            cs.FillPattern = FillPattern.NoFill;
+        //        }
+        //        else
+        //        {
+        //            cs.SetFillForegroundColor(new XSSFColor(color.RGB));
+        //            cs.FillPattern = fillPattern;
+        //        }
+        //        return cs;
+        //    }
+        //    if (workbook is HSSFWorkbook)
+        //    {
+        //        HSSFCellStyle cs = style == null ? (HSSFCellStyle)workbook.CreateCellStyle() : (HSSFCellStyle)style;
+        //        if (color == null)
+        //        {
+        //            cs.FillForegroundColor = 0;
+        //            cs.FillPattern = FillPattern.NoFill;
+        //        }
+        //        else
+        //        {
+        //            HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
+        //            NPOI.HSSF.Util.HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
+        //            if (hssfColor == null)
+        //            {
+        //                try
+        //                {
+        //                    hssfColor = palette.AddColor(color.R, color.G, color.B);
+        //                }
+        //                catch (Exception e)
+        //                {//pallete is full
+        //                    short? findUnusedColorIndex()
+        //                    {
+        //                        for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
+        //                        {
+        //                            int i = 0;
+        //                            for (; i < workbook.NumCellStyles; i++)
+        //                            {
+        //                                var s = workbook.GetCellStyleAt(i);
+        //                                if (s.BorderDiagonalColor == j
+        //                                    || s.BottomBorderColor == j
+        //                                    || s.FillBackgroundColor == j
+        //                                    || s.FillForegroundColor == j
+        //                                    || s.LeftBorderColor == j
+        //                                    || s.RightBorderColor == j
+        //                                    || s.TopBorderColor == j
+        //                                    )
+        //                                    break;
+        //                            }
+        //                            if (i >= workbook.NumCellStyles)
+        //                                return j;
+        //                        }
+        //                        return null;
+        //                    }
+        //                    short? ci = findUnusedColorIndex();
+        //                    if (ci == null)
+        //                        ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
+        //                    palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
+        //                    hssfColor = palette.GetColor(ci.Value);
+        //                }
+        //            }
+        //            cs.FillForegroundColor = hssfColor.Indexed;
+        //            cs.FillPattern = fillPattern;
+        //        }
+        //        return cs;
+        //    }
+        //    throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        //}
+
         /// <summary>
-        /// Is intended for either adding or removing backgound color.
+        /// Intended for either adding or removing backgound color.
+        /// (!)When createUniqueStyleOnly, it is slow.
         /// </summary>
-        /// <param name="workbook"></param>
+        /// <param name="excel"></param>
         /// <param name="style"></param>
+        /// <param name="createUniqueStyleOnly"></param>
         /// <param name="color"></param>
+        /// <param name="fillPattern"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static internal ICellStyle highlight(IWorkbook workbook, ICellStyle style, Color color)
+        static internal ICellStyle highlight(Excel excel, ICellStyle style, bool createUniqueStyleOnly, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
-            if (workbook is XSSFWorkbook)
+            if (excel.Workbook is XSSFWorkbook)
             {
-                XSSFCellStyle cs = style == null ? (XSSFCellStyle)workbook.CreateCellStyle() : (XSSFCellStyle)style;
+                XSSFCellStyle cs;
                 if (color == null)
                 {
+                    if (style == null)
+                        return null;
+                    cs = (XSSFCellStyle)style;
                     cs.SetFillForegroundColor(null);
                     cs.FillPattern = FillPattern.NoFill;
+                    return cs;
                 }
-                else
+                if (createUniqueStyleOnly)
                 {
+                    cs = style == null ? (XSSFCellStyle)excel.CreateUnregisteredStyle() : (XSSFCellStyle)excel.CloneUnregisteredStyle(style);
                     cs.SetFillForegroundColor(new XSSFColor(color.RGB));
-                    cs.FillPattern = FillPattern.SolidForeground;
+                    cs.FillPattern = fillPattern;
+                    return excel.GetRegisteredStyle(cs);
                 }
+                cs = style == null ? (XSSFCellStyle)excel.Workbook.CreateCellStyle() : (XSSFCellStyle)style;
+                cs.SetFillForegroundColor(new XSSFColor(color.RGB));
+                cs.FillPattern = fillPattern;
                 return cs;
             }
-            if (workbook is HSSFWorkbook)
+            if (excel.Workbook is HSSFWorkbook)
             {
-                HSSFCellStyle cs = style == null ? (HSSFCellStyle)workbook.CreateCellStyle() : (HSSFCellStyle)style;
                 if (color == null)
                 {
-                    cs.FillForegroundColor = 0;
-                    cs.FillPattern = FillPattern.NoFill;
+                    if (style == null)
+                        return null;
+                    style.FillForegroundColor = 0;
+                    style.FillPattern = FillPattern.NoFill;
+                    return style;
                 }
-                else
+                HSSFPalette palette = ((HSSFWorkbook)excel.Workbook).GetCustomPalette();
+                HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
+                if (hssfColor == null)
                 {
-                    HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
-                    NPOI.HSSF.Util.HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
-                    if (hssfColor == null)
-                    {
-                        try
-                        {
-                            hssfColor = palette.AddColor(color.R, color.G, color.B);
-                        }
-                        catch (Exception e)
-                        {//pallete is full
-                            short? findUnusedColorIndex()
-                            {
-                                for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
-                                {
-                                    int i = 0;
-                                    for (; i < workbook.NumCellStyles; i++)
-                                    {
-                                        var s = workbook.GetCellStyleAt(i);
-                                        if (s.BorderDiagonalColor == j
-                                            || s.BottomBorderColor == j
-                                            || s.FillBackgroundColor == j
-                                            || s.FillForegroundColor == j
-                                            || s.LeftBorderColor == j
-                                            || s.RightBorderColor == j
-                                            || s.TopBorderColor == j
-                                            )
-                                            break;
-                                    }
-                                    if (i >= workbook.NumCellStyles)
-                                        return j;
-                                }
-                                return null;
-                            }
-                            short? ci = findUnusedColorIndex();
-                            if (ci == null)
-                                ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
-                            palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
-                            hssfColor = palette.GetColor(ci.Value);
-                        }
-                    }
-                    cs.FillForegroundColor = hssfColor.Indexed;
-                    cs.FillPattern = FillPattern.SolidForeground;
+                    hssfColor = getRegisteredHSSFColor((HSSFWorkbook)excel.Workbook, color);
+                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
+                    hcs.FillForegroundColor = hssfColor.Indexed;
+                    hcs.FillPattern = fillPattern;
+                    return hcs;
                 }
+                ICellStyle cs;
+                if (createUniqueStyleOnly)
+                {
+                    if (style == null)
+                        cs = excel.CreateUnregisteredStyle();
+                    else
+                        cs = excel.CloneUnregisteredStyle(style);
+                    cs.FillForegroundColor = hssfColor.Indexed;
+                    cs.FillPattern = fillPattern;
+                    return excel.GetRegisteredStyle(cs);
+                }
+                cs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
+                cs.FillForegroundColor = hssfColor.Indexed;
+                cs.FillPattern = fillPattern;
                 return cs;
             }
-            throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+            throw new Exception("Unsupported workbook type: " + excel.Workbook.GetType().FullName);
+        }
+
+        static HSSFColor getRegisteredHSSFColor(HSSFWorkbook workbook, Color color)
+        {
+            HSSFPalette palette = workbook.GetCustomPalette();
+            HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
+            if (hssfColor != null)
+                return hssfColor;
+            try
+            {
+                hssfColor = palette.AddColor(color.R, color.G, color.B);
+            }
+            catch (Exception e)
+            {//pallete is full
+                short? findUnusedColorIndex()
+                {
+                    for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
+                    {
+                        int i = 0;
+                        for (; i < workbook.NumCellStyles; i++)
+                        {
+                            var s = workbook.GetCellStyleAt(i);
+                            if (s.BorderDiagonalColor == j
+                                || s.BottomBorderColor == j
+                                || s.FillBackgroundColor == j
+                                || s.FillForegroundColor == j
+                                || s.LeftBorderColor == j
+                                || s.RightBorderColor == j
+                                || s.TopBorderColor == j
+                                )
+                                break;
+                        }
+                        if (i >= workbook.NumCellStyles)
+                            return j;
+                    }
+                    return null;
+                }
+                short? ci = findUnusedColorIndex();
+                if (ci == null)
+                    ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
+                palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
+                hssfColor = palette.GetColor(ci.Value);
+            }
+            return hssfColor;
         }
 
         /// <summary>
         /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
-        /// <param name="style">it must be a style created by CreateUnregisteredStyle() and then modified as needed</param>
+        /// <param name="style">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
         /// <param name="unregisteredStyleWorkbook"></param>
         /// <returns></returns>
         public ICellStyle GetRegisteredStyle(ICellStyle unregisteredStyle, IWorkbook unregisteredStyleWorkbook = null)
         {
+            if (unregisteredStyleWorkbook != null && unregisteredStyleWorkbook.GetType() != Workbook.GetType())
+                throw new Exception("Registering a style in a different type workbook is not supported: " + Workbook.GetType().FullName);
+
+            HSSFColor hSSFForegroundColor = null;
+            HSSFColor hSSFBackgroundColor = null;
+            if (Workbook is HSSFWorkbook hw)
+            {
+                HSSFPalette palette = hw.GetCustomPalette();
+                hSSFForegroundColor = palette.FindColor(unregisteredStyle.FillForegroundColorColor.RGB[0], unregisteredStyle.FillForegroundColorColor.RGB[1], unregisteredStyle.FillForegroundColorColor.RGB[2]);
+                if (hSSFForegroundColor == null)
+                    goto CREATE_STYLE;
+                hSSFBackgroundColor = palette.FindColor(unregisteredStyle.FillBackgroundColorColor.RGB[0], unregisteredStyle.FillBackgroundColorColor.RGB[1], unregisteredStyle.FillBackgroundColorColor.RGB[2]);
+                if (hSSFBackgroundColor == null)
+                    goto CREATE_STYLE;
+            }
+
+            string unregisteredStyleDataFormatString = null;
+            IDataFormat sDataFormat = null;
+            IFont unregisteredStyleFont = null;
+            if (unregisteredStyleWorkbook != null && unregisteredStyleWorkbook != Workbook)
+            {
+                unregisteredStyleDataFormatString = unregisteredStyleWorkbook.CreateDataFormat().GetFormat(unregisteredStyle.DataFormat);
+                sDataFormat = Workbook.CreateDataFormat();
+                unregisteredStyleFont = unregisteredStyle.GetFont(unregisteredStyleWorkbook);
+            }
+
             foreach (ICellStyle s in GetStyles())
             {
                 if (unregisteredStyle.Alignment != s.Alignment
@@ -158,8 +302,6 @@ namespace Cliver
                     || unregisteredStyle.BorderRight != s.BorderRight
                     || unregisteredStyle.BorderTop != s.BorderTop
                     || unregisteredStyle.BottomBorderColor != s.BottomBorderColor
-                    //|| unregisteredStyle.FillBackgroundColor != s.FillBackgroundColor //(NPOI bug?) FillBackgroundColor cannot be set and remains 64. It is not used, so can be ignored. 
-                    || unregisteredStyle.FillForegroundColor != s.FillForegroundColor
                     || unregisteredStyle.FillPattern != s.FillPattern
                     || unregisteredStyle.Indention != s.Indention
                     || unregisteredStyle.IsHidden != s.IsHidden
@@ -174,6 +316,23 @@ namespace Cliver
                     )
                     continue;
 
+                if (unregisteredStyle is XSSFCellStyle xcs)
+                {
+                    if (!Serialization.Json.IsEqual(xcs.FillForegroundColorColor?.RGB, s.FillForegroundColorColor?.RGB)
+                        || !Serialization.Json.IsEqual(xcs.FillBackgroundColorColor?.RGB, s.FillBackgroundColorColor?.RGB)
+                        )
+                        continue;
+                }
+                else if (unregisteredStyle is HSSFCellStyle hcs)
+                {
+                    if (hSSFForegroundColor.Indexed != s.FillForegroundColor
+                         || hSSFBackgroundColor.Indexed != s.FillBackgroundColor
+                         )
+                        continue;
+                }
+                else
+                    throw new Exception("Unsupported style type: " + unregisteredStyle.GetType().FullName);
+
                 if (unregisteredStyleWorkbook == null)
                 {
                     if (unregisteredStyle.DataFormat != s.DataFormat
@@ -183,12 +342,9 @@ namespace Cliver
                 }
                 else
                 {
-                    var unregisteredStyleDataFormat = unregisteredStyleWorkbook.CreateDataFormat();
-                    var sDataFormat = Workbook.CreateDataFormat();
-                    if (unregisteredStyleDataFormat.GetFormat(unregisteredStyle.DataFormat) != sDataFormat.GetFormat(s.DataFormat))
+                    if (unregisteredStyleDataFormatString != sDataFormat.GetFormat(s.DataFormat))
                         continue;
 
-                    IFont unregisteredStyleFont = unregisteredStyle.GetFont(unregisteredStyleWorkbook);
                     IFont sFont = s.GetFont(Workbook);
                     if (unregisteredStyleFont.Charset != sFont.Charset
                         || unregisteredStyleFont.Color != sFont.Color
@@ -204,6 +360,7 @@ namespace Cliver
                 }
                 return s;
             }
+        CREATE_STYLE:
             ICellStyle style = Workbook.CreateCellStyle();
             return CopyStyle(unregisteredStyle, style);
         }
@@ -218,6 +375,8 @@ namespace Cliver
         /// <exception cref="Exception"></exception>
         public ICellStyle CopyStyle(ICellStyle fromStyle, ICellStyle toStyle, IWorkbook toStyleWorkbook = null)
         {
+            if (toStyleWorkbook != null && toStyleWorkbook.GetType() != Workbook.GetType())
+                throw new Exception("Copying a style in a different type workbook is not supported: " + toStyleWorkbook.GetType().FullName);
             toStyle.Alignment = fromStyle.Alignment;
             toStyle.BorderBottom = fromStyle.BorderBottom;
             toStyle.BorderDiagonal = fromStyle.BorderDiagonal;
@@ -244,12 +403,35 @@ namespace Cliver
                 }
                 toStyle.DataFormat = dataFormat2.GetFormat(sDataFormat);
             }
-            toStyle.FillBackgroundColor = fromStyle.FillBackgroundColor;
-            //if (toStyle.FillBackgroundColor != fromStyle.FillBackgroundColor)//it happens when FillBackgroundColor = 0 (bug?)
-            //    throw new Exception("FillBackgroundColor could not be copied: " + fromStyle.FillBackgroundColor + " -> " + toStyle.FillBackgroundColor);
-            toStyle.FillForegroundColor = fromStyle.FillForegroundColor;
-            if (toStyle.FillForegroundColor != fromStyle.FillForegroundColor)
-                throw new Exception("FillForegroundColor could not be copied: " + fromStyle.FillForegroundColor + " -> " + toStyle.FillForegroundColor);
+            if (fromStyle is XSSFCellStyle xcs)
+            {
+                XSSFCellStyle toXcs = toStyle as XSSFCellStyle;
+                if (toXcs == null)
+                    throw new Exception("Copying style to a different type is not supported: " + toStyle.GetType().FullName);
+                toXcs.FillForegroundColorColor = fromStyle.FillForegroundColorColor;
+                toXcs.FillBackgroundColorColor = fromStyle.FillBackgroundColorColor;
+            }
+            else if (fromStyle is HSSFCellStyle hcs)
+            {
+                if (!(toStyle is HSSFCellStyle))
+                    throw new Exception("Copying style to a different type is not supported: " + toStyle.GetType().FullName);
+                if ((fromStyle.FillForegroundColor > 0 || fromStyle.FillBackgroundColor > 0)
+                    && toStyleWorkbook != null && toStyleWorkbook != Workbook
+                    )
+                {
+                    HSSFColor hSSFForegroundColor = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillForegroundColorColor.RGB[0], fromStyle.FillForegroundColorColor.RGB[1], fromStyle.FillForegroundColorColor.RGB[2]));
+                    HSSFColor hSSFBackgroundColor = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillBackgroundColorColor.RGB[0], fromStyle.FillBackgroundColorColor.RGB[1], fromStyle.FillBackgroundColorColor.RGB[2]));
+                    toStyle.FillForegroundColor = hSSFForegroundColor.Indexed;//(!)might be not exactly same color
+                    toStyle.FillBackgroundColor = hSSFBackgroundColor.Indexed;//(!)might be not exactly same color
+                }
+                else
+                {
+                    toStyle.FillForegroundColor = fromStyle.FillForegroundColor;
+                    toStyle.FillBackgroundColor = fromStyle.FillBackgroundColor;
+                }
+            }
+            else
+                throw new Exception("Unsupported style type: " + fromStyle.GetType().FullName);
             toStyle.FillPattern = fromStyle.FillPattern;
             toStyle.Indention = fromStyle.Indention;
             toStyle.IsHidden = fromStyle.IsHidden;
@@ -352,21 +534,34 @@ namespace Cliver
             }
         }
 
-        public void OptimiseStyles()
-        {
-            if (Workbook is XSSFWorkbook xSSFWorkbook)
-            {
-                //xSSFWorkbook.GetStylesSource().RemoveNumberFormat().
-                //NPOI.XSSF.UserModel.XSSFBuiltinTableStyle h;
-                //h...sty.OptimiseCellStyles();
-            }
-            else if (Workbook is HSSFWorkbook hSSFWorkbook)
-            {
-                HSSFOptimiser.OptimiseCellStyles(hSSFWorkbook);
-            }
-            else
-                throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
-        }
+        //public void OptimiseStyles()
+        //{
+        //    if (Workbook is XSSFWorkbook xSSFWorkbook)
+        //    {
+        //        NPOI.XSSF.Model.StylesTable st = xSSFWorkbook.GetStylesSource();
+        //        st.GetTableStyle()..re().(0).;
+        //        new NPOI.XSSF.Model.StylesTable(Workbook.pa;
+        //    }
+        //    else if (Workbook is HSSFWorkbook hSSFWorkbook)
+        //    {
+        //        HSSFOptimiser.OptimiseCellStyles(hSSFWorkbook);
+        //    }
+        //    else
+        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+        //}
+
+        //public void OptimiseFonts()
+        //{
+        //    if (Workbook is XSSFWorkbook xSSFWorkbook)
+        //    {
+        //    }
+        //    else if (Workbook is HSSFWorkbook hSSFWorkbook)
+        //    {
+        //        HSSFOptimiser.OptimiseFonts(hSSFWorkbook);
+        //    }
+        //    else
+        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+        //}
 
         public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
         {

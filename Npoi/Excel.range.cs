@@ -58,11 +58,9 @@ namespace Cliver
         }
 
         /// <summary>
-        /// (!)Each call registers a new style for non-styled cells. If many calls, consider rather highlighting styles.
+        /// (!)When createUniqueStyleOnly, it is slow. Otherwise, each call registers a new style for non-styled cells. If many calls, consider rather highlighting styles.
         /// </summary>
-        /// <param name="range"></param>
-        /// <param name="color"></param>
-        public void Highlight(Range range, Color color)
+        public void Highlight(Range range, bool createUniqueStyleOnly, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
             ICellStyle newStyle = null;
             int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
@@ -78,10 +76,10 @@ namespace Cliver
                     if (c.CellStyle == null)
                     {
                         if (newStyle == null)
-                            newStyle = highlight(Workbook, null, color);
+                            newStyle = highlight(this, null, createUniqueStyleOnly, color, fillPattern);
                         c.CellStyle = newStyle;
                     }
-                    c.CellStyle = highlight(Workbook, c.CellStyle, color);
+                    c.CellStyle = highlight(this, c.CellStyle, createUniqueStyleOnly, color, fillPattern);
                 }
             }
         }
