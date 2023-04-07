@@ -67,32 +67,35 @@ namespace Cliver
             //}
         }
 
-        /// <summary>
-        /// (!)When createUniqueStyleOnly, it is slow. Otherwise, each call registers a new style for non-styled cells. If many calls, consider rather highlighting styles.
-        /// </summary>
-        public void Highlight(Range range, bool createUniqueStyleOnly, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
-        {
-            ICellStyle newStyle = null;
-            int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-            for (int y = range.Y1; y <= maxY; y++)
-            {
-                IRow row = GetRow(y, color != null);
-                if (row == null)
-                    continue;
-                int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
-                for (int x = range.X1; x <= maxX; x++)
-                {
-                    ICell c = row.GetCell(x, true);
-                    if (c.CellStyle == null)
-                    {
-                        if (newStyle == null)
-                            newStyle = highlight(this, null, createUniqueStyleOnly, color, fillPattern);
-                        c.CellStyle = newStyle;
-                    }
-                    c.CellStyle = highlight(this, c.CellStyle, createUniqueStyleOnly, color, fillPattern);
-                }
-            }
-        }
+        ///// <summary>
+        ///// (!)When createOnlyUniqueStyles, it is slower. Otherwise, each call registers a new style for non-styled cells.
+        ///// </summary>
+        //public void Highlight(Range range, bool createOnlyUniqueStyles, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        //{
+        //    ICellStyle newStyle = null;
+        //    int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
+        //    for (int y = range.Y1; y <= maxY; y++)
+        //    {
+        //        IRow row = GetRow(y, color != null);
+        //        if (row == null)
+        //            continue;
+        //        int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
+        //        for (int x = range.X1; x <= maxX; x++)
+        //        {
+        //            ICell c = row.GetCell(x, true);
+        //            if (c.CellStyle == null)
+        //            {
+        //                if (color != null)
+        //                {
+        //                    if (newStyle == null)
+        //                        newStyle = highlight(this, null, createOnlyUniqueStyles, color, fillPattern);
+        //                    c.CellStyle = newStyle;
+        //                }
+        //            }
+        //            c.CellStyle = highlight(this, c.CellStyle, createOnlyUniqueStyles, color, fillPattern);
+        //        }
+        //    }
+        //}
 
         public void ClearMerging(Range range)
         {
@@ -121,6 +124,7 @@ namespace Cliver
                     return new Range(mr.FirstRow + 1, mr.FirstColumn + 1, mr.LastRow + 1, mr.LastColumn + 1);
             return null;
         }
+
         public void ReplaceStyle(Range range, ICellStyle style1, ICellStyle style2)
         {
             if (range == null)
@@ -167,7 +171,7 @@ namespace Cliver
             }
         }
 
-        public void ClearStyle(Range range, ICellStyle style)
+        public void UnsetStyle(Range range, ICellStyle style)
         {
             ReplaceStyle(range, style, null);
         }

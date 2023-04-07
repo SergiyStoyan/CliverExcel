@@ -60,89 +60,47 @@ namespace Cliver
             }
         }
 
-        public ICellStyle Highlight(ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createUniqueStyleOnly = true)
-        {
-            return highlight(this, style, createUniqueStyleOnly, color, fillPattern);
-        }
-
-        ///// <summary>
-        ///// Is intended for either adding or removing backgound color.
-        ///// </summary>
-        ///// <exception cref="Exception"></exception>
-        //static internal ICellStyle highlight(IWorkbook workbook, ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        //public void Unhighlight(Color color)
         //{
-        //    if (workbook is XSSFWorkbook)
+        //    if (Workbook is XSSFWorkbook)
         //    {
-        //        XSSFCellStyle cs = style == null ? (XSSFCellStyle)workbook.CreateCellStyle() : (XSSFCellStyle)style;
         //        if (color == null)
         //        {
-        //            cs.SetFillForegroundColor(null);
-        //            cs.FillPattern = FillPattern.NoFill;
+        //            foreach (XSSFCellStyle s in GetStyles())
+        //                s.SetFillForegroundColor(null);
+        //            return;
         //        }
-        //        else
+        //        XSSFColor c = new XSSFColor(color.RGB);
+        //        foreach (XSSFCellStyle s in GetStyles())
         //        {
-        //            cs.SetFillForegroundColor(new XSSFColor(color.RGB));
-        //            cs.FillPattern = fillPattern;
+        //            if (AreColorsEqual(s.FillForegroundColorColor, c))
+        //                s.SetFillForegroundColor(null);
         //        }
-        //        return cs;
         //    }
-        //    if (workbook is HSSFWorkbook)
+        //    else if (Workbook is HSSFWorkbook hw)
         //    {
-        //        HSSFCellStyle cs = style == null ? (HSSFCellStyle)workbook.CreateCellStyle() : (HSSFCellStyle)style;
         //        if (color == null)
         //        {
-        //            cs.FillForegroundColor = 0;
-        //            cs.FillPattern = FillPattern.NoFill;
+        //            foreach (HSSFCellStyle s in GetStyles())
+        //                s.FillForegroundColor = 0;
+        //            return;
         //        }
-        //        else
+        //        HSSFPalette palette = hw.GetCustomPalette();
+        //        HSSFColor c = palette.FindColor(color.RGB[0], color.RGB[1], color.RGB[2]);
+        //        foreach (HSSFCellStyle s in GetStyles())
         //        {
-        //            HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
-        //            NPOI.HSSF.Util.HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
-        //            if (hssfColor == null)
-        //            {
-        //                try
-        //                {
-        //                    hssfColor = palette.AddColor(color.R, color.G, color.B);
-        //                }
-        //                catch (Exception e)
-        //                {//pallete is full
-        //                    short? findUnusedColorIndex()
-        //                    {
-        //                        for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
-        //                        {
-        //                            int i = 0;
-        //                            for (; i < workbook.NumCellStyles; i++)
-        //                            {
-        //                                var s = workbook.GetCellStyleAt(i);
-        //                                if (s.BorderDiagonalColor == j
-        //                                    || s.BottomBorderColor == j
-        //                                    || s.FillBackgroundColor == j
-        //                                    || s.FillForegroundColor == j
-        //                                    || s.LeftBorderColor == j
-        //                                    || s.RightBorderColor == j
-        //                                    || s.TopBorderColor == j
-        //                                    )
-        //                                    break;
-        //                            }
-        //                            if (i >= workbook.NumCellStyles)
-        //                                return j;
-        //                        }
-        //                        return null;
-        //                    }
-        //                    short? ci = findUnusedColorIndex();
-        //                    if (ci == null)
-        //                        ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
-        //                    palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
-        //                    hssfColor = palette.GetColor(ci.Value);
-        //                }
-        //            }
-        //            cs.FillForegroundColor = hssfColor.Indexed;
-        //            cs.FillPattern = fillPattern;
+        //            if (AreColorsEqual(color, c))
+        //                s.FillForegroundColor = 0;
         //        }
-        //        return cs;
         //    }
-        //    throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        //    else
+        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
         //}
+
+        public ICellStyle Highlight(ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
+        {
+            return highlight(this, style, createOnlyUniqueStyle, color, fillPattern);
+        }
 
         /// <summary>
         /// Intended for either adding or removing backgound color.
@@ -155,7 +113,7 @@ namespace Cliver
         /// <param name="fillPattern"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static internal ICellStyle highlight(Excel excel, ICellStyle style, bool createUniqueStyleOnly, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        static internal ICellStyle highlight(Excel excel, ICellStyle style, bool createOnlyUniqueStyle, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
             if (excel.Workbook is XSSFWorkbook)
             {
@@ -169,14 +127,14 @@ namespace Cliver
                     cs.FillPattern = FillPattern.NoFill;
                     return cs;
                 }
-                if (createUniqueStyleOnly)
+                if (createOnlyUniqueStyle)
                 {
                     cs = style == null ? (XSSFCellStyle)excel.CreateUnregisteredStyle() : (XSSFCellStyle)excel.CloneUnregisteredStyle(style);
                     cs.SetFillForegroundColor(new XSSFColor(color.RGB));
                     cs.FillPattern = fillPattern;
                     return excel.GetRegisteredStyle(cs);
                 }
-                cs = style == null ? (XSSFCellStyle)excel.CreateStyle() : (XSSFCellStyle)style;
+                cs = style == null ? (XSSFCellStyle)excel.Workbook.CreateCellStyle() : (XSSFCellStyle)style;
                 cs.SetFillForegroundColor(new XSSFColor(color.RGB));
                 cs.FillPattern = fillPattern;
                 return cs;
@@ -196,13 +154,13 @@ namespace Cliver
                 if (hssfColor == null)
                 {
                     hssfColor = getRegisteredHSSFColor((HSSFWorkbook)excel.Workbook, color);
-                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)excel.CreateStyle() : (HSSFCellStyle)style;
+                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
                     hcs.FillForegroundColor = hssfColor.Indexed;
                     hcs.FillPattern = fillPattern;
                     return hcs;
                 }
                 ICellStyle cs;
-                if (createUniqueStyleOnly)
+                if (createOnlyUniqueStyle)
                 {
                     if (style == null)
                         cs = excel.CreateUnregisteredStyle();
@@ -212,7 +170,7 @@ namespace Cliver
                     cs.FillPattern = fillPattern;
                     return excel.GetRegisteredStyle(cs);
                 }
-                cs = style == null ? (HSSFCellStyle)excel.CreateStyle() : (HSSFCellStyle)style;
+                cs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
                 cs.FillForegroundColor = hssfColor.Indexed;
                 cs.FillPattern = fillPattern;
                 return cs;
@@ -276,6 +234,18 @@ namespace Cliver
             if (unregisteredStyleWorkbook != null && unregisteredStyleWorkbook.GetType() != Workbook.GetType())
                 throw new Exception("Registering a style in a different type workbook is not supported: " + Workbook.GetType().FullName);
 
+            ICellStyle style = FindEqualStyles(unregisteredStyle, unregisteredStyleWorkbook).FirstOrDefault();
+            if (style != null)
+                return style;
+            style = Workbook.CreateCellStyle();
+            return CopyStyle(unregisteredStyle, style);
+        }
+
+        public IEnumerable<ICellStyle> FindEqualStyles(ICellStyle style, IWorkbook styleWorkbook = null)
+        {
+            if (styleWorkbook != null && styleWorkbook.GetType() != Workbook.GetType())
+                throw new Exception("Comparing a style from a different type workbook is not supported: " + Workbook.GetType().FullName);
+
             HSSFColor hSSFForegroundColor = null;
             HSSFColor hSSFBackgroundColor = null;
             HSSFColor hSSFBorderDiagonalColor = null;
@@ -290,79 +260,82 @@ namespace Cliver
                 {
                     return c == null ? null : palette.FindColor(c.RGB[0], c.RGB[1], c.RGB[2]);
                 }
-                hSSFForegroundColor = findColor(unregisteredStyle.FillForegroundColorColor);
+                hSSFForegroundColor = findColor(style.FillForegroundColorColor);
                 if (hSSFForegroundColor == null)
-                    goto CREATE_STYLE;
-                hSSFBackgroundColor = findColor(unregisteredStyle.FillBackgroundColorColor);
+                    yield break;
+                hSSFBackgroundColor = findColor(style.FillBackgroundColorColor);
                 if (hSSFBackgroundColor == null)
-                    goto CREATE_STYLE;
-                HSSFPalette uPalette = ((HSSFWorkbook)unregisteredStyleWorkbook).GetCustomPalette();
-                hSSFBorderDiagonalColor = findColor(uPalette.GetColor(unregisteredStyle.BorderDiagonalColor));
+                    yield break;
+                HSSFPalette uPalette = ((HSSFWorkbook)styleWorkbook).GetCustomPalette();
+                hSSFBorderDiagonalColor = findColor(uPalette.GetColor(style.BorderDiagonalColor));
                 if (hSSFBorderDiagonalColor == null)
-                    goto CREATE_STYLE;
-                hSSFBottomBorderColor = findColor(uPalette.GetColor(unregisteredStyle.BottomBorderColor));
+                    yield break;
+                hSSFBottomBorderColor = findColor(uPalette.GetColor(style.BottomBorderColor));
                 if (hSSFBottomBorderColor == null)
-                    goto CREATE_STYLE;
-                hSSFLeftBorderColor = findColor(uPalette.GetColor(unregisteredStyle.LeftBorderColor));
+                    yield break;
+                hSSFLeftBorderColor = findColor(uPalette.GetColor(style.LeftBorderColor));
                 if (hSSFLeftBorderColor == null)
-                    goto CREATE_STYLE;
-                hSSFRightBorderColor = findColor(uPalette.GetColor(unregisteredStyle.RightBorderColor));
+                    yield break;
+                hSSFRightBorderColor = findColor(uPalette.GetColor(style.RightBorderColor));
                 if (hSSFRightBorderColor == null)
-                    goto CREATE_STYLE;
-                hSSFTopBorderColor = findColor(uPalette.GetColor(unregisteredStyle.TopBorderColor));
+                    yield break;
+                hSSFTopBorderColor = findColor(uPalette.GetColor(style.TopBorderColor));
                 if (hSSFTopBorderColor == null)
-                    goto CREATE_STYLE;
+                    yield break;
             }
 
             string unregisteredStyleDataFormatString = null;
             IDataFormat sDataFormat = null;
             IFont unregisteredStyleFont = null;
-            if (unregisteredStyleWorkbook != null && unregisteredStyleWorkbook != Workbook)
+            if (styleWorkbook != null && styleWorkbook != Workbook)
             {
-                unregisteredStyleDataFormatString = unregisteredStyleWorkbook.CreateDataFormat().GetFormat(unregisteredStyle.DataFormat);
+                unregisteredStyleDataFormatString = styleWorkbook.CreateDataFormat().GetFormat(style.DataFormat);
                 sDataFormat = Workbook.CreateDataFormat();
-                unregisteredStyleFont = unregisteredStyle.GetFont(unregisteredStyleWorkbook);
+                unregisteredStyleFont = style.GetFont(styleWorkbook);
             }
 
             foreach (ICellStyle s in GetStyles())
             {
-                if (unregisteredStyle.Alignment != s.Alignment
-                    || unregisteredStyle.BorderBottom != s.BorderBottom
-                    || unregisteredStyle.BorderDiagonal != s.BorderDiagonal
-                    || unregisteredStyle.BorderDiagonalLineStyle != s.BorderDiagonalLineStyle
-                    || unregisteredStyle.BorderLeft != s.BorderLeft
-                    || unregisteredStyle.BorderRight != s.BorderRight
-                    || unregisteredStyle.BorderTop != s.BorderTop
-                    || unregisteredStyle.FillPattern != s.FillPattern
-                    || unregisteredStyle.Indention != s.Indention
-                    || unregisteredStyle.IsHidden != s.IsHidden
-                    || unregisteredStyle.IsLocked != s.IsLocked
-                    || unregisteredStyle.Rotation != s.Rotation
-                    || unregisteredStyle.ShrinkToFit != s.ShrinkToFit
-                    || unregisteredStyle.VerticalAlignment != s.VerticalAlignment
-                    || unregisteredStyle.WrapText != s.WrapText
-                    //|| unregisteredStyle.BorderDiagonalColor != s.BorderDiagonalColor
-                    //|| unregisteredStyle.BottomBorderColor != s.BottomBorderColor
-                    //|| unregisteredStyle.LeftBorderColor != s.LeftBorderColor
-                    //|| unregisteredStyle.RightBorderColor != s.RightBorderColor
-                    //|| unregisteredStyle.TopBorderColor != s.TopBorderColor
-                    )
+                if (styleWorkbook == null || styleWorkbook == Workbook)
+                    if (s.Index == style.Index)
+                        continue;
+                if (style.Alignment != s.Alignment
+                || style.BorderBottom != s.BorderBottom
+                || style.BorderDiagonal != s.BorderDiagonal
+                || style.BorderDiagonalLineStyle != s.BorderDiagonalLineStyle
+                || style.BorderLeft != s.BorderLeft
+                || style.BorderRight != s.BorderRight
+                || style.BorderTop != s.BorderTop
+                || style.FillPattern != s.FillPattern
+                || style.Indention != s.Indention
+                || style.IsHidden != s.IsHidden
+                || style.IsLocked != s.IsLocked
+                || style.Rotation != s.Rotation
+                || style.ShrinkToFit != s.ShrinkToFit
+                || style.VerticalAlignment != s.VerticalAlignment
+                || style.WrapText != s.WrapText
+                //|| style.BorderDiagonalColor != s.BorderDiagonalColor
+                //|| style.BottomBorderColor != s.BottomBorderColor
+                //|| style.LeftBorderColor != s.LeftBorderColor
+                //|| style.RightBorderColor != s.RightBorderColor
+                //|| style.TopBorderColor != s.TopBorderColor
+                )
                     continue;
 
-                if (unregisteredStyle is XSSFCellStyle uxcs)
+                if (style is XSSFCellStyle uxcs)
                 {
                     XSSFCellStyle xcs = s as XSSFCellStyle;
-                    if (!AreColorsEqual(xcs.FillForegroundColorColor, s.FillForegroundColorColor)
-                        || !AreColorsEqual(xcs.FillBackgroundColorColor, s.FillBackgroundColorColor)
-                        || !AreColorsEqual(xcs.DiagonalBorderXSSFColor, uxcs.DiagonalBorderXSSFColor)
-                        || !AreColorsEqual(xcs.BottomBorderXSSFColor, uxcs.BottomBorderXSSFColor)
-                        || !AreColorsEqual(xcs.LeftBorderXSSFColor, uxcs.LeftBorderXSSFColor)
-                        || !AreColorsEqual(xcs.RightBorderXSSFColor, uxcs.RightBorderXSSFColor)
-                        || !AreColorsEqual(xcs.TopBorderXSSFColor, uxcs.TopBorderXSSFColor)
+                    if (!AreColorsEqual(uxcs.FillForegroundXSSFColor, xcs.FillForegroundXSSFColor)
+                        || !AreColorsEqual(uxcs.FillBackgroundXSSFColor, xcs.FillBackgroundXSSFColor)
+                        || !AreColorsEqual(uxcs.DiagonalBorderXSSFColor, xcs.DiagonalBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.BottomBorderXSSFColor, xcs.BottomBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.LeftBorderXSSFColor, xcs.LeftBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.RightBorderXSSFColor, xcs.RightBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.TopBorderXSSFColor, xcs.TopBorderXSSFColor)
                         )
                         continue;
                 }
-                else if (unregisteredStyle is HSSFCellStyle hcs)
+                else if (style is HSSFCellStyle)
                 {
                     if (hSSFForegroundColor.Indexed != s.FillForegroundColor
                          || hSSFBackgroundColor.Indexed != s.FillBackgroundColor
@@ -375,12 +348,12 @@ namespace Cliver
                         continue;
                 }
                 else
-                    throw new Exception("Unsupported style type: " + unregisteredStyle.GetType().FullName);
+                    throw new Exception("Unsupported style type: " + style.GetType().FullName);
 
-                if (unregisteredStyleWorkbook == null)
+                if (styleWorkbook == null)
                 {
-                    if (unregisteredStyle.DataFormat != s.DataFormat
-                       || unregisteredStyle.FontIndex != s.FontIndex
+                    if (style.DataFormat != s.DataFormat
+                       || style.FontIndex != s.FontIndex
                        )
                         continue;
                 }
@@ -402,11 +375,8 @@ namespace Cliver
                         )
                         continue;
                 }
-                return s;
+                yield return s;
             }
-        CREATE_STYLE:
-            ICellStyle style = CreateStyle();
-            return CopyStyle(unregisteredStyle, style);
         }
 
         /// <summary>
@@ -615,11 +585,7 @@ namespace Cliver
             }
         }
 
-        /// <summary>
-        /// Get an unused style, otherwise create a new one.
-        /// </summary>
-        /// <returns></returns>
-        public ICellStyle CreateStyle()
+        public IEnumerable<ICellStyle> GetUnusedStyles(params short[] ignoredStyleIds)
         {
             bool usedBySheet(ISheet sheet, ICellStyle style)
             {
@@ -651,40 +617,101 @@ namespace Cliver
             for (int i = 0; i < Workbook.NumCellStyles; i++)
             {
                 var style = Workbook.GetCellStyleAt(i);
+                if (ignoredStyleIds.Contains(style.Index))
+                    continue;
                 if (!used(style))
-                    return style;
+                    yield return style;
             }
-            return Workbook.CreateCellStyle();
+            yield break;
+        }
+        /// <summary>
+        /// Call GetUnusedStyles() after this method to re-use styles.
+        /// </summary>
+        /// <exception cref="Exception"></exception>
+        public void OptimiseStyles()
+        {
+            if (Workbook is XSSFWorkbook xw)
+            {
+                //NPOI.XSSF.Model.StylesTable st = xSSFWorkbook.GetStylesSource();
+                for (int i = 0; i < Workbook.NumCellStyles; i++)
+                {
+                    var style = Workbook.GetCellStyleAt(i);
+                    foreach (var s in findEqualStyles(style))
+                        ReplaceStyle(s, style);
+                }
+            }
+            else if (Workbook is HSSFWorkbook hSSFWorkbook)
+            {
+                HSSFOptimiser.OptimiseFonts(hSSFWorkbook);
+                HSSFOptimiser.OptimiseCellStyles(hSSFWorkbook);
+            }
+            else
+                throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
         }
 
-        //public void OptimiseStyles()
-        //{
-        //    if (Workbook is XSSFWorkbook xSSFWorkbook)
-        //    {
-        //        NPOI.XSSF.Model.StylesTable st = xSSFWorkbook.GetStylesSource();
-        //        st.GetTableStyle()..re().(0).;
-        //        new NPOI.XSSF.Model.StylesTable(Workbook.pa;
-        //    }
-        //    else if (Workbook is HSSFWorkbook hSSFWorkbook)
-        //    {
-        //        HSSFOptimiser.OptimiseCellStyles(hSSFWorkbook);
-        //    }
-        //    else
-        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
-        //}
+        IEnumerable<ICellStyle> findEqualStyles(ICellStyle style)
+        {
+            for (int i = style.Index + 1; i < Workbook.NumCellStyles; i++)
+            {
+                ICellStyle s = Workbook.GetCellStyleAt(i);
+                if (style.Alignment != s.Alignment
+                || style.BorderBottom != s.BorderBottom
+                || style.BorderDiagonal != s.BorderDiagonal
+                || style.BorderDiagonalLineStyle != s.BorderDiagonalLineStyle
+                || style.BorderLeft != s.BorderLeft
+                || style.BorderRight != s.BorderRight
+                || style.BorderTop != s.BorderTop
+                || style.FillPattern != s.FillPattern
+                || style.Indention != s.Indention
+                || style.IsHidden != s.IsHidden
+                || style.IsLocked != s.IsLocked
+                || style.Rotation != s.Rotation
+                || style.ShrinkToFit != s.ShrinkToFit
+                || style.VerticalAlignment != s.VerticalAlignment
+                || style.WrapText != s.WrapText
+                //|| style.BorderDiagonalColor != s.BorderDiagonalColor
+                //|| style.BottomBorderColor != s.BottomBorderColor
+                //|| style.LeftBorderColor != s.LeftBorderColor
+                //|| style.RightBorderColor != s.RightBorderColor
+                //|| style.TopBorderColor != s.TopBorderColor
+                )
+                    continue;
 
-        //public void OptimiseFonts()
-        //{
-        //    if (Workbook is XSSFWorkbook xSSFWorkbook)
-        //    {
-        //    }
-        //    else if (Workbook is HSSFWorkbook hSSFWorkbook)
-        //    {
-        //        HSSFOptimiser.OptimiseFonts(hSSFWorkbook);
-        //    }
-        //    else
-        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
-        //}
+                if (style is XSSFCellStyle uxcs)
+                {
+                    XSSFCellStyle xcs = s as XSSFCellStyle;
+                    if (!AreColorsEqual(uxcs.FillForegroundXSSFColor, xcs.FillForegroundXSSFColor)
+                        || !AreColorsEqual(uxcs.FillBackgroundXSSFColor, xcs.FillBackgroundXSSFColor)
+                        || !AreColorsEqual(uxcs.DiagonalBorderXSSFColor, xcs.DiagonalBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.BottomBorderXSSFColor, xcs.BottomBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.LeftBorderXSSFColor, xcs.LeftBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.RightBorderXSSFColor, xcs.RightBorderXSSFColor)
+                        || !AreColorsEqual(uxcs.TopBorderXSSFColor, xcs.TopBorderXSSFColor)
+                        )
+                        continue;
+                }
+                else if (style is HSSFCellStyle hcs)
+                {
+                    if (hcs.FillForegroundColor != s.FillForegroundColor
+                         || hcs.FillBackgroundColor != s.FillBackgroundColor
+                         || hcs.BorderDiagonalColor != s.BorderDiagonalColor
+                         || hcs.BottomBorderColor != s.BottomBorderColor
+                         || hcs.LeftBorderColor != s.LeftBorderColor
+                         || hcs.RightBorderColor != s.RightBorderColor
+                         || hcs.TopBorderColor != s.TopBorderColor
+                         )
+                        continue;
+                }
+                else
+                    throw new Exception("Unsupported style type: " + style.GetType().FullName);
+
+                if (style.DataFormat != s.DataFormat
+                   || style.FontIndex != s.FontIndex
+                   )
+                    continue;
+                yield return s;
+            }
+        }
 
         public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
         {
@@ -696,9 +723,9 @@ namespace Cliver
             SetStyle(null, style, createCells);
         }
 
-        public void ClearStyle(ICellStyle style)
+        public void UnsetStyle(ICellStyle style)
         {
-            ClearStyle(null, style);
+            UnsetStyle(null, style);
         }
     }
 }
