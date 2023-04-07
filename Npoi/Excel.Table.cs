@@ -3,19 +3,11 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using NPOI.XSSF.UserModel;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
 using System.Collections.ObjectModel;
-using static Cliver.Excel.Table;
+using System.Linq;
 
 namespace Cliver
 {
@@ -105,7 +97,7 @@ namespace Cliver
 
             public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
             {
-                return FindRows(/*cachedRows*/Excel.GetRowsInRange(false, 2), rowKeys);
+                return FindRows(/*cachedRows*/Excel.GetRowsInRange(RowScope.OnlyExisting, 2), rowKeys);
             }
 
             public NamedValue NewNamedValue(string header, object value)
@@ -164,16 +156,16 @@ namespace Cliver
                 return AppendRow((IEnumerable<NamedValue>)values);
             }
 
-            public IRow InsertRow(int y, IEnumerable<object> values = null)
+            public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
             {
                 IRow r = Excel.InsertRow(y, values);
                 //cachedRows.Insert(r.RowNum, r);
                 return r;
             }
 
-            public IRow InsertRow(int y, params object[] values)
+            public IRow InsertRow<T>(int y, params T[] values)
             {
-                return InsertRow(y, (IEnumerable<object>)values);
+                return InsertRow(y, (IEnumerable<T>)values);
             }
 
             public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)

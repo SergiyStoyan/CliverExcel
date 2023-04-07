@@ -3,20 +3,12 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Text.RegularExpressions;
-using System.Drawing;
-using NPOI.XSSF.UserModel;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
-using NPOI.SS.Formula.Functions;
-using static Cliver.Excel;
 
 namespace Cliver
 {
@@ -59,7 +51,7 @@ namespace Cliver
                     lastColumnX = columnX;
                 }
                 for (int i = columnX; i >= x; i--)
-                    MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
+                    MoveCell(row.Y(), i, row.Y(), i + shift, onFormulaCellMoved);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 SetColumnWidth(columnX + shift, columnXs2width[columnX]);
@@ -68,7 +60,7 @@ namespace Cliver
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int i = row.GetLastColumn(true); i >= x; i--)
-                MoveCell(row.RowNum + 1, i, row.RowNum + 1, i + shift, onFormulaCellMoved);
+                MoveCell(row.Y(), i, row.Y(), i + shift, onFormulaCellMoved);
         }
 
         /// <summary>
@@ -110,7 +102,7 @@ namespace Cliver
         {
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
-            return GetRowsInRange(false, y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
+            return GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
         }
 
         /// <summary>
@@ -206,7 +198,7 @@ namespace Cliver
 
         public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
         {
-            return GetRowsInRange(false, y1, y2).Max(a => a.GetLastColumn(includeMerged));
+            return GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a.GetLastColumn(includeMerged));
         }
 
         public int GetLastColumn(bool includeMerged = true)

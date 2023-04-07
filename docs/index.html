@@ -1,0 +1,161 @@
+<html>
+<head>
+<title>Cliver Excel</title>
+ 
+<link rel="stylesheet" type="text/css" href="main.css">
+<link rel="stylesheet" type="text/css" href="menu_generator.css">
+
+<link href="prism.css" rel="stylesheet" />
+
+</head>
+<body>
+<script src="prism.js"></script>
+<div class='header'>
+<div class='mainHeader'>Cliver Excel 3.*</div>
+</div>
+
+<div class='content'>
+<h1><a name='CliverExcel'>Overview</a></h1>
+CliverExcel is a .NET Standard 2.0 API for building and editing excel files.
+
+<p>
+It wraps the NPOI lib and, besides its own API, allows accessing the NPOI methods, too. 
+
+<p>
+CliverExcel's goal is to provide an API more handy and advanced than NPOI's.
+
+<p>
+
+
+<h1>Usage</h1>
+			
+<script type="text/plain" class="language-csharp">using Cliver;
+
+...
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	int y = xls.GetLastNotEmptyRow();
+	string s = xls.GetCell(y, 1, true).GetValueAsString();
+	xls.GetCell(y, 2, true).CreateDropdown(new int[]{1, 2, 3}, 1);
+}</script>
+
+<p>
+(!)In the own API, cell and row indexes are always 1-based, while in the origin NPOI API they are mostly 0-based. As both API's coexist, you have to be careful of the arguments of the method you are using. In the Cliver methods, cell and row index arguments are always represented by x and y. 
+
+
+<h1>Styles</h1>
+It is good to manage styles so that they are not duplicated in the workbook. It is especially important when the same workbook is edited many times. The general routine to do so is as follows:
+	
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{	
+    var dataFormat = xls.Workbook.CreateDataFormat();
+					
+	//Create a style that actually does not exist in the workbook. It will be used as a base style for the other styles.
+	NPOI.SS.UserModel.ICellStyle s = jobXls.CreateUnregisteredStyle();//create a style that does not exist in the workbook
+	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+	s.BorderDiagonal = NPOI.SS.UserModel.BorderDiagonal.None;
+	s.BorderDiagonalColor = 0;
+	s.BorderDiagonalLineStyle = NPOI.SS.UserModel.BorderStyle.None;
+	s.BottomBorderColor = 0;
+	s.DataFormat = dataFormat.GetFormat("General");
+	s.FillBackgroundColor = 1;
+	s.FillForegroundColor = 0;
+	s.FillPattern = 0;
+	s.Indention = 0;
+	s.IsHidden = false;
+	s.IsLocked = false;
+	s.LeftBorderColor = 0;
+	s.RightBorderColor = 0;
+	s.Rotation = 0;
+	s.ShrinkToFit = false;
+	s.TopBorderColor = 0;
+	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+	s.WrapText = false;
+	var f = xls.GetRegisteredFont(true, NPOI.SS.UserModel.IndexedColors.Automatic, 10, "Arial");
+	s.SetFont(f);
+	s.IsLocked = true;
+
+	//clone, configure and register a real style
+	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.CloneUnregisteredStyle(s);//create a style's clone that does not exist in the workbook
+	rowStyle1.BorderBottom = NPOI.SS.UserModel.BorderStyle.Medium;
+	rowStyle1.BorderLeft = NPOI.SS.UserModel.BorderStyle.Medium;
+	rowStyle1.BorderRight = NPOI.SS.UserModel.BorderStyle.Medium;
+	rowStyle1.BorderTop = NPOI.SS.UserModel.BorderStyle.Medium;
+	rowStyle1.DataFormat = dataFormat.GetFormat(@"_(""$""* #,##0.00_);_(""$""* \(#,##0.00\);_(""$""* "" - ""??_);_(@_)");
+	rowStyle1 = jobXls.GetRegisteredStyle(rowStyle1);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	
+	//clone, configure and register a real style
+	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.CloneUnregisteredStyle(s);//create a style's clone that does not exist in the workbook
+	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Left;
+	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Top;
+	rowStyle2 = jobXls.GetRegisteredStyle(rowStyle2);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	
+	foreach (var r in xls.GetRows(Excel.RowScope.OnlyExisting))
+	{
+		r.GetCell(1, true).CellStyle = rowStyle1;
+		r.GetCell(2, true).CellStyle = rowStyle2;
+	}
+}</script>
+
+<p>
+<p>If you only need to add highlighting to a style, use the method <code>Highlight()</code>. It will create a new style only if no equivalent style exists in the workbook.
+<br>Example:
+	
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Highlight(null, new Excel.Color(Color.LightGray));//a new style is created only if no equivalent style exists in the workbook
+	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Highlight(null, new Excel.Color(Color.LightPink));//a new style is created only if no equivalent style exists in the workbook	
+	
+	foreach (var r in xls.GetRows(Excel.RowScope.CreateIfNull))
+	{
+		r.RowStyle = r.Y() % 2 == 0 ? rowStyle1 : rowStyle2;
+	}
+}</script>
+                    
+
+<h1>Excel.Table</h1>
+
+<code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers.
+<p>Example:
+	
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	var table = new Excel.Table(xls, "Header1", "Header2");
+		
+	Excel.Table.NamedValue[] keys = new Excel.Table.NamedValue[]{
+		table.NewNamedValue("Header1", "key1")
+	};
+	NPOI.SS.UserModel.IRow r = table.FindRows(keys).LastOrDefault();	
+	
+	Excel.Table.NamedValue[] values = new Excel.Table.NamedValue[]{
+		table.NewNamedValue("Header1", "value1")
+		, table.NewNamedValue("Header2", "value2")
+	};
+	table.InsertRow(r == null ? 1 : r.Y(), values);
+
+}</script>
+
+               
+
+
+
+
+</div>
+
+<div class='footer'>
+        <script src='copyright.js'></script>
+        &nbsp;&nbsp;by&nbsp;<a href="javascript:window.location.href = '&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#101;&#114;&#103;&#101;&#121;&#46;&#115;&#116;&#111;&#121;&#97;&#110;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;'" target="_top">Sergey Stoyan</a>
+</script>
+        
+</div>
+
+<script>
+if(!window.location.href.match(/\#./ig)){
+    window.location.href = window.location.href.replace(/#.*/, '') + '#1';
+    location.reload();
+}
+</script>
+<script src='menu_generator.js' shiftHeaderAndFooterToContentView=''></script>
+
+</body>
+</html>

@@ -4,15 +4,13 @@
     <TargetFramework>netstandard2.0</TargetFramework>
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	  <RepositoryUrl>https://github.com/sergiystoyan/CliverExcel.git</RepositoryUrl>
-	  <PackageLicenseExpression>copyleft</PackageLicenseExpression>
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>3.6.0</Version>
+	  <Version>3.7.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
-	  <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	  <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 	  <Platforms>AnyCPU;x64;x86</Platforms>

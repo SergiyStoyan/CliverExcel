@@ -3,24 +3,13 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.HSSF.UserModel;
+using NPOI.HSSF.Util;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Drawing;
-using NPOI.XSSF.UserModel;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
-using Newtonsoft.Json;
-using System.Xml.Linq;
-using NPOI.HSSF.Util;
-using NPOI.XSSF.Streaming;
 
 namespace Cliver
 {

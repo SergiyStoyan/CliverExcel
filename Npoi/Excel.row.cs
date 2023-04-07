@@ -3,21 +3,10 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Drawing;
-using NPOI.XSSF.UserModel;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
-using Newtonsoft.Json;
 
 namespace Cliver
 {
@@ -152,6 +141,23 @@ namespace Cliver
             return 0;
         }
 
+        public int GetLastRow(bool includeMerged = true)
+        {
+            IRow row = Sheet.GetRow(Sheet.LastRowNum);
+            if (row == null)
+                return 0;
+            if (!includeMerged)
+                return row.Y();
+            int maxY = 0;
+            foreach (var c in row.Cells)
+            {
+                var r = c.GetMergedRange();
+                if (r != null && maxY < r.Y2.Value)
+                    maxY = r.Y2.Value;
+            }
+            return maxY;
+        }
+
         //public void HighlightRow(int y, ICellStyle style, Color color)
         //{
         //    GetRow(y, true).Highlight(style, color);
@@ -164,7 +170,7 @@ namespace Cliver
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            GetRowsInRange(false, y1, y2).ForEach(a => a.Height = -1);
+            GetRowsInRange(RowScope.OnlyExisting, y1, y2).ForEach(a => a.Height = -1);
         }
 
         public void AutosizeRows()
@@ -187,7 +193,13 @@ namespace Cliver
             ClearMerging(r);
         }
 
-        public IEnumerable<IRow> GetRowsInRange(bool includeNullRows = true, int y1 = 1, int? y2 = null)
+        public enum RowScope
+        {
+            OnlyExisting,
+            IncludeNull,
+            CreateIfNull
+        }
+        public IEnumerable<IRow> GetRowsInRange(RowScope rowScope = RowScope.IncludeNull, int y1 = 1, int? y2 = null)
         {
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
@@ -195,7 +207,14 @@ namespace Cliver
             for (int i = y1 - 1; i < y2; i++)
             {
                 var r = Sheet.GetRow(i);
-                if (includeNullRows || r != null)
+                if (r == null)
+                {
+                    if (rowScope == RowScope.OnlyExisting)
+                        continue;
+                    if (rowScope == RowScope.CreateIfNull)
+                        r = Sheet.CreateRow(i);
+                }
+                if (r != null)
                     yield return r;
             }
         }
@@ -220,45 +239,45 @@ namespace Cliver
             ReplaceStyleInRowRange(style, null, y1, y2);
         }
 
-        public IEnumerable<IRow> GetRows(bool includeNullRows = true)
+        public IEnumerable<IRow> GetRows(RowScope rowScope = RowScope.IncludeNull)
         {
-            return GetRowsInRange(includeNullRows);
+            return GetRowsInRange(rowScope);
         }
 
-        public IRow AppendRow(IEnumerable<object> values)
+        public IRow AppendRow<T>(IEnumerable<T> values)
         {
             int y0 = Sheet.LastRowNum;//(!)it is 0 when no row or 1 row
             int y = y0 + (y0 == 0 && Sheet.GetRow(y0) == null ? 1 : 2);
             return WriteRow(y, values);
         }
 
-        public IRow AppendRow(params object[] values)
+        public IRow AppendRow<T>(params T[] values)
         {
             return AppendRow(values);
         }
 
-        public IRow InsertRow(int y, IEnumerable<object> values = null)
+        public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
         {
             if (y <= Sheet.LastRowNum)
                 Sheet.ShiftRows(y - 1, Sheet.LastRowNum, 1);
             return WriteRow(y, values);
         }
 
-        public IRow InsertRow(params object[] values)
+        public IRow InsertRow<T>(params T[] values)
         {
-            return InsertRow((IEnumerable<object>)values);
+            return InsertRow((IEnumerable<T>)values);
         }
 
-        public IRow WriteRow(int y, IEnumerable<object> values)
+        public IRow WriteRow<T>(int y, IEnumerable<T> values)
         {
             IRow r = GetRow(y, true);
             r.Write(values);
             return r;
         }
 
-        public IRow WriteRow(int y, params object[] values)
+        public IRow WriteRow<T>(int y, params T[] values)
         {
-            return WriteRow(y, (IEnumerable<object>)values);
+            return WriteRow(y, (IEnumerable<T>)values);
         }
     }
 }
