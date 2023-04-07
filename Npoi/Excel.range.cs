@@ -42,19 +42,29 @@ namespace Cliver
                 return excel.GetCell(Y1, X1, create);
             }
 
-            public string GetStringAddress()
+            public string GetStringAddress(Excel excel)
             {
-                return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + (X2 != null ? CellReference.ConvertNumToColString(X2.Value - 1) : null) + Y2;
+                return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + CellReference.ConvertNumToColString(X2 != null ? X2.Value - 1 : excel.Workbook.SpreadsheetVersion.LastColumnIndex) + Y2;
             }
+
+            //public string GetStringAddress()
+            //{
+            //    return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + (X2 != null ? CellReference.ConvertNumToColString(X2.Value - 1) : null) + Y2;
+            //}
 
             /// <summary>
             /// 
             /// </summary>
             /// <returns>(!) 0-based</returns>
-            public CellRangeAddress GetCellRangeAddress()
+            public CellRangeAddress GetCellRangeAddress(Excel excel)
             {
-                return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : int.MaxValue, X1 - 1, X2 != null ? X2.Value - 1 : int.MaxValue);
+                return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : excel.Workbook.SpreadsheetVersion.MaxRows - 1, X1 - 1, X2 != null ? X2.Value - 1 : excel.Workbook.SpreadsheetVersion.LastColumnIndex);
             }
+
+            //public CellRangeAddress GetCellRangeAddress()
+            //{
+            //    return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : int.MaxValue, X1 - 1, X2 != null ? X2.Value - 1 : int.MaxValue);
+            //}
         }
 
         /// <summary>
@@ -86,7 +96,7 @@ namespace Cliver
 
         public void ClearMerging(Range range)
         {
-            CellRangeAddress cra = range.GetCellRangeAddress();
+            CellRangeAddress cra = range.GetCellRangeAddress(this);
             for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (Sheet.MergedRegions[i].Intersects(cra))
                     Sheet.RemoveMergedRegion(i);
@@ -96,7 +106,7 @@ namespace Cliver
         {
             if (clearOldMerging)
                 ClearMerging(range);
-            Sheet.AddMergedRegion(range.GetCellRangeAddress());
+            Sheet.AddMergedRegion(range.GetCellRangeAddress(this));
         }
 
         public Range GetMergedRange(int y, int x)

@@ -176,7 +176,7 @@ namespace Cliver
                     cs.FillPattern = fillPattern;
                     return excel.GetRegisteredStyle(cs);
                 }
-                cs = style == null ? (XSSFCellStyle)excel.Workbook.CreateCellStyle() : (XSSFCellStyle)style;
+                cs = style == null ? (XSSFCellStyle)excel.CreateStyle() : (XSSFCellStyle)style;
                 cs.SetFillForegroundColor(new XSSFColor(color.RGB));
                 cs.FillPattern = fillPattern;
                 return cs;
@@ -196,7 +196,7 @@ namespace Cliver
                 if (hssfColor == null)
                 {
                     hssfColor = getRegisteredHSSFColor((HSSFWorkbook)excel.Workbook, color);
-                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
+                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)excel.CreateStyle() : (HSSFCellStyle)style;
                     hcs.FillForegroundColor = hssfColor.Indexed;
                     hcs.FillPattern = fillPattern;
                     return hcs;
@@ -212,7 +212,7 @@ namespace Cliver
                     cs.FillPattern = fillPattern;
                     return excel.GetRegisteredStyle(cs);
                 }
-                cs = style == null ? (HSSFCellStyle)excel.Workbook.CreateCellStyle() : (HSSFCellStyle)style;
+                cs = style == null ? (HSSFCellStyle)excel.CreateStyle() : (HSSFCellStyle)style;
                 cs.FillForegroundColor = hssfColor.Indexed;
                 cs.FillPattern = fillPattern;
                 return cs;
@@ -405,7 +405,7 @@ namespace Cliver
                 return s;
             }
         CREATE_STYLE:
-            ICellStyle style = Workbook.CreateCellStyle();
+            ICellStyle style = CreateStyle();
             return CopyStyle(unregisteredStyle, style);
         }
 
@@ -613,6 +613,48 @@ namespace Cliver
             {
                 yield return Workbook.GetCellStyleAt(i);
             }
+        }
+
+        /// <summary>
+        /// Get an unused style, otherwise create a new one.
+        /// </summary>
+        /// <returns></returns>
+        public ICellStyle CreateStyle()
+        {
+            bool usedBySheet(ISheet sheet, ICellStyle style)
+            {
+                for (int r = 0; r <= sheet.LastRowNum; r++)
+                {
+                    IRow row = GetRow(r, false);
+                    if (row == null)
+                        continue;
+                    if (row.RowStyle?.Index == style.Index)
+                        return true;
+                    foreach (ICell c in row.Cells)
+                    {
+                        if (c.CellStyle?.Index == style.Index)
+                            return true;
+                    }
+                }
+                return false;
+            }
+            bool used(ICellStyle style)
+            {
+                for (int s = 0; s < Workbook.NumberOfSheets; s++)
+                {
+                    ISheet sheet = Workbook.GetSheetAt(s);
+                    if (usedBySheet(sheet, style))
+                        return true;
+                }
+                return false;
+            }
+            for (int i = 0; i < Workbook.NumCellStyles; i++)
+            {
+                var style = Workbook.GetCellStyleAt(i);
+                if (!used(style))
+                    return style;
+            }
+            return Workbook.CreateCellStyle();
         }
 
         //public void OptimiseStyles()
