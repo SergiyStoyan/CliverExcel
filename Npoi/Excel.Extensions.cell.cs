@@ -25,9 +25,8 @@ namespace Cliver
             object o = cell?.GetValue();
             if (!allowNull && o == null)
                 return string.Empty;
-            DateTime? dt = o as DateTime?;
-            if (dt != null)
-                return dt?.ToString("yyyy-MM-dd hh:mm:ss");
+            if (o is DateTime dt)
+                return dt.ToString("yyyy-MM-dd hh:mm:ss");
             return o?.ToString();
         }
 
@@ -67,7 +66,7 @@ namespace Cliver
                     else if (cell.Sheet.Workbook is HSSFWorkbook)
                         formulaEvaluator = new HSSFFormulaEvaluator(cell.Sheet.Workbook);
                     else
-                        throw new Exception("Unexpected Workbook type: " + cell.Sheet.Workbook.GetType());
+                        throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
                     var cv = formulaEvaluator.Evaluate(cell);
                     switch (cv.CellType)
                     {
@@ -104,25 +103,22 @@ namespace Cliver
                 cell.SetBlank();
                 return;
             }
-            double? d = value as double?;
-            if (d != null)
+            if (value is double d)
             {
-                cell.SetCellValue(d.Value);
+                cell.SetCellValue(d);
                 return;
             }
-            bool? b = value as bool?;
-            if (b != null)
+            if (value is bool b)
             {
-                cell.SetCellValue(b.Value);
+                cell.SetCellValue(b);
                 return;
             }
-            DateTime? dt = value as DateTime?;
-            if (dt != null)
+            if (value is DateTime dt)
             {
-                cell.SetCellValue(dt.Value);
+                cell.SetCellValue(dt);
                 return;
             }
-            cell.SetCellValue(value.ToString());
+            cell.SetCellValue(value?.ToString());
         }
 
         static public Uri GetLink(this ICell cell)
@@ -149,6 +145,8 @@ namespace Cliver
                 cell.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
             else if (cell.Sheet.Workbook is HSSFWorkbook)
                 cell.Hyperlink = new HSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
+            else
+                throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
         }
         public static string LinkEmptyValueFiller = "           ";
 
@@ -171,30 +169,28 @@ namespace Cliver
             //{
             //    evaluationWorkbook = SXSSFEvaluationWorkbook.Create((SXSSFWorkbook)Workbook);
             else
-                throw new Exception("Unexpected Workbook type: " + formulaCell.Sheet.Workbook.GetType());
+                throw new Exception("Unsupported workbook type: " + formulaCell.Sheet.Workbook.GetType().FullName);
 
             var ptgs = FormulaParser.Parse(formulaCell.CellFormula, evaluationWorkbook, FormulaType.Cell, formulaCell.Sheet.Workbook.GetSheetIndex(formulaCell.Sheet));
             foreach (Ptg ptg in ptgs)
             {
-                if (ptg is RefPtgBase)
+                if (ptg is RefPtgBase rpb)
                 {
-                    RefPtgBase ref2 = (RefPtgBase)ptg;
-                    if (ref2.IsRowRelative)
-                        ref2.Row = ref2.Row + rangeY1Shift;
-                    if (ref2.IsColRelative)
-                        ref2.Column = ref2.Column + rangeX1Shift;
+                    if (rpb.IsRowRelative)
+                        rpb.Row = rpb.Row + rangeY1Shift;
+                    if (rpb.IsColRelative)
+                        rpb.Column = rpb.Column + rangeX1Shift;
                 }
-                else if (ptg is AreaPtgBase)
+                else if (ptg is AreaPtgBase apb)
                 {
-                    AreaPtgBase ref2 = (AreaPtgBase)ptg;
-                    if (ref2.IsFirstRowRelative)
-                        ref2.FirstRow += rangeY1Shift;
-                    if (ref2.IsLastRowRelative)
-                        ref2.LastRow += rangeY2Shift.Value;
-                    if (ref2.IsFirstColRelative)
-                        ref2.FirstColumn += rangeX1Shift;
-                    if (ref2.IsLastColRelative)
-                        ref2.LastColumn += rangeX2Shift.Value;
+                    if (apb.IsFirstRowRelative)
+                        apb.FirstRow += rangeY1Shift;
+                    if (apb.IsLastRowRelative)
+                        apb.LastRow += rangeY2Shift.Value;
+                    if (apb.IsFirstColRelative)
+                        apb.FirstColumn += rangeX1Shift;
+                    if (apb.IsLastColRelative)
+                        apb.LastColumn += rangeX2Shift.Value;
                 }
                 //else
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
@@ -202,10 +198,10 @@ namespace Cliver
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
 
-        static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
-        {
-            cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
-        }
+        //static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
+        //{
+        //    cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
+        //}
 
         static public Excel.Range GetMergedRange(this ICell cell)
         {
@@ -256,7 +252,14 @@ namespace Cliver
                     s = null;
                 vs.Add(s);
             }
-            IDataValidationHelper dvh = new XSSFDataValidationHelper((XSSFSheet)cell.Sheet);
+
+            IDataValidationHelper dvh;
+            if (cell.Sheet is XSSFSheet)
+                dvh = new XSSFDataValidationHelper((XSSFSheet)cell.Sheet);
+            else if (cell.Sheet is HSSFSheet)
+                dvh = new HSSFDataValidationHelper((HSSFSheet)cell.Sheet);
+            else
+                throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
             //string dvs = string.Join(",", vs);
             //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
             //if (dvc == null)
@@ -278,6 +281,6 @@ namespace Cliver
                     s = null;
                 cell.SetCellValue(s);
             }
-        }       
+        }
     }
 }

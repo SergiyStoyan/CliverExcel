@@ -141,7 +141,8 @@ namespace Cliver
 
             public IRow AppendRow(IEnumerable<NamedValue> namedValues)
             {
-                int y = Excel.Sheet.LastRowNum + 2;
+                int y0 = Excel.Sheet.LastRowNum;//(!)it is 0 when no row or 1 row
+                int y = y0 + (y0 == 0 && Excel.Sheet.GetRow(y0) == null ? 1 : 2);
                 IRow r = writeRow(y, namedValues);
                 //cachedRows.Add(r);
                 return r;

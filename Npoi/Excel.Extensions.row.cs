@@ -36,10 +36,10 @@ namespace Cliver
             return c;
         }
 
-        static public void Highlight(this IRow row, ICellStyle style, Excel.Color color)
-        {
-            row.RowStyle = Excel.highlight(row.Sheet.Workbook, style, color);
-        }
+        //static public void Highlight(this IRow row, ICellStyle style, Excel.Color color)
+        //{
+        //    row.RowStyle = Excel.highlight(row.Sheet.Workbook, style, color);
+        //}
 
         /// <summary>
         /// 
@@ -60,7 +60,7 @@ namespace Cliver
                     {
                         var r = c.GetMergedRange();
                         if (r != null)
-                            return r.X2;
+                            return r.X2.Value;
                     }
                     return c.ColumnIndex + 1;
                 }
@@ -83,7 +83,7 @@ namespace Cliver
                 var c = row.Cells[row.Cells.Count - 1];
                 var r = c.GetMergedRange();
                 if (r != null)
-                    return r.X2;
+                    return r.X2.Value;
                 return c.ColumnIndex + 1;
             }
             return row.LastCellNum;
@@ -94,13 +94,13 @@ namespace Cliver
             return GetCellsInRange(row, createCells);
         }
 
-        static public IEnumerable<ICell> GetCellsInRange(this IRow row, bool createCells, int y1 = 1, int? y2 = null)
+        static public IEnumerable<ICell> GetCellsInRange(this IRow row, bool createCells, int x1 = 1, int? x2 = null)
         {
             if (row == null)
                 yield break;
-            if (y2 == null)
-                y2 = row.LastCellNum;
-            for (int x = y1; x <= y2; x++)
+            if (x2 == null)
+                x2 = row.LastCellNum;
+            for (int x = x1; x <= x2; x++)
                 yield return row.GetCell(x, createCells);
         }
 
@@ -126,15 +126,15 @@ namespace Cliver
             Write(row, (IEnumerable<object>)values);
         }
 
-        static public void SetStyles(this IRow row, int y1, IEnumerable<ICellStyle> styles)
+        static public void SetStyles(this IRow row, int x1, IEnumerable<ICellStyle> styles)
         {
-            SetStyles(row, y1, styles.ToArray());
+            SetStyles(row, x1, styles.ToArray());
         }
 
-        static public void SetStyles(this IRow row, int y1, params ICellStyle[] styles)
+        static public void SetStyles(this IRow row, int x1, params ICellStyle[] styles)
         {
-            var cs = row.GetCellsInRange(true, y1, styles.Length).ToList();
-            for (int i = y1 - 1; i < styles.Length; i++)
+            var cs = row.GetCellsInRange(true, x1, styles.Length).ToList();
+            for (int i = x1 - 1; i < styles.Length; i++)
                 cs[i].CellStyle = styles[i];
         }
     }

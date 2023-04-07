@@ -50,5 +50,32 @@ namespace Cliver
                 throw new Exception("Address is not parsable: " + address);
             return (int.Parse(m.Groups[2].Value), m.Groups[1].Value);
         }
+
+        static public bool AreColorsEqual(IColor c1, IColor c2)
+        {
+            if (c1 == null)
+                return c2 == null;
+            if (c2 == null)
+                return false;
+            return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
+        }
+
+        static public bool AreColorsEqual(Color c1, IColor c2)
+        {
+            if (c1 == null)
+                return c2 == null;
+            if (c2 == null)
+                return false;
+            return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
+        }
+
+        static public bool AreColorsEqual(Color c1, Color c2)
+        {
+            if (c1 == null)
+                return c2 == null;
+            if (c2 == null)
+                return false;
+            return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
+        }
     }
 }

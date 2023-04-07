@@ -64,7 +64,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -91,7 +91,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -118,7 +118,7 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
@@ -145,22 +145,22 @@ namespace Cliver
                 {
                     var r = c.GetMergedRange();
                     if (r != null)
-                        return r.Y2;
+                        return r.Y2.Value;
                 }
                 return c.RowIndex + 1;
             }
             return 0;
         }
 
-        public void HighlightRow(int y, ICellStyle style, Color color)
-        {
-            GetRow(y, true).Highlight(style, color);
-        }
+        //public void HighlightRow(int y, ICellStyle style, Color color)
+        //{
+        //    GetRow(y, true).Highlight(style, color);
+        //}
 
-        public void Highlight(IRow row, ICellStyle style, Color color)
-        {
-            row.Highlight(style, color);
-        }
+        //public void Highlight(IRow row, ICellStyle style, Color color)
+        //{
+        //    row.Highlight(style, color);
+        //}
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
@@ -183,7 +183,7 @@ namespace Cliver
 
         public void ClearMergingForRow(int y)
         {
-            Range r = new Range(y, y, 1, int.MaxValue);
+            Range r = new Range(y, 1, y, null);
             ClearMerging(r);
         }
 
@@ -200,6 +200,26 @@ namespace Cliver
             }
         }
 
+        public void SetStyleInRow(ICellStyle style, bool createCells, int y)
+        {
+            SetStyleInRowRange(style, createCells, y, y);
+        }
+
+        public void SetStyleInRowRange(ICellStyle style, bool createCells, int y1, int? y2 = null)
+        {
+            SetStyle(new Range(y1, 1, y2, null), style, createCells);
+        }
+
+        public void ReplaceStyleInRowRange(ICellStyle style1, ICellStyle style2, int y1, int? y2 = null)
+        {
+            ReplaceStyle(new Range(y1, 1, y2, null), style1, style2);
+        }
+
+        public void ClearStyleInRowRange(ICellStyle style, int y1, int? y2 = null)
+        {
+            ReplaceStyleInRowRange(style, null, y1, y2);
+        }
+
         public IEnumerable<IRow> GetRows(bool includeNullRows = true)
         {
             return GetRowsInRange(includeNullRows);
@@ -207,7 +227,8 @@ namespace Cliver
 
         public IRow AppendRow(IEnumerable<object> values)
         {
-            int y = Sheet.LastRowNum + 2;
+            int y0 = Sheet.LastRowNum;//(!)it is 0 when no row or 1 row
+            int y = y0 + (y0 == 0 && Sheet.GetRow(y0) == null ? 1 : 2);
             return WriteRow(y, values);
         }
 
