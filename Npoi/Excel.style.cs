@@ -47,6 +47,14 @@ namespace Cliver
             {
             }
 
+            public Color(byte[] RGB) : this(RGB[0], RGB[1], RGB[2])
+            {
+            }
+
+            public Color(IColor c) : this(c.RGB[0], c.RGB[1], c.RGB[2])
+            {
+            }
+
             public Color(System.Drawing.Color color) : this(color.ToArgb())
             {
             }
@@ -270,14 +278,39 @@ namespace Cliver
 
             HSSFColor hSSFForegroundColor = null;
             HSSFColor hSSFBackgroundColor = null;
+            HSSFColor hSSFBorderDiagonalColor = null;
+            HSSFColor hSSFBottomBorderColor = null;
+            HSSFColor hSSFLeftBorderColor = null;
+            HSSFColor hSSFRightBorderColor = null;
+            HSSFColor hSSFTopBorderColor = null;
             if (Workbook is HSSFWorkbook hw)
             {
                 HSSFPalette palette = hw.GetCustomPalette();
-                hSSFForegroundColor = palette.FindColor(unregisteredStyle.FillForegroundColorColor.RGB[0], unregisteredStyle.FillForegroundColorColor.RGB[1], unregisteredStyle.FillForegroundColorColor.RGB[2]);
+                HSSFColor findColor(IColor c)
+                {
+                    return c == null ? null : palette.FindColor(c.RGB[0], c.RGB[1], c.RGB[2]);
+                }
+                hSSFForegroundColor = findColor(unregisteredStyle.FillForegroundColorColor);
                 if (hSSFForegroundColor == null)
                     goto CREATE_STYLE;
-                hSSFBackgroundColor = palette.FindColor(unregisteredStyle.FillBackgroundColorColor.RGB[0], unregisteredStyle.FillBackgroundColorColor.RGB[1], unregisteredStyle.FillBackgroundColorColor.RGB[2]);
+                hSSFBackgroundColor = findColor(unregisteredStyle.FillBackgroundColorColor);
                 if (hSSFBackgroundColor == null)
+                    goto CREATE_STYLE;
+                HSSFPalette uPalette = ((HSSFWorkbook)unregisteredStyleWorkbook).GetCustomPalette();
+                hSSFBorderDiagonalColor = findColor(uPalette.GetColor(unregisteredStyle.BorderDiagonalColor));
+                if (hSSFBorderDiagonalColor == null)
+                    goto CREATE_STYLE;
+                hSSFBottomBorderColor = findColor(uPalette.GetColor(unregisteredStyle.BottomBorderColor));
+                if (hSSFBottomBorderColor == null)
+                    goto CREATE_STYLE;
+                hSSFLeftBorderColor = findColor(uPalette.GetColor(unregisteredStyle.LeftBorderColor));
+                if (hSSFLeftBorderColor == null)
+                    goto CREATE_STYLE;
+                hSSFRightBorderColor = findColor(uPalette.GetColor(unregisteredStyle.RightBorderColor));
+                if (hSSFRightBorderColor == null)
+                    goto CREATE_STYLE;
+                hSSFTopBorderColor = findColor(uPalette.GetColor(unregisteredStyle.TopBorderColor));
+                if (hSSFTopBorderColor == null)
                     goto CREATE_STYLE;
             }
 
@@ -296,30 +329,36 @@ namespace Cliver
                 if (unregisteredStyle.Alignment != s.Alignment
                     || unregisteredStyle.BorderBottom != s.BorderBottom
                     || unregisteredStyle.BorderDiagonal != s.BorderDiagonal
-                    || unregisteredStyle.BorderDiagonalColor != s.BorderDiagonalColor
                     || unregisteredStyle.BorderDiagonalLineStyle != s.BorderDiagonalLineStyle
                     || unregisteredStyle.BorderLeft != s.BorderLeft
                     || unregisteredStyle.BorderRight != s.BorderRight
                     || unregisteredStyle.BorderTop != s.BorderTop
-                    || unregisteredStyle.BottomBorderColor != s.BottomBorderColor
                     || unregisteredStyle.FillPattern != s.FillPattern
                     || unregisteredStyle.Indention != s.Indention
                     || unregisteredStyle.IsHidden != s.IsHidden
                     || unregisteredStyle.IsLocked != s.IsLocked
-                    || unregisteredStyle.LeftBorderColor != s.LeftBorderColor
-                    || unregisteredStyle.RightBorderColor != s.RightBorderColor
                     || unregisteredStyle.Rotation != s.Rotation
                     || unregisteredStyle.ShrinkToFit != s.ShrinkToFit
-                    || unregisteredStyle.TopBorderColor != s.TopBorderColor
                     || unregisteredStyle.VerticalAlignment != s.VerticalAlignment
                     || unregisteredStyle.WrapText != s.WrapText
+                    //|| unregisteredStyle.BorderDiagonalColor != s.BorderDiagonalColor
+                    //|| unregisteredStyle.BottomBorderColor != s.BottomBorderColor
+                    //|| unregisteredStyle.LeftBorderColor != s.LeftBorderColor
+                    //|| unregisteredStyle.RightBorderColor != s.RightBorderColor
+                    //|| unregisteredStyle.TopBorderColor != s.TopBorderColor
                     )
                     continue;
 
-                if (unregisteredStyle is XSSFCellStyle xcs)
+                if (unregisteredStyle is XSSFCellStyle uxcs)
                 {
-                    if (!Serialization.Json.IsEqual(xcs.FillForegroundColorColor?.RGB, s.FillForegroundColorColor?.RGB)
-                        || !Serialization.Json.IsEqual(xcs.FillBackgroundColorColor?.RGB, s.FillBackgroundColorColor?.RGB)
+                    XSSFCellStyle xcs = s as XSSFCellStyle;
+                    if (!AreColorsEqual(xcs.FillForegroundColorColor, s.FillForegroundColorColor)
+                        || !AreColorsEqual(xcs.FillBackgroundColorColor, s.FillBackgroundColorColor)
+                        || !AreColorsEqual(xcs.DiagonalBorderXSSFColor, uxcs.DiagonalBorderXSSFColor)
+                        || !AreColorsEqual(xcs.BottomBorderXSSFColor, uxcs.BottomBorderXSSFColor)
+                        || !AreColorsEqual(xcs.LeftBorderXSSFColor, uxcs.LeftBorderXSSFColor)
+                        || !AreColorsEqual(xcs.RightBorderXSSFColor, uxcs.RightBorderXSSFColor)
+                        || !AreColorsEqual(xcs.TopBorderXSSFColor, uxcs.TopBorderXSSFColor)
                         )
                         continue;
                 }
@@ -327,6 +366,11 @@ namespace Cliver
                 {
                     if (hSSFForegroundColor.Indexed != s.FillForegroundColor
                          || hSSFBackgroundColor.Indexed != s.FillBackgroundColor
+                         || hSSFBorderDiagonalColor.Indexed != s.BorderDiagonalColor
+                         || hSSFBottomBorderColor.Indexed != s.BottomBorderColor
+                         || hSSFLeftBorderColor.Indexed != s.LeftBorderColor
+                         || hSSFRightBorderColor.Indexed != s.RightBorderColor
+                         || hSSFTopBorderColor.Indexed != s.TopBorderColor
                          )
                         continue;
                 }
@@ -410,24 +454,64 @@ namespace Cliver
                     throw new Exception("Copying style to a different type is not supported: " + toStyle.GetType().FullName);
                 toXcs.FillForegroundColorColor = fromStyle.FillForegroundColorColor;
                 toXcs.FillBackgroundColorColor = fromStyle.FillBackgroundColorColor;
+                toXcs.SetDiagonalBorderColor(xcs.DiagonalBorderXSSFColor);
+                toXcs.SetBottomBorderColor(xcs.BottomBorderXSSFColor);
+                toXcs.SetLeftBorderColor(xcs.LeftBorderXSSFColor);
+                toXcs.SetRightBorderColor(xcs.RightBorderXSSFColor);
+                toXcs.SetTopBorderColor(xcs.TopBorderXSSFColor);
             }
-            else if (fromStyle is HSSFCellStyle hcs)
+            else if (fromStyle is HSSFCellStyle)
             {
                 if (!(toStyle is HSSFCellStyle))
                     throw new Exception("Copying style to a different type is not supported: " + toStyle.GetType().FullName);
-                if ((fromStyle.FillForegroundColor > 0 || fromStyle.FillBackgroundColor > 0)
-                    && toStyleWorkbook != null && toStyleWorkbook != Workbook
-                    )
+                if (toStyleWorkbook != null && toStyleWorkbook != Workbook)
                 {
-                    HSSFColor hSSFForegroundColor = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillForegroundColorColor.RGB[0], fromStyle.FillForegroundColorColor.RGB[1], fromStyle.FillForegroundColorColor.RGB[2]));
-                    HSSFColor hSSFBackgroundColor = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillBackgroundColorColor.RGB[0], fromStyle.FillBackgroundColorColor.RGB[1], fromStyle.FillBackgroundColorColor.RGB[2]));
-                    toStyle.FillForegroundColor = hSSFForegroundColor.Indexed;//(!)might be not exactly same color
-                    toStyle.FillBackgroundColor = hSSFBackgroundColor.Indexed;//(!)might be not exactly same color
+                    if (fromStyle.FillForegroundColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillForegroundColorColor));
+                        toStyle.FillForegroundColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    if (fromStyle.FillBackgroundColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(fromStyle.FillBackgroundColorColor));
+                        toStyle.FillBackgroundColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    HSSFPalette palette = ((HSSFWorkbook)Workbook).GetCustomPalette();
+                    if (fromStyle.BorderDiagonalColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(palette.GetColor(fromStyle.BorderDiagonalColor)));
+                        toStyle.BorderDiagonalColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    if (fromStyle.BottomBorderColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(palette.GetColor(fromStyle.BottomBorderColor)));
+                        toStyle.BottomBorderColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    if (fromStyle.LeftBorderColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(palette.GetColor(fromStyle.LeftBorderColor)));
+                        toStyle.LeftBorderColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    if (fromStyle.RightBorderColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(palette.GetColor(fromStyle.RightBorderColor)));
+                        toStyle.RightBorderColor = c.Indexed;//(!)might be not exactly same color
+                    }
+                    if (fromStyle.TopBorderColor > 0)
+                    {
+                        HSSFColor c = getRegisteredHSSFColor((HSSFWorkbook)toStyleWorkbook, new Color(palette.GetColor(fromStyle.TopBorderColor)));
+                        toStyle.TopBorderColor = c.Indexed;//(!)might be not exactly same color
+                    }
                 }
                 else
                 {
                     toStyle.FillForegroundColor = fromStyle.FillForegroundColor;
                     toStyle.FillBackgroundColor = fromStyle.FillBackgroundColor;
+                    toStyle.BorderDiagonalColor = fromStyle.BorderDiagonalColor;
+                    toStyle.BottomBorderColor = fromStyle.BottomBorderColor;
+                    toStyle.LeftBorderColor = fromStyle.LeftBorderColor;
+                    toStyle.RightBorderColor = fromStyle.RightBorderColor;
+                    toStyle.TopBorderColor = fromStyle.TopBorderColor;
                 }
             }
             else
@@ -436,11 +520,8 @@ namespace Cliver
             toStyle.Indention = fromStyle.Indention;
             toStyle.IsHidden = fromStyle.IsHidden;
             toStyle.IsLocked = fromStyle.IsLocked;
-            toStyle.LeftBorderColor = fromStyle.LeftBorderColor;
-            toStyle.RightBorderColor = fromStyle.RightBorderColor;
             toStyle.Rotation = fromStyle.Rotation;
             toStyle.ShrinkToFit = fromStyle.ShrinkToFit;
-            toStyle.TopBorderColor = fromStyle.TopBorderColor;
             toStyle.VerticalAlignment = fromStyle.VerticalAlignment;
             toStyle.WrapText = fromStyle.WrapText;
             IFont f1;
