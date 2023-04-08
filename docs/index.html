@@ -16,7 +16,7 @@
 
 <div class='content'>
 <h1><a name='CliverExcel'>Overview</a></h1>
-CliverExcel is a .NET Standard 2.0 API for building and editing excel files.
+CliverExcel is an API for creating and editing excel files.
 
 <p>
 It wraps the NPOI lib and, besides its own API, allows accessing the NPOI methods, too. 
@@ -24,9 +24,25 @@ It wraps the NPOI lib and, besides its own API, allows accessing the NPOI method
 <p>
 CliverExcel's goal is to provide an API more handy and advanced than NPOI's.
 
-<p>
+		
+<p><b>Compatibility</b>
+<br>CliverRoutines has been developed in .NET Standard 2.0 and supposed to run on any platform that adopts C#.
 
 
+
+            <h2><a name='licensing'>Licensing</a></h2>
+			
+			 See in <a href='#source'>the repository</a>.
+			
+	
+            <h2><a name='source'>Source code</a></h2>
+            Open <a href='https://github.com/sergiystoyan/CliverExcel' target='_blank'>repository</a>.
+        <p>
+            Do not download the latest code from a branch because it may be under development. Instead, use the latest (pre-)release code.
+
+
+		
+			
 <h1>Usage</h1>
 			
 <script type="text/plain" class="language-csharp">using Cliver;
@@ -40,7 +56,7 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 }</script>
 
 <p>
-(!)In the own API, cell and row indexes are always 1-based, while in the origin NPOI API they are mostly 0-based. As both API's coexist, you have to be careful of the arguments of the method you are using. In the Cliver methods, cell and row index arguments are always represented by x and y. 
+<span class='attention'>(!)</span>In the own API, cell and row indexes are always 1-based, while in the origin NPOI API they are mostly 0-based. As both API's coexist, you have to be careful of the arguments of the method you are using. In the Cliver methods, cell and row index arguments are always represented by x and y. 
 
 
 <h1>Styles</h1>
@@ -97,9 +113,8 @@ It is good to manage styles so that they are not duplicated in the workbook. It 
 	}
 }</script>
 
-<p>
-<p>If you only need to add highlighting to a style, use the method <code>Highlight()</code>. It will create a new style only if no equivalent style exists in the workbook.
-<br>Example:
+<br>
+<p>If you only need to add highlighting to a style, use the method <code>Highlight()</code>. It will create a new style only if no equivalent style exists in the workbook:
 	
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
@@ -115,8 +130,7 @@ It is good to manage styles so that they are not duplicated in the workbook. It 
 
 <h1>Excel.Table</h1>
 
-<code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers.
-<p>Example:
+<code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers:
 	
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
@@ -132,7 +146,6 @@ It is good to manage styles so that they are not duplicated in the workbook. It 
 		, table.NewNamedValue("Header2", "value2")
 	};
 	table.InsertRow(r == null ? 1 : r.Y(), values);
-
 }</script>
 
                
