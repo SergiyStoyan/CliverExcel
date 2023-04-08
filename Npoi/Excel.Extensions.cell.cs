@@ -3,18 +3,14 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Drawing;
-using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
+using NPOI.SS.Formula;
+using NPOI.SS.Formula.PTG;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
+using NPOI.XSSF.UserModel;
+using System;
+using System.Collections.Generic;
 
 namespace Cliver
 {
@@ -219,7 +215,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// 
+        /// Cell's 1-based row index on the sheet.
         /// </summary>
         /// <param name="cell"></param>
         /// <returns>1-based</returns>
@@ -229,7 +225,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// 
+        /// Cell's 1-based column index on the sheet.
         /// </summary>
         /// <param name="cell"></param>
         /// <returns>1-based</returns>
@@ -238,20 +234,11 @@ namespace Cliver
             return cell.ColumnIndex + 1;
         }
 
-        static public void CreateDropdown(this ICell cell, IEnumerable<object> values, object value, bool allowBlank = true)
+        static public void CreateDropdown<T>(this ICell cell, IEnumerable<T> values, T value, bool allowBlank = true)
         {
             List<string> vs = new List<string>();
             foreach (object v in values)
-            {
-                string s;
-                if (v is string)
-                    s = (string)v;
-                else if (v != null)
-                    s = v.ToString();
-                else
-                    s = null;
-                vs.Add(s);
-            }
+                vs.Add(v?.ToString());
 
             IDataValidationHelper dvh;
             if (cell.Sheet is XSSFSheet)
@@ -271,16 +258,7 @@ namespace Cliver
             dv.EmptyCellAllowed = allowBlank;
             ((XSSFSheet)cell.Sheet).AddValidationData(dv);
 
-            {
-                string s;
-                if (value is string)
-                    s = (string)value;
-                else if (value != null)
-                    s = value.ToString();
-                else
-                    s = null;
-                cell.SetCellValue(s);
-            }
+            cell.SetCellValue(value?.ToString());
         }
     }
 }

@@ -3,18 +3,12 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
-using NPOI.XSSF.Streaming;
+using NPOI.XSSF.UserModel;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Cliver
 {
@@ -239,7 +233,7 @@ namespace Cliver
             }
         }
 
-        public void CreateDropdown(int y, int x, IEnumerable<object> values, object value, bool allowBlank = true)
+        public void CreateDropdown<T>(int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
         {
             GetCell(y, x, true).CreateDropdown(values, value, allowBlank);
         }

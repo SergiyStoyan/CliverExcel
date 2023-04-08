@@ -3,18 +3,9 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using System;
+using NPOI.SS.UserModel;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Drawing;
-using NPOI.XSSF.UserModel;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
 
 namespace Cliver
 {
@@ -105,7 +96,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// 
+        /// 1-based row index on the sheet.
         /// </summary>
         /// <param name="row"></param>
         /// <returns>1-based</returns>

@@ -1,7 +1,9 @@
 # CliverExcel
 
-Excel API for bulding and editing excel files. 
+CliverExcel is a .NET Standard 2.0 API for creating and editing excel files.
 
-It is based on NPOI and, besides its own API, allows accessing the origin NPOI API.
+It wraps the NPOI lib and, besides its own API, allows accessing the NPOI methods, too.
 
-(!)In the own API, cell and row indexes are 1-based.
+CliverExcel's goal is to provide an API more handy and advanced than NPOI's.
+
+## [Documentation](https://sergiystoyan.github.io/CliverExcel/#1)
