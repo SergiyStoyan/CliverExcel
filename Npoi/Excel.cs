@@ -44,22 +44,22 @@ namespace Cliver
                     try
                     {
                         fs.Position = 0;//!!!prevents occasional error: EOF in header
-                        Workbook = new XSSFWorkbook(fs);
+                        Workbook = new Workbook(new XSSFWorkbook(fs));
                     }
                     catch (ICSharpCode.SharpZipLib.Zip.ZipException)
                     {
                         fs.Position = 0;//!!!prevents error: EOF in header
-                        Workbook = new HSSFWorkbook(fs);//old Excel 97-2003
+                        Workbook = new Workbook(new HSSFWorkbook(fs));//old Excel 97-2003
                     }
                 }
             else
             {
                 //System.IO.File.Create(File).Dispose();
-                Workbook = new XSSFWorkbook();
+                Workbook = new Workbook(new XSSFWorkbook());
             }
         }
 
-        public IWorkbook Workbook { get; private set; }
+        public Workbook Workbook { get; private set; }
 
         public string File { get; private set; }
 
@@ -74,7 +74,7 @@ namespace Cliver
             {
                 if (Workbook != null)
                 {
-                    Workbook.Close();
+                    Workbook._.Close();
                     Workbook = null;
                 }
             }
@@ -88,9 +88,9 @@ namespace Cliver
         /// <param name="name">(!)name can be auto-corrected</param>
         public void OpenSheet(string name)
         {
-            Sheet = Workbook.GetSheet(name);
+            Sheet = new Sheet(Workbook._.GetSheet(name));
             if (Sheet == null)
-                Sheet = Workbook.CreateSheet(GetSafeSheetName(name));
+                Sheet = new Sheet(Workbook._.CreateSheet(GetSafeSheetName(name)));
         }
 
         /// <summary>
@@ -100,15 +100,15 @@ namespace Cliver
         /// <returns>true if the index exists, otherwise false</returns>
         public bool OpenSheet(int index)
         {
-            if (Workbook.NumberOfSheets > 0 && Workbook.NumberOfSheets >= index)
+            if (Workbook._.NumberOfSheets > 0 && Workbook._.NumberOfSheets >= index)
             {
-                Sheet = Workbook.GetSheetAt(index - 1);
+                Sheet = new Sheet(Workbook._.GetSheetAt(index - 1));
                 return true;
             }
             return false;
         }
 
-        public ISheet Sheet { get; private set; }
+        public Sheet Sheet { get; private set; }
 
         /// <summary>
         /// Get name/rename the active sheet.
@@ -118,12 +118,12 @@ namespace Cliver
         {
             get
             {
-                return Sheet?.SheetName;
+                return Sheet?._.SheetName;
             }
             set
             {
                 if (Sheet != null)
-                    Workbook.SetSheetName(Workbook.GetSheetIndex(Sheet), GetSafeSheetName(value));
+                    Workbook._.SetSheetName(Workbook._.GetSheetIndex(Sheet._), GetSafeSheetName(value));
             }
         }
 
@@ -133,7 +133,7 @@ namespace Cliver
                 File = file;
             using (var fileData = new FileStream(File, FileMode.Create))
             {
-                Workbook.Write(fileData, true);
+                Workbook._.Write(fileData, true);
             }
         }
 
@@ -141,22 +141,22 @@ namespace Cliver
         {
             get
             {
-                if (Workbook is XSSFWorkbook xSSFWorkbook)
+                if (Workbook._ is XSSFWorkbook xSSFWorkbook)
                 {
                     NPOI.OpenXmlFormats.CT_Property p = xSSFWorkbook.GetProperties().CustomProperties.GetProperty("HyperlinkBase");//so is in Epplus
                     return p?.Item?.ToString();
                 }
-                else if (Workbook is HSSFWorkbook hSSFWorkbook)
+                else if (Workbook._ is HSSFWorkbook hSSFWorkbook)
                 {
                     hSSFWorkbook.CreateInformationProperties();
                     return hSSFWorkbook.DocumentSummaryInformation.CustomProperties["HyperlinkBase"]?.ToString();
                 }
                 else
-                    throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+                    throw new Exception("Unsupported workbook type: " + Workbook._.GetType().FullName);
             }
             set
             {
-                if (Workbook is XSSFWorkbook xSSFWorkbook)
+                if (Workbook._ is XSSFWorkbook xSSFWorkbook)
                 {
                     List<NPOI.OpenXmlFormats.CT_Property> ps = xSSFWorkbook.GetProperties().CustomProperties.GetUnderlyingProperties().property;
                     NPOI.OpenXmlFormats.CT_Property p = ps.Find(a => a.name == "HyperlinkBase");//so is in Epplus
@@ -171,7 +171,7 @@ namespace Cliver
                     else
                         p.Item = value;
                 }
-                else if (Workbook is HSSFWorkbook hSSFWorkbook)
+                else if (Workbook._ is HSSFWorkbook hSSFWorkbook)
                 {
                     hSSFWorkbook.CreateInformationProperties();
                     if (value == null)
@@ -182,7 +182,7 @@ namespace Cliver
                     hSSFWorkbook.DocumentSummaryInformation.CustomProperties.Put("HyperlinkBase", value);//so is in Epplus
                 }
                 else
-                    throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+                    throw new Exception("Unsupported workbook type: " + Workbook._.GetType().FullName);
             }
         }
 
@@ -325,6 +325,40 @@ namespace Cliver
             //        }
             //    }
             //}
+        }
+
+        public class Color
+        {
+            public readonly byte R;
+            public readonly byte G;
+            public readonly byte B;
+            readonly public byte[] RGB = new byte[3];
+
+            public Color(byte r, byte g, byte b)
+            {
+                R = r;
+                G = g;
+                B = b;
+                RGB[0] = R;
+                RGB[1] = G;
+                RGB[2] = B;
+            }
+
+            public Color(int aRGB) : this((byte)((aRGB >> 16) & 0xFF), (byte)((aRGB >> 8) & 0xFF), (byte)(aRGB & 0xFF))
+            {
+            }
+
+            public Color(byte[] RGB) : this(RGB[0], RGB[1], RGB[2])
+            {
+            }
+
+            public Color(IColor c) : this(c.RGB[0], c.RGB[1], c.RGB[2])
+            {
+            }
+
+            public Color(System.Drawing.Color color) : this(color.ToArgb())
+            {
+            }
         }
     }
 }

@@ -20,7 +20,11 @@ namespace Cliver
             public int Y1 = 1;
             public int? Y2 = null;
 
+<<<<<<< Updated upstream
             public Range(int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
+=======
+            public Range(Sheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
+>>>>>>> Stashed changes
             {
                 Y1 = y1;
                 Y2 = y2;
@@ -28,7 +32,13 @@ namespace Cliver
                 X2 = x2;
             }
 
+<<<<<<< Updated upstream
             public ICell GetMainCell(Excel excel, bool create)
+=======
+            public Sheet Sheet;
+
+            public Cell GetMainCell(bool createCell)
+>>>>>>> Stashed changes
             {
                 return excel.GetCell(Y1, X1, create);
             }
@@ -90,6 +100,7 @@ namespace Cliver
 
         public void ClearMerging(Range range)
         {
+<<<<<<< Updated upstream
             CellRangeAddress cra = range.GetCellRangeAddress(this);
             for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (Sheet.MergedRegions[i].Intersects(cra))
@@ -101,6 +112,9 @@ namespace Cliver
             if (clearOldMerging)
                 ClearMerging(range);
             Sheet.AddMergedRegion(range.GetCellRangeAddress(this));
+=======
+            return new Range(Sheet._, y1, x1, y2, x2);
+>>>>>>> Stashed changes
         }
 
         public Range GetMergedRange(int y, int x)

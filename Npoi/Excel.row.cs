@@ -7,11 +7,13 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Cliver.Excel;
 
 namespace Cliver
 {
-    public partial class Excel : IDisposable
+    public partial class Row
     {
+<<<<<<< Updated upstream
         /// <summary>
         /// 
         /// </summary>
@@ -150,37 +152,156 @@ namespace Cliver
                 return row.Y();
             int maxY = 0;
             foreach (var c in row.Cells)
+=======
+        internal Row(IRow row, Sheet sheet)
+        {
+            _ = row;
+            Sheet = sheet;
+        }
+        public IRow _ { get; private set; }
+
+        public readonly Sheet Sheet;
+
+        public void ShiftCellsRight(int x1, int shift, Action<Cell> onFormulaCellMoved = null)
+        {
+            for (int x = GetLastColumn(true); x >= x1; x--)
+                Sheet.MoveCell(Y, x, Y, x + shift, onFormulaCellMoved);
+        }
+
+        public void ShiftCellsLeft(int x1, int shift, Action<Cell> onFormulaCellMoved = null)
+        {
+            int x2 = GetLastColumn(true);
+            for (int x = x1; x <= x2; x++)
+                Sheet.MoveCell(Y, x, Y, x - shift, onFormulaCellMoved);
+        }
+
+        // public ICell GetCell( string header, bool create)
+        //{
+        //    ICell c = r.GetCell(x - 1);
+        //    if (c == null && create)
+        //        return r.CreateCell(x - 1);
+        //    return c;
+        //}
+
+        public Cell GetCell(int x, bool createCell)
+        {
+            ICell c = _.GetCell(x - 1);
+            if (c == null && createCell)
+                return new Cell(_.CreateCell(x - 1));
+            return new Cell(c);
+        }
+
+        // public void Highlight( ICellStyle style, Excel.Color color)
+        //{
+        //    RowStyle = Excel.highlight(GetSheet().Workbook, style, color);
+        //}
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int GetLastNotEmptyColumn(bool includeMerged = true)
+        {
+            if (_.Cells.Count < 1)
+                return 0;
+            for (int x0 = _.Cells.Count - 1; x0 >= 0; x0--)
+>>>>>>> Stashed changes
             {
-                var r = c.GetMergedRange();
-                if (r != null && maxY < r.Y2.Value)
-                    maxY = r.Y2.Value;
+                var c = _.GetCell(x0);
+                if (c == null)
+                    continue;
+                var ec = new Cell(c);
+                if (string.IsNullOrWhiteSpace(ec.GetValueAsString()))
+                    continue;
+                if (includeMerged)
+                {
+                    var r = ec.GetMergedRange();
+                    if (r != null)
+                        return r.X2.Value;
+                }
+                return c.ColumnIndex + 1;
             }
-            return maxY;
+            return 0;
         }
 
-        //public void HighlightRow(int y, ICellStyle style, Color color)
-        //{
-        //    GetRow(y, true).Highlight(style, color);
-        //}
-
-        //public void Highlight(IRow row, ICellStyle style, Color color)
-        //{
-        //    row.Highlight(style, color);
-        //}
-
-        public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int GetLastColumn(bool includeMerged = true)
         {
-            GetRowsInRange(RowScope.OnlyExisting, y1, y2).ForEach(a => a.Height = -1);
+            if (_.Cells.Count < 1)
+                return 0;
+            if (includeMerged)
+            {
+                var c = _.Cells[_.Cells.Count - 1];
+                var ec = new Cell(c);
+                var r = ec.GetMergedRange();
+                if (r != null)
+                    return r.X2.Value;
+                return c.ColumnIndex + 1;
+            }
+            return _.LastCellNum;
         }
 
-        public void AutosizeRows()
+        public IEnumerable<Cell> GetCells(bool createCells)
         {
-            AutosizeRowsInRange();
+            return GetCellsInRange(createCells);
         }
 
-        public void ClearRow(int y, bool clearMerging)
+        public IEnumerable<Cell> GetCellsInRange(bool createCells, int x1 = 1, int? x2 = null)
+        {
+            if (x2 == null)
+                x2 = _.LastCellNum;
+            for (int x = x1; x <= x2; x++)
+                yield return GetCell(x, createCells);
+        }
+
+        /// <summary>
+        /// 1-based row index on the sheet.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns>1-based</returns>
+        public int Y
+        {
+            get
+            {
+                return _.RowNum + 1;
+            }
+        }
+
+        public void Write<T>(IEnumerable<T> values)
+        {
+            int x = 1;
+            foreach (object v in values)
+                GetCell(x++, true).SetValue(v);
+        }
+
+        public void Write<T>(params T[] values)
+        {
+            Write((IEnumerable<T>)values);
+        }
+
+        public void SetStyles(int x1, IEnumerable<Style> styles)
+        {
+            SetStyles(x1, styles.ToArray());
+        }
+
+        public void SetStyles(int x1, params Style[] styles)
+        {
+            var cs = GetCellsInRange(true, x1, styles.Length).ToList();
+            for (int i = x1 - 1; i < styles.Length; i++)
+                cs[i]._.CellStyle = styles[i]._;
+        }
+
+        public void Clear(bool clearMerging)
         {
             if (clearMerging)
+<<<<<<< Updated upstream
                 ClearMergingForRow(y);
             var r = GetRow(y, false);
             if (r != null)
@@ -191,10 +312,20 @@ namespace Cliver
         {
             Range r = new Range(y, 1, y, null);
             ClearMerging(r);
+=======
+                ClearMerging();
+            _.Sheet.RemoveRow(_);
         }
 
-        public enum RowScope
+        public void ClearMerging()
         {
+            new Range(Sheet, Y, 1, Y, null).ClearMerging();
+>>>>>>> Stashed changes
+        }
+
+        public IEnumerable<Cell> GetCells()
+        {
+<<<<<<< Updated upstream
             OnlyExisting,
             IncludeNull,
             CreateIfNull
@@ -278,6 +409,10 @@ namespace Cliver
         public IRow WriteRow<T>(int y, params T[] values)
         {
             return WriteRow(y, (IEnumerable<T>)values);
+=======
+            for (int i = 0; i < _.LastCellNum; i++)
+                yield return new Cell(_.Cells[i]);
+>>>>>>> Stashed changes
         }
     }
 }

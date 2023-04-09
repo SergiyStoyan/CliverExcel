@@ -68,5 +68,24 @@ namespace Cliver
                 return false;
             return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
         }
+<<<<<<< Updated upstream
+=======
+
+        static public void PasteRange(Cell[][] rangeCells, int toY, int toX, Sheet toSheet = null)
+        {
+            for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
+            {
+                Cell[] rowCells = rangeCells[yi];
+                for (int xi = rowCells.Length - 1; xi >= 0; xi--)
+                {
+                    var c = rowCells[xi];
+                    if (c != null)
+                        c.Copy(toY + yi, toX + xi, toSheet);
+                    else
+                        toSheet.RemoveCell(toY + yi, toX + xi);
+                }
+            }
+        }
+>>>>>>> Stashed changes
     }
 }

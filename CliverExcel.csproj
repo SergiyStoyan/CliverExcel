@@ -25,4 +25,8 @@
     <ProjectReference Include="..\CliverRoutines\CliverRoutines.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Npoi\1\" />
+  </ItemGroup>
+
 </Project>

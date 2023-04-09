@@ -22,7 +22,55 @@ namespace Cliver
         /// <returns>1-based, otherwise 0</returns>
         public int FindColumnByHeader(Regex header, int headerY = 1)
         {
+<<<<<<< Updated upstream
             IRow row = GetRow(headerY, false);
+=======
+            return Sheet.GetLastNotEmptyRowInColumnRange(x1, x2, includeMerged);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="includeMerged"></param>
+        /// <param name="xs"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int GetLastNotEmptyRowInColumns(bool includeMerged, params int[] xs)
+        {
+            return Sheet.GetLastNotEmptyRowInColumns(includeMerged, xs);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int GetLastNotEmptyRowInColumn(int x, bool includeMerged = true)
+        {
+            return Sheet.GetLastNotEmptyRowInColumn(x, includeMerged);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int GetLastRowInColumn(int x, bool includeMerged = true)
+        {
+            return Sheet.GetColumn(x).GetLastRow(includeMerged);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cellValue"></param>
+        /// <param name="cellY"></param>
+        /// <returns>1-based, otherwise 0</returns>
+        public int FindColumnByCellValue(Regex cellValue, int cellY = 1)
+        {
+            IRow row = GetRow(cellY, false);
+>>>>>>> Stashed changes
             if (row == null)
                 return 0;
             for (int x = 1; x <= row.Cells.Count; x++)
@@ -34,20 +82,25 @@ namespace Cliver
         public void ShiftColumns(int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
+<<<<<<< Updated upstream
             int lastColumnX = x;
             columnXs2width[lastColumnX] = Sheet.GetColumnWidth(lastColumnX - 1);
+=======
+            int lastColumnX = x1;
+            columnXs2width[lastColumnX] = Sheet._.GetColumnWidth(lastColumnX - 1);
+>>>>>>> Stashed changes
             //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
             //while (rows.MoveNext())
-            for (int y0 = Sheet.LastRowNum; y0 >= 0; y0--)
+            for (int y0 = Sheet._.LastRowNum; y0 >= 0; y0--)
             {
-                IRow row = Sheet.GetRow(y0);
+                IRow row = Sheet._.GetRow(y0);
                 if (row == null)
                     continue;
                 int columnX = row.GetLastColumn(true);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)
-                        columnXs2width[i + 1] = Sheet.GetColumnWidth(i);
+                        columnXs2width[i + 1] = Sheet._.GetColumnWidth(i);
                     lastColumnX = columnX;
                 }
                 for (int i = columnX; i >= x; i--)
@@ -59,6 +112,7 @@ namespace Cliver
 
         public void ShiftColumns(IRow row, int x, int shift, Action<ICell> onFormulaCellMoved = null)
         {
+<<<<<<< Updated upstream
             for (int i = row.GetLastColumn(true); i >= x; i--)
                 MoveCell(row.Y(), i, row.Y(), i + shift, onFormulaCellMoved);
         }
@@ -103,6 +157,30 @@ namespace Cliver
             if (y2 == null)
                 y2 = Sheet.LastRowNum + 1;
             return GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a.GetLastNotEmptyColumn(includeMerged));
+=======
+            Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
+            int lastColumnX = x1;
+            columnXs2width[lastColumnX] = Sheet._.GetColumnWidth(lastColumnX - 1);
+            //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
+            //while (rows.MoveNext())
+            for (int y0 = Sheet._.LastRowNum; y0 >= 0; y0--)
+            {
+                IRow row = Sheet._.GetRow(y0);
+                if (row == null)
+                    continue;
+                int columnX = row.GetLastColumn(true);
+                if (lastColumnX < columnX)
+                {
+                    for (int i = lastColumnX; i < columnX; i++)
+                        columnXs2width[i + 1] = Sheet._.GetColumnWidth(i);
+                    lastColumnX = columnX;
+                }
+                for (int i = x1; i <= columnX; i++)
+                    MoveCell(row.Y(), i, row.Y(), i - shift, onFormulaCellMoved);
+            }
+            foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
+                SetColumnWidth(columnX - shift, columnXs2width[columnX]);
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -123,8 +201,12 @@ namespace Cliver
 
         public void CopyColumn(int x, ISheet destinationSheet)
         {
+<<<<<<< Updated upstream
             var range = new Range(1, x, null, x);
             CopyRange(range, destinationSheet);
+=======
+            Sheet.CopyColumn(fromX, toSheet, toX);
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -134,8 +216,7 @@ namespace Cliver
         /// <param name="padding">a character width</param>
         public void AutosizeColumns(IEnumerable<int> Xs, float padding = 0)
         {
-            foreach (int y in Xs)
-                AutosizeColumn(y, padding);
+            Sheet.AutosizeColumns(Xs, padding);
         }
 
         /// <summary>
@@ -145,6 +226,7 @@ namespace Cliver
         /// <param name="padding">a character width</param>
         public void AutosizeColumn(int x, float padding = 0)
         {
+<<<<<<< Updated upstream
             Sheet.AutoSizeColumn(x - 1, false);
 
             //GetCellsInColumn(x).Max(a => a.GetValueAsString())
@@ -153,11 +235,18 @@ namespace Cliver
 
             if (padding > 0)
                 SetColumnWidth(x, Sheet.GetColumnWidth(x - 1) + (int)(padding * 256));
+=======
+            Sheet.AutosizeColumn(x, padding);
+>>>>>>> Stashed changes
         }
 
         public IEnumerable<ICell> GetCellsInColumn(int x)
         {
+<<<<<<< Updated upstream
             return GetRows().Select(a => a.GetCell(x));
+=======
+            return Sheet.GetCellsInColumn(x);
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -167,9 +256,13 @@ namespace Cliver
         /// <param name="width">units of 1/256th of a character width</param>
         public void SetColumnWidth(int x, int width)
         {
+<<<<<<< Updated upstream
             const int cellMaxWidth = 256 * 255;
             int w = MathRoutines.Truncate(width, cellMaxWidth);
             Sheet.SetColumnWidth(x - 1, w);
+=======
+            Sheet.SetColumnWidth(x, width);
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -179,7 +272,11 @@ namespace Cliver
         /// <param name="width">a character width</param>
         public void SetColumnWidth(int x, float width)
         {
+<<<<<<< Updated upstream
             SetColumnWidth(x, (int)(width * 255));
+=======
+            Sheet.SetColumnWidth(x, width);
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -190,10 +287,7 @@ namespace Cliver
         /// <param name="padding">a character width</param>
         public void AutosizeColumnsInRange(int x1 = 1, int? x2 = null, float padding = 0)
         {
-            if (x2 == null)
-                x2 = GetLastColumn();
-            for (int x = x1; x <= x2; x++)
-                AutosizeColumn(x, padding);
+            Sheet.AutosizeColumnsInRange(x1, x2, padding);
         }
 
         public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
@@ -212,11 +306,12 @@ namespace Cliver
         /// <param name="padding">a character width</param>
         public void AutosizeColumns(float padding = 0)
         {
-            AutosizeColumnsInRange(1, null, padding);
+            Sheet.AutosizeColumns(padding);
         }
 
         public void ClearColumn(int x, bool clearMerging)
         {
+<<<<<<< Updated upstream
             if (clearMerging)
                 ClearMergingInColumn(x);
             //var rows = Sheet.GetRowEnumerator();//!!!buggy: sometimes misses added rows
@@ -230,31 +325,74 @@ namespace Cliver
                 if (c != null)
                     row.RemoveCell(c);
             }
+=======
+            Sheet.ClearColumn(x, clearMerging);
+>>>>>>> Stashed changes
         }
 
         public void ClearMergingInColumn(int x)
         {
+<<<<<<< Updated upstream
             ClearMerging(new Range(1, x, null, x));
+=======
+            Sheet.ClearMergingInColumn(x);
+>>>>>>> Stashed changes
         }
 
         public void SetStyleInColumn(ICellStyle style, bool createCells, int x)
         {
-            SetStyleInColumnRange(style, createCells, x, x);
+            Sheet.SetStyleInColumn(style, createCells, x);
         }
 
         public void SetStyleInColumnRange(ICellStyle style, bool createCells, int x1, int? x2 = null)
         {
+<<<<<<< Updated upstream
             SetStyle(new Range(1, x1, null, x2), style, createCells);
+=======
+            Sheet.SetStyleInColumnRange(style, createCells, x1, x2);
+>>>>>>> Stashed changes
         }
 
         public void ReplaceStyleInColumnRange(ICellStyle style1, ICellStyle style2, int x1, int? x2 = null)
         {
+<<<<<<< Updated upstream
             ReplaceStyle(new Range(1, x1, null, x2), style1, style2);
+=======
+            Sheet.ReplaceStyleInColumnRange(style1, style2, x1, x2);
+>>>>>>> Stashed changes
         }
 
         public void ClearStyleInColumnRange(ICellStyle style, int x1, int? x2 = null)
         {
-            ReplaceStyleInColumnRange(style, null, x1, x2);
+            Sheet.ClearStyleInColumnRange(style, x1, x2);
         }
+<<<<<<< Updated upstream
+=======
+
+        public Column GetColumn(int x)
+        {
+            return Sheet.GetColumn(x);
+        }
+
+        public IEnumerable<Column> GetColumnsInRange(int x1 = 1, int? x2 = null)
+        {
+            return Sheet.GetColumnsInRange(x1, x2);
+        }
+
+        public IEnumerable<Column> GetColumns()
+        {
+            return Sheet.GetColumns();
+        }
+
+        public void ShiftColumnCellsDown(int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        {
+            Sheet.ShiftColumnCellsDown(x, y1, shift, onFormulaCellMoved);
+        }
+
+        public void ShiftColumnCellsUp(int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        {
+            Sheet.ShiftColumnCellsUp(x, y1, shift, onFormulaCellMoved);
+        }
+>>>>>>> Stashed changes
     }
 }
