@@ -19,7 +19,7 @@ namespace Cliver
             {
                 Excel = excel;
                 IRow headersRow = excel.GetRow(1, true);
-                headers = new ReadOnlyCollection<string>(headersRow.GetCells(true).Select(a => a.GetValueAsString()).ToList());
+                headers = new ReadOnlyCollection<string>(headersRow._GetCells(true).Select(a => a._GetValueAsString()).ToList());
             }
 
             public Table(Excel excel, params string[] headers)
@@ -36,7 +36,7 @@ namespace Cliver
                 set
                 {
                     headers = value;
-                    Excel.GetRow(1, true).Write(headers);
+                    Excel.GetRow(1, true)._Write(headers);
                 }
             }
             ReadOnlyCollection<string> headers;
@@ -89,7 +89,7 @@ namespace Cliver
                 return rows.Where(a =>
                 {
                     foreach (var rk in rowKeys)
-                        if (a.GetCell(rk.ColumnX - 1)?.GetValue() != rk.Value)
+                        if (a.GetCell(rk.ColumnX - 1)?._GetValue() != rk.Value)
                             return false;
                     return true;
                 });
@@ -119,16 +119,16 @@ namespace Cliver
                 }
             }
 
-            public IRow AppendRow(IEnumerable<object> values)
+            public IRow AppendRow<T>(IEnumerable<T> values)
             {
                 IRow r = Excel.AppendRow(values);
                 //cachedRows.Add(r);
                 return r;
             }
 
-            public IRow AppendRow(params object[] values)
+            public IRow AppendRow(params string[] values)
             {
-                return AppendRow((IEnumerable<object>)values);
+                return AppendRow((IEnumerable<string>)values);
             }
 
             public IRow AppendRow(IEnumerable<NamedValue> namedValues)
@@ -145,8 +145,8 @@ namespace Cliver
                 var r = Excel.GetRow(y, true);
                 foreach (var nv in namedValues)
                 {
-                    var c = r.GetCell(nv.ColumnX, true);
-                    c.SetValue(nv.Value);
+                    var c = r._GetCell(nv.ColumnX, true);
+                    c._SetValue(nv.Value);
                 }
                 return r;
             }
@@ -163,9 +163,9 @@ namespace Cliver
                 return r;
             }
 
-            public IRow InsertRow<T>(int y, params T[] values)
+            public IRow InsertRow(int y, params string[] values)
             {
-                return InsertRow(y, (IEnumerable<T>)values);
+                return InsertRow(y, (IEnumerable<string>)values);
             }
 
             public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)
@@ -182,16 +182,16 @@ namespace Cliver
                 return InsertRow(y, (IEnumerable<NamedValue>)values);
             }
 
-            public IRow WriteRow(int y, IEnumerable<object> values = null)
+            public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
             {
                 IRow r = Excel.WriteRow(y, values);
                 //cachedRows[r.RowNum] = r;
                 return r;
             }
 
-            public IRow WriteRow(int y, params object[] values)
+            public IRow WriteRow(int y, params string[] values)
             {
-                return WriteRow(y, (IEnumerable<object>)values);
+                return WriteRow(y, (IEnumerable<string>)values);
             }
 
             public IRow WriteRow(int y, IEnumerable<NamedValue> namedValues)
@@ -208,12 +208,12 @@ namespace Cliver
 
             public ICell GetCell(IRow row, string header, bool create)
             {
-                return row.GetCell(GetHeaderX(header), create);
+                return row._GetCell(GetHeaderX(header), create);
             }
 
             public void SetStyles(IRow row, params ICellStyle[] styles)
             {
-                row.SetStyles(1, styles);
+                row._SetStyles(1, styles);
             }
 
             public void SetStyles(IRow row, IEnumerable<ICellStyle> styles)

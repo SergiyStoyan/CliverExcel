@@ -11,7 +11,7 @@
 <body>
 <script src="prism.js"></script>
 <div class='header'>
-<div class='mainHeader'>Cliver Excel 3.*</div>
+<div class='mainHeader'>Cliver Excel 4.*</div>
 </div>
 
 <div class='content'>
@@ -51,23 +51,49 @@ CliverExcel's goal is to provide an API more handy and advanced than NPOI's.
 using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
 	int y = xls.GetLastNotEmptyRow();
-	string s = xls.GetCell(y, 1, true).GetValueAsString();
-	xls.GetCell(y, 2, true).CreateDropdown(new int[]{1, 2, 3}, 1);
+	string s = xls[y, 1];
+	xls.CreateDropdown(y, 2, new int[] { 1, 2, 3 }, 1);
+}</script>
+		
+		
+<br><p>The same as above, using extension methods:
+			
+<script type="text/plain" class="language-csharp">using Cliver;
+
+...
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	int y = xls.Sheet._GetLastNotEmptyRow();
+	string s = xls.Sheet._GetCell(y, 1, true)._GetValueAsString();
+	xls.Sheet._GetCell(y, 2, true)._CreateDropdown(new int[] { 1, 2, 3 }, 1);
 }</script>
 
+
+
+<h1>API</h1>
+
+<p>All the methods are plainly accessible through the class <code>Cliver.Excel</code>. In this class their scope is restricted by the current workbook and worksheet. 
+
+<p>Alternatively, they are also presented as extension methods in the NPOI types <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. <span class='attention'>(!)</span>The extension methods start with '_' to be easily distinguished from the NPOI natives.
+
 <p>
-<span class='attention'>(!)</span>In the own API, cell and row indexes are always 1-based, while in the origin NPOI API they are mostly 0-based. As both API's coexist, you have to be careful of the arguments of the method you are using. In the Cliver methods, cell and row index arguments are always represented by x and y. 
+<span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the method you are using. In the CliverExcel methods, column and row indexes are always represented by x and y respectively. 
+
+
+<h2>Column</h2>
+The class <code>Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is purely native to CliverExcel as has no underlying NPOI type.
+
 
 
 <h1>Styles</h1>
-It is good to manage styles so that they are not duplicated in the workbook. It is especially important when the same workbook is edited many times. The general routine to do so is as follows:
+It is always commendable when styles are managed in a way that they are not duplicated in the workbook. It is especially important when the same workbook is edited constantly. The general routine to do so is shown in the following example:
 	
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {	
     var dataFormat = xls.Workbook.CreateDataFormat();
 					
-	//Create a style that actually does not exist in the workbook. It will be used as a base style for the other styles.
-	NPOI.SS.UserModel.ICellStyle s = jobXls.CreateUnregisteredStyle();//create a style that does not exist in the workbook
+	//Create a bogus style. It will be used as a base style for the other styles.
+	NPOI.SS.UserModel.ICellStyle s = xls.CreateUnregisteredStyle();//create a style that actually does not exist in the workbook
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
 	s.BorderDiagonal = NPOI.SS.UserModel.BorderDiagonal.None;
 	s.BorderDiagonalColor = 0;
@@ -92,24 +118,24 @@ It is good to manage styles so that they are not duplicated in the workbook. It 
 	s.IsLocked = true;
 
 	//clone, configure and register a real style
-	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.CloneUnregisteredStyle(s);//create a style's clone that does not exist in the workbook
+	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.CloneUnregisteredStyle(s);//create a style's clone that actually does not exist in the workbook
 	rowStyle1.BorderBottom = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderLeft = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderRight = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderTop = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.DataFormat = dataFormat.GetFormat(@"_(""$""* #,##0.00_);_(""$""* \(#,##0.00\);_(""$""* "" - ""??_);_(@_)");
-	rowStyle1 = jobXls.GetRegisteredStyle(rowStyle1);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	rowStyle1 = xls.GetRegisteredStyle(rowStyle1);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
 	
 	//clone, configure and register a real style
-	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.CloneUnregisteredStyle(s);//create a style's clone that does not exist in the workbook
+	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.CloneUnregisteredStyle(s);//create a style's clone that actually does not exist in the workbook
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Left;
 	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Top;
-	rowStyle2 = jobXls.GetRegisteredStyle(rowStyle2);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	rowStyle2 = xls.GetRegisteredStyle(rowStyle2);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
 	
 	foreach (var r in xls.GetRows(Excel.RowScope.OnlyExisting))
 	{
-		r.GetCell(1, true).CellStyle = rowStyle1;
-		r.GetCell(2, true).CellStyle = rowStyle2;
+		r._GetCell(1, true).CellStyle = rowStyle1;
+		r._GetCell(2, true).CellStyle = rowStyle2;
 	}
 }</script>
 
@@ -123,14 +149,15 @@ It is good to manage styles so that they are not duplicated in the workbook. It 
 	
 	foreach (var r in xls.GetRows(Excel.RowScope.CreateIfNull))
 	{
-		r.RowStyle = r.Y() % 2 == 0 ? rowStyle1 : rowStyle2;
+		r.RowStyle = r._Y() % 2 == 0 ? rowStyle1 : rowStyle2;
 	}
 }</script>
                     
 
 <h1>Excel.Table</h1>
 
-<code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers:
+<code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers.
+<p>Usage example:
 	
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {

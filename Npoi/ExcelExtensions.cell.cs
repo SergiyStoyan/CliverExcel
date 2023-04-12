@@ -16,9 +16,73 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public string GetValueAsString(this ICell cell, bool allowNull = false)
+        static public void _Move(this ICell fromCell, int toCellY, int toCellX, Action<ICell> onFormulaCellMoved = null, ISheet toSheet = null)
         {
-            object o = cell?.GetValue();
+            ICell toCell = fromCell._Copy(toCellY, toCellX, toSheet);
+            if (fromCell != null)
+                fromCell.Row.RemoveCell(fromCell);
+            if (toCell?.CellType == CellType.Formula)
+                onFormulaCellMoved?.Invoke(toCell);
+        }
+
+        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, ISheet toSheet = null)
+        {
+            if (toSheet == null)
+                toSheet = fromCell.Sheet;
+            if (fromCell == null)
+            {
+                IRow toRow = toSheet._GetRow(toCellY, false);
+                if (toRow == null)
+                    return null;
+                ICell toCell = toRow._GetCell(toCellX, false);
+                if (toCell == null)
+                    return toCell;
+                toRow.RemoveCell(toCell);
+                return toCell;
+            }
+            else
+            {
+                ICell toCell = toSheet._GetCell(toCellY, toCellX, true);
+                _Copy(fromCell, toCell);
+                return toCell;
+            }
+        }
+
+        static public void _Copy(this ICell fromCell, ICell toCell)
+        {
+            toCell.SetBlank();
+            toCell.SetCellType(fromCell.CellType);
+            toCell.CellStyle = fromCell.CellStyle;
+            toCell.CellComment = fromCell.CellComment;
+            toCell.Hyperlink = fromCell.Hyperlink;
+            switch (fromCell.CellType)
+            {
+                case CellType.Formula:
+                    toCell.CellFormula = fromCell.CellFormula;
+                    break;
+                case CellType.Numeric:
+                    toCell.SetCellValue(fromCell.NumericCellValue);
+                    break;
+                case CellType.String:
+                    toCell.SetCellValue(fromCell.StringCellValue);
+                    break;
+                case CellType.Boolean:
+                    toCell.SetCellValue(fromCell.BooleanCellValue);
+                    break;
+                case CellType.Error:
+                    toCell.SetCellErrorValue(fromCell.ErrorCellValue);
+                    break;
+                case CellType.Blank:
+                    toCell.SetBlank();
+                    break;
+                default:
+                    throw new Exception("Unknown cell type: " + fromCell.CellType);
+            }
+        }
+
+        static public string _GetValueAsString(this ICell cell, bool allowNull = false)
+        {
+            object o = cell?._GetValue();
             if (!allowNull && o == null)
                 return string.Empty;
             if (o is DateTime dt)
@@ -26,7 +90,7 @@ namespace Cliver
             return o?.ToString();
         }
 
-        static public object GetValue(this ICell cell)
+        static public object _GetValue(this ICell cell)
         {
             if (cell == null)
                 return null;
@@ -92,7 +156,7 @@ namespace Cliver
             }
         }
 
-        static public void SetValue(this ICell cell, object value)
+        static public void _SetValue(this ICell cell, object value)
         {
             if (value == null)
             {
@@ -117,7 +181,7 @@ namespace Cliver
             cell.SetCellValue(value?.ToString());
         }
 
-        static public Uri GetLink(this ICell cell)
+        static public Uri _GetLink(this ICell cell)
         {
             if (cell == null)
                 return null;
@@ -126,7 +190,7 @@ namespace Cliver
             return new Uri(cell.Hyperlink.Address, UriKind.RelativeOrAbsolute);
         }
 
-        static public void SetLink(this ICell cell, Uri uri)
+        static public void _SetLink(this ICell cell, Uri uri)
         {
             if (uri == null)
             {
@@ -135,7 +199,7 @@ namespace Cliver
                 cell.Hyperlink = null;
                 return;
             }
-            if (string.IsNullOrEmpty(cell.GetValueAsString()))
+            if (string.IsNullOrEmpty(cell._GetValueAsString()))
                 cell.SetCellValue(LinkEmptyValueFiller);
             if (cell.Sheet.Workbook is XSSFWorkbook)
                 cell.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
@@ -146,7 +210,7 @@ namespace Cliver
         }
         public static string LinkEmptyValueFiller = "           ";
 
-        static public void UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
+        static public void _UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
         {
             if (formulaCell?.CellType != CellType.Formula)
                 return;
@@ -199,12 +263,12 @@ namespace Cliver
         //    cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
         //}
 
-        static public Excel.Range GetMergedRange(this ICell cell)
+        static public Excel.Range _GetMergedRange(this ICell cell)
         {
-            return Excel.getMergedRange(cell.Row.Sheet, cell.RowIndex + 1, cell.ColumnIndex + 1);
+            return cell.Sheet._getMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
-        static public void ClearMerging(this ICell cell)
+        static public void _ClearMerging(this ICell cell)
         {
             for (int i = cell.Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (cell.Sheet.MergedRegions[i].IsInRange(cell.RowIndex, cell.ColumnIndex))
@@ -219,7 +283,7 @@ namespace Cliver
         /// </summary>
         /// <param name="cell"></param>
         /// <returns>1-based</returns>
-        static public int Y(this ICell cell)
+        static public int _Y(this ICell cell)
         {
             return cell.RowIndex + 1;
         }
@@ -229,12 +293,12 @@ namespace Cliver
         /// </summary>
         /// <param name="cell"></param>
         /// <returns>1-based</returns>
-        static public int X(this ICell cell)
+        static public int _X(this ICell cell)
         {
             return cell.ColumnIndex + 1;
         }
 
-        static public void CreateDropdown<T>(this ICell cell, IEnumerable<T> values, T value, bool allowBlank = true)
+        static public void _CreateDropdown<T>(this ICell cell, IEnumerable<T> values, T value, bool allowBlank = true)
         {
             List<string> vs = new List<string>();
             foreach (object v in values)
@@ -259,6 +323,11 @@ namespace Cliver
             ((XSSFSheet)cell.Sheet).AddValidationData(dv);
 
             cell.SetCellValue(value?.ToString());
+        }
+
+        static public IEnumerable<Excel.Image> _GetImages(this ICell cell)
+        {
+            return cell.Sheet._GetImages(cell._Y(), cell._X());
         }
     }
 }

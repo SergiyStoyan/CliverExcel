@@ -20,226 +20,182 @@ namespace Cliver
             public int Y1 = 1;
             public int? Y2 = null;
 
-            public Range(int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
+            public Range(ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
             {
+                Sheet = sheet;
                 Y1 = y1;
                 Y2 = y2;
                 X1 = x1;
                 X2 = x2;
             }
 
-            public ICell GetMainCell(Excel excel, bool create)
+            public ISheet Sheet;
+
+            public ICell GetMainCell(bool createCell)
             {
-                return excel.GetCell(Y1, X1, create);
+                return Sheet._GetCell(Y1, X1, createCell);
             }
 
-            public string GetStringAddress(Excel excel)
+            public string GetStringAddress()
             {
-                return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + CellReference.ConvertNumToColString(X2 != null ? X2.Value - 1 : excel.Workbook.SpreadsheetVersion.LastColumnIndex) + Y2;
+                return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + CellReference.ConvertNumToColString(X2 != null ? X2.Value - 1 : Sheet.Workbook.SpreadsheetVersion.LastColumnIndex) + Y2;
             }
-
-            //public string GetStringAddress()
-            //{
-            //    return CellReference.ConvertNumToColString(X1 - 1) + Y1 + ":" + (X2 != null ? CellReference.ConvertNumToColString(X2.Value - 1) : null) + Y2;
-            //}
 
             /// <summary>
             /// 
             /// </summary>
             /// <returns>(!) 0-based</returns>
-            public CellRangeAddress GetCellRangeAddress(Excel excel)
+            public CellRangeAddress GetCellRangeAddress()
             {
-                return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : excel.Workbook.SpreadsheetVersion.MaxRows - 1, X1 - 1, X2 != null ? X2.Value - 1 : excel.Workbook.SpreadsheetVersion.LastColumnIndex);
+                return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : Sheet.Workbook.SpreadsheetVersion.MaxRows - 1, X1 - 1, X2 != null ? X2.Value - 1 : Sheet.Workbook.SpreadsheetVersion.LastColumnIndex);
             }
 
-            //public CellRangeAddress GetCellRangeAddress()
+            ///// <summary>
+            ///// (!)When createOnlyUniqueStyles, it is slower. Otherwise, each call registers a new style for non-styled cells.
+            ///// </summary>
+            //public void Highlight(Range range, bool createOnlyUniqueStyles, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
             //{
-            //    return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : int.MaxValue, X1 - 1, X2 != null ? X2.Value - 1 : int.MaxValue);
+            //    ICellStyle newStyle = null;
+            //    int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+            //    for (int y = Y1; y <= maxY; y++)
+            //    {
+            //        IRow row = GetRow(y, color != null);
+            //        if (row == null)
+            //            continue;
+            //        int maxX = X2 != null ? X2.Value : row.LastCellNum;
+            //        for (int x = X1; x <= maxX; x++)
+            //        {
+            //            ICell c = row.GetCell(x, true);
+            //            if (c.CellStyle == null)
+            //            {
+            //                if (color != null)
+            //                {
+            //                    if (newStyle == null)
+            //                        newStyle = highlight(this, null, createOnlyUniqueStyles, color, fillPattern);
+            //                    c.CellStyle = newStyle;
+            //                }
+            //            }
+            //            c.CellStyle = highlight(this, c.CellStyle, createOnlyUniqueStyles, color, fillPattern);
+            //        }
+            //    }
             //}
+
+            public void ClearMerging()
+            {                
+                CellRangeAddress cra = GetCellRangeAddress();
+                for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                    if (Sheet.MergedRegions[i].Intersects(cra))
+                        Sheet.RemoveMergedRegion(i);
+            }
+
+            public void Merge(bool clearOldMerging = false)
+            {
+                if (clearOldMerging)
+                    ClearMerging();
+                Sheet.AddMergedRegion(GetCellRangeAddress());
+            }
+
+            public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
+            {
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                for (int y = Y1; y <= maxY; y++)
+                {
+                    IRow row = Sheet._GetRow(y, false);
+                    if (row == null)
+                        continue;
+                    if (Y1 == 1 && Y2 == null
+                        && row.RowStyle?.Index == style1.Index
+                        )
+                        row.RowStyle = style2;
+                    int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                    for (int x = X1; x < maxX; x++)
+                    {
+                        ICell c = row._GetCell(x, false);
+                        if (c != null && c.CellStyle?.Index == style1.Index)
+                            c.CellStyle = style2;
+                    }
+                }
+            }
+
+            public void SetStyle(ICellStyle style, bool createCells)
+            {
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                for (int y = Y1; y <= maxY; y++)
+                {
+                    IRow row = Sheet._GetRow(y, createCells);
+                    if (row == null)
+                        continue;
+                    if (Y1 == 1 && Y2 == null)
+                        row.RowStyle = style;
+                    int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                    for (int x = X1; x < maxX; x++)
+                    {
+                        ICell c = row._GetCell(x, createCells);
+                        if (c != null)
+                            c.CellStyle = null;
+                    }
+                }
+            }
+
+            public void UnsetStyle(ICellStyle style)
+            {
+                ReplaceStyle(style, null);
+            }
+
+            ICell[][] copyCutRange(bool cut)
+            {
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                ICell[][] rangeCells = new ICell[maxY - Y1 + 1][];
+                for (int y = Y1; y <= maxY; y++)
+                {
+                    IRow row = Sheet.GetRow(y - 1);
+                    if (row == null)
+                        continue;
+                    int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                    ICell[] rowCells = new ICell[maxX];
+                    for (int x = X1; x <= maxX; x++)
+                    {
+                        ICell cell = row.GetCell(x - 1);
+                        rowCells[x - X1] = cell;
+                        if (cut)
+                            row.RemoveCell(cell);
+                    }
+                    if (cut && X1 == 1 && X2 == null)
+                        Sheet.RemoveRow(row);
+                    rangeCells[y - Y1] = rowCells;
+                }
+                return rangeCells;
+            }
+
+            public ICell[][] Copy()
+            {
+                return copyCutRange(false);
+            }
+
+            public ICell[][] Cut()
+            {
+                return copyCutRange(true);
+            }
+
+            public void Move(int toY, int toX, ISheet toSheet = null)
+            {
+                PasteRange(Cut(), toY, toX, toSheet);
+            }
+
+            public void Copy(int toY, int toX, ISheet toSheet = null)
+            {
+                PasteRange(Copy(), toY, toX, toSheet);
+            }
         }
 
-        ///// <summary>
-        ///// (!)When createOnlyUniqueStyles, it is slower. Otherwise, each call registers a new style for non-styled cells.
-        ///// </summary>
-        //public void Highlight(Range range, bool createOnlyUniqueStyles, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
-        //{
-        //    ICellStyle newStyle = null;
-        //    int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-        //    for (int y = range.Y1; y <= maxY; y++)
-        //    {
-        //        IRow row = GetRow(y, color != null);
-        //        if (row == null)
-        //            continue;
-        //        int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
-        //        for (int x = range.X1; x <= maxX; x++)
-        //        {
-        //            ICell c = row.GetCell(x, true);
-        //            if (c.CellStyle == null)
-        //            {
-        //                if (color != null)
-        //                {
-        //                    if (newStyle == null)
-        //                        newStyle = highlight(this, null, createOnlyUniqueStyles, color, fillPattern);
-        //                    c.CellStyle = newStyle;
-        //                }
-        //            }
-        //            c.CellStyle = highlight(this, c.CellStyle, createOnlyUniqueStyles, color, fillPattern);
-        //        }
-        //    }
-        //}
-
-        public void ClearMerging(Range range)
+        public Range NewRange(int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
         {
-            CellRangeAddress cra = range.GetCellRangeAddress(this);
-            for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
-                if (Sheet.MergedRegions[i].Intersects(cra))
-                    Sheet.RemoveMergedRegion(i);
-        }
-
-        public void Merge(Range range, bool clearOldMerging = false)
-        {
-            if (clearOldMerging)
-                ClearMerging(range);
-            Sheet.AddMergedRegion(range.GetCellRangeAddress(this));
+            return new Range(Sheet, y1, x1, y2, x2);
         }
 
         public Range GetMergedRange(int y, int x)
         {
-            return getMergedRange(Sheet, y, x);
-        }
-
-        static internal Range getMergedRange(ISheet sheet, int y, int x)
-        {
-            foreach (var mr in sheet.MergedRegions)
-                if (mr.IsInRange(y - 1, x - 1))
-                    return new Range(mr.FirstRow + 1, mr.FirstColumn + 1, mr.LastRow + 1, mr.LastColumn + 1);
-            return null;
-        }
-
-        public void ReplaceStyle(Range range, ICellStyle style1, ICellStyle style2)
-        {
-            if (range == null)
-                range = new Range();
-            int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-            for (int y = range.Y1; y <= maxY; y++)
-            {
-                IRow row = GetRow(y, false);
-                if (row == null)
-                    continue;
-                if (range.Y1 == 1 && range.Y2 == null
-                    && row.RowStyle?.Index == style1.Index
-                    )
-                    row.RowStyle = style2;
-                int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
-                for (int x = range.X1; x < maxX; x++)
-                {
-                    ICell c = row.GetCell(x, false);
-                    if (c != null && c.CellStyle?.Index == style1.Index)
-                        c.CellStyle = style2;
-                }
-            }
-        }
-
-        public void SetStyle(Range range, ICellStyle style, bool createCells)
-        {
-            if (range == null)
-                range = new Range();
-            int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-            for (int y = range.Y1; y <= maxY; y++)
-            {
-                IRow row = GetRow(y, createCells);
-                if (row == null)
-                    continue;
-                if (range.Y1 == 1 && range.Y2 == null)
-                    row.RowStyle = style;
-                int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
-                for (int x = range.X1; x < maxX; x++)
-                {
-                    ICell c = row.GetCell(x, createCells);
-                    if (c != null)
-                        c.CellStyle = null;
-                }
-            }
-        }
-
-        public void UnsetStyle(Range range, ICellStyle style)
-        {
-            ReplaceStyle(range, style, null);
-        }
-
-        /// <summary>
-        /// !!!test
-        /// </summary>
-        /// <param name="rangeCells"></param>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public void CopyRange(Range range, ISheet destinationSheet)
-        {
-            int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-            for (int y = range.Y1; y <= maxY; y++)
-            {
-                IRow sourceRow = Sheet.GetRow(y);
-                if (sourceRow == null)
-                    continue;
-                IRow destinationRow = destinationSheet.GetRow(y);
-                if (destinationRow == null)
-                    destinationRow = destinationSheet.CreateRow(y);
-                int maxX = range.X2 != null ? range.X2.Value : sourceRow.LastCellNum;
-                for (int x = range.X1; x < maxX; x++)
-                {
-                    ICell sourceCell = sourceRow.GetCell(x);
-                    ICell destinationCell = destinationRow.GetCell(x);
-                    if (sourceCell == null)
-                    {
-                        if (destinationCell == null)
-                            continue;
-                        destinationRow.RemoveCell(destinationCell);
-                    }
-                    else
-                    {
-                        destinationCell = destinationRow.CreateCell(x);
-                        CopyCell(sourceCell, destinationCell);
-                    }
-                }
-            }
-        }
-
-        public ICell[][] CutRange(Range range)
-        {
-            int maxY = range.Y2 != null ? range.Y2.Value : Sheet.LastRowNum + 1;
-            ICell[][] rangeCells = new ICell[maxY - range.Y1 + 1][];
-            for (int y = range.Y1; y <= maxY; y++)
-            {
-                IRow row = Sheet.GetRow(y - 1);
-                if (row == null)
-                    continue;
-                int maxX = range.X2 != null ? range.X2.Value : row.LastCellNum;
-                ICell[] rowCells = new ICell[maxX];
-                for (int x = range.X1; x <= maxX; x++)
-                {
-                    ICell cell = row.GetCell(x - 1);
-                    rowCells[x - range.X1] = cell;
-                    row.RemoveCell(cell);
-                }
-                rangeCells[y - range.Y1] = rowCells;
-            }
-            return rangeCells;
-        }
-
-        public void PasteRange(ICell[][] rangeCells, int y, int x)
-        {
-            for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
-            {
-                ICell[] rowCells = rangeCells[yi];
-                for (int xi = rowCells.Length - 1; xi >= 0; xi--)
-                    CopyCell(rowCells[xi], y + yi, x + xi);
-            }
-        }
-
-        public void MoveRange(Range sourceRange, int y, int x)
-        {
-            PasteRange(CutRange(sourceRange), y, x);
+            return Sheet._getMergedRange(y, x);
         }
     }
 }
