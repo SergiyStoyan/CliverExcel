@@ -72,9 +72,9 @@ namespace Cliver
             return Sheet._GetRow(y, createRow);
         }
 
-        public IRow RemoveRow(int y)
+        public IRow RemoveRow(int y, bool shiftRemainingRows)
         {
-            return Sheet._RemoveRow(y);
+            return Sheet._RemoveRow(y, shiftRemainingRows);
         }
 
         //public void HighlightRow(int y, ICellStyle style, Color color)
@@ -116,11 +116,11 @@ namespace Cliver
             /// <summary>
             /// (!)Considerably slow due to checking all the cells' values
             /// </summary>
-            WithNotEmptyCellsOnly,
+            NotEmpty,
             /// <summary>
             /// Returns only rows with cells.
             /// </summary>
-            WithCellsOnly,
+            WithCells,
             /// <summary>
             /// Returns only rows existing as objects.
             /// </summary>

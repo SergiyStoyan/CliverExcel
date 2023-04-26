@@ -9,8 +9,6 @@ using System.Collections.Generic;
 using NPOI.SS.UserModel;
 using static Cliver.Excel;
 using System.Linq;
-using NPOI.SS.Util;
-using NPOI.XSSF.UserModel;
 
 namespace Cliver
 {
@@ -64,7 +62,7 @@ namespace Cliver
                             yield return r;
                     }
                     break;
-                case RowScope.WithCellsOnly:
+                case RowScope.WithCells:
                     for (int i = y1 - 1; i < y2; i++)
                     {
                         var r = sheet.GetRow(i);
@@ -72,7 +70,7 @@ namespace Cliver
                             yield return r;
                     }
                     break;
-                case RowScope.WithNotEmptyCellsOnly:
+                case RowScope.NotEmpty:
                     for (int i = y1 - 1; i < y2; i++)
                     {
                         var r = sheet.GetRow(i);
@@ -121,11 +119,13 @@ namespace Cliver
             return sheet._WriteRow(y, (IEnumerable<string>)values);
         }
 
-        static public IRow _RemoveRow(this ISheet sheet, int y)
+        static public IRow _RemoveRow(this ISheet sheet, int y, bool shiftRemainingRows)
         {
             IRow r = sheet.GetRow(y - 1);
             if (r != null)
                 sheet.RemoveRow(r);
+            if (shiftRemainingRows)
+                sheet.ShiftRows(r.RowNum + 1, sheet.LastRowNum, -1);
             return r;
         }
 

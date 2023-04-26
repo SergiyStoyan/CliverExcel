@@ -37,7 +37,8 @@ namespace Cliver
                     {
                         if (removedRowsCount > 0)
                         {
-                            sheet.ShiftRows(r.RowNum + 1 + removedRowsCount, sheet.LastRowNum, -removedRowsCount);
+                            if (r.RowNum + 1 + removedRowsCount <= sheet.LastRowNum)
+                                sheet.ShiftRows(r.RowNum + 1 + removedRowsCount, sheet.LastRowNum, -removedRowsCount);
                             removedRowsCount = 0;
                         }
                         continue;
@@ -47,9 +48,25 @@ namespace Cliver
                 if (shiftRemainingRows)
                     removedRowsCount++;
             }
-            if (removedRowsCount > 0)
-                sheet.ShiftRows(0, sheet.LastRowNum, -removedRowsCount);
+            if (removedRowsCount > 0
+                && 1 + removedRowsCount <= sheet.LastRowNum
+                )
+                sheet.ShiftRows(1 + removedRowsCount, sheet.LastRowNum, -removedRowsCount);
         }
+
+        ///// <summary>
+        ///// Safe.
+        ///// </summary>
+        ///// <param name="sheet"></param>
+        ///// <param name="y1"></param>
+        ///// <param name="y2"></param>
+        ///// <param name="shift"></param>
+        ///// <returns></returns>
+        //static public IEnumerable<IRow> _ShiftRows(this ISheet sheet, int y1, int y2, int shift)
+        //{
+        //    if (1 + shift <= sheet.LastRowNum)
+        //        sheet.ShiftRows(1 + shift, sheet.LastRowNum, -shift);
+        //}
 
         static public IEnumerable<IRow> _GetRows(this ISheet sheet, RowScope rowScope)
         {
