@@ -75,6 +75,7 @@ namespace Cliver
                 if (Workbook != null)
                 {
                     Workbook.Close();
+                    Workbook.Dispose();
                     Workbook = null;
                 }
             }

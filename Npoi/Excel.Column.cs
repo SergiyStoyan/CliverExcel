@@ -30,7 +30,7 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            public int GetLastRow(bool includeMerged = true)
+            public int GetLastRow(bool includeMerged)
             {
                 for (int i = Sheet.LastRowNum; i >= 0; i--)
                 {
@@ -81,7 +81,7 @@ namespace Cliver
                 new Range(Sheet, 1, X, null, X).SetStyle(style, createCells);
             }
 
-            public int GetLastNotEmptyRow(bool includeMerged = true)
+            public int GetLastNotEmptyRow(bool includeMerged)
             {
                 for (int i = Sheet.LastRowNum; i >= 0; i--)
                 {
@@ -106,7 +106,7 @@ namespace Cliver
             {
                 if (clearMerging)
                     ClearMerging();
-                foreach (var r in Sheet._GetRows(RowScope.OnlyExisting))
+                foreach (var r in Sheet._GetRows(RowScope.ExistingOnly))
                 {
                     var c = r.GetCell(X - 1);
                     if (c != null)
@@ -154,9 +154,9 @@ namespace Cliver
                 SetWidth((int)(width * 255));
             }
 
-            public IEnumerable<ICell> GetCells()
+            public IEnumerable<ICell> GetCells(RowScope rowScope)
             {
-                return Sheet._GetRows().Select(a => a.GetCell(X));
+                return Sheet._GetRows(rowScope).Select(a => a?.GetCell(X));
             }
 
             /// <summary>

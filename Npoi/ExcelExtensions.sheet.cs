@@ -17,6 +17,63 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        /// <summary>
+        /// Removes empty rows.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="removeIfEmptyCells">might considerably slow down if TRUE</param>
+        public static void _RemoveEmptyRows(this ISheet sheet, bool removeIfEmptyCells)
+        {
+            for (int i = sheet.LastRowNum; i >= 0; i--)
+            {
+                var r = sheet.GetRow(i);
+                if (r == null)
+                    continue;
+                if (r.LastCellNum < 0
+                    || (removeIfEmptyCells && r._GetLastNotEmptyColumn(false) < 1)
+                    )
+                    sheet.RemoveRow(r);
+            }
+        }
+
+        /// <summary>
+        /// Use it instead of ISheet::LastRowNum() which is buggy in 2.6.0
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <returns></returns>
+        static public IRow _GetLastRowWithCells(this ISheet sheet)
+        {
+            for (int i = sheet.LastRowNum; i >= 0; i--)
+            {
+                IRow r = sheet.GetRow(i);
+                if (r != null && r.LastCellNum >= 0)
+                    return r;
+            }
+            return null;
+        }
+
+        static public IEnumerable<IRow> _GetRows(this ISheet sheet, RowScope rowScope)
+        {
+            return sheet._GetRowsInRange(rowScope);
+        }
+
+        static public int _GetLastRow(this ISheet sheet, bool includeMerged)
+        {
+            IRow row = sheet.GetRow(sheet.LastRowNum);
+            if (row == null)
+                return 0;
+            if (!includeMerged)
+                return row._Y();
+            int maxY = 0;
+            foreach (var c in row.Cells)
+            {
+                var r = c._GetMergedRange();
+                if (r != null && maxY < r.Y2.Value)
+                    maxY = r.Y2.Value;
+            }
+            return maxY;
+        }
+
         static public void _ReplaceStyle(this ISheet sheet, ICellStyle style1, ICellStyle style2)
         {
             new Range(sheet).ReplaceStyle(style1, style2);
@@ -32,13 +89,6 @@ namespace Cliver
             new Range(sheet).UnsetStyle(style);
         }
 
-        /// <summary>
-        /// !!!BUGGY!!!
-        /// </summary>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
         static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x)
         {
             if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
@@ -64,46 +114,6 @@ namespace Cliver
             }
             else
                 throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);
-
-
-
-            //XSSFDrawing d = Sheet.CreateDrawingPatriarch() as XSSFDrawing;
-            //foreach (XSSFShape s in d.GetShapes())
-            //{
-            //    XSSFPicture p = s as XSSFPicture;
-            //    if (p == null)
-            //        continue;
-            //    IClientAnchor a = p.GetPreferredSize();
-            //    if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
-            //    {
-            //        XSSFPictureData pd = p.PictureData as XSSFPictureData;
-            //        pictureType = pd.PictureType;
-            //        return pd.Data;
-            //    }
-            //}
-
-            //foreach (NPOI.POIXMLDocumentPart dp in Workbook.GetRelations())
-            //{
-            //    if (dp is XSSFDrawing)
-            //    {
-            //        NPOI.OpenXmlFormats.Dml.Spreadsheet.CT_Drawing d = ((XSSFDrawing)dp).GetCTDrawing();
-            //        foreach (NPOI.OpenXmlFormats.Dml.Spreadsheet.IEG_Anchor a in d.CellAnchors)
-            //        {
-            //            NPOI.OpenXmlFormats.Dml.Spreadsheet.CT_TwoCellAnchor aa = a as NPOI.OpenXmlFormats.Dml.Spreadsheet.CT_TwoCellAnchor;
-            //            if (aa == null)
-            //                continue;
-            //            NPOI.OpenXmlFormats.Dml.Spreadsheet.CT_Marker m = aa.from;
-            //            if (m.row == y && m.col == x)
-            //                //using (Stream s = new MemoryStream(((XSSFPicture)aa.picture).PictureData))
-            //                    return new Bitmap(0,0);
-            //            //CTMarker to = anchor.getTo();
-            //            //int row2 = to.GetRow();
-            //            //int col2 = to.getCol();
-
-            //            // do something here
-            //        }
-            //    }
-            //}
         }
 
         static public Range _NewRange(this ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)

@@ -20,11 +20,11 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="includeMerged"></param>
         /// <param name="x1"></param>
         /// <param name="x2"></param>
-        /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastNotEmptyRowInColumnRange(this ISheet sheet, int x1 = 1, int? x2 = null, bool includeMerged = true)
+        static public int _GetLastNotEmptyRowInColumnRange(this ISheet sheet, bool includeMerged, int x1 = 1, int? x2 = null)
         {
             if (x2 == null)
                 x2 = int.MaxValue;
@@ -77,10 +77,10 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="x"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="x"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastRowInColumn(this ISheet sheet, int x, bool includeMerged = true)
+        static public int _GetLastRowInColumn(this ISheet sheet, bool includeMerged, int x)
         {
             return sheet._GetColumn(x).GetLastRow(includeMerged);
         }
@@ -161,7 +161,7 @@ namespace Cliver
         /// <returns>1-based, otherwise 0</returns>
         static public int _GetLastNotEmptyColumn(this ISheet sheet, bool includeMerged)
         {
-            return sheet._GetLastNotEmptyColumnInRowRange(1, null, includeMerged);
+            return sheet._GetLastNotEmptyColumnInRowRange(includeMerged, 1, null);
         }
 
         static public void _CopyColumn(this ISheet sheet, string fromColumnName, ISheet toSheet, string toColumnName = null)
@@ -174,7 +174,7 @@ namespace Cliver
             sheet._GetColumn(fromX).Copy(toSheet, toX);
         }
 
-        static public int _GetLastNotEmptyRowInColumn(this ISheet sheet, int x, bool includeMerged = true)
+        static public int _GetLastNotEmptyRowInColumn(this ISheet sheet, bool includeMerged, int x)
         {
             return sheet._GetColumn(x).GetLastNotEmptyRow(includeMerged);
         }
@@ -201,9 +201,9 @@ namespace Cliver
                 yield return new Column(sheet, x);
         }
 
-        static public int _GetLastColumn(this ISheet sheet, bool includeMerged = true)
+        static public int _GetLastColumn(this ISheet sheet, bool includeMerged)
         {
-            return sheet._GetLastColumnInRowRange(1, null, includeMerged);
+            return sheet._GetLastColumnInRowRange(includeMerged, 1, null);
         }
 
         /// <summary>
@@ -211,9 +211,9 @@ namespace Cliver
         /// </summary>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastNotEmptyRow(this ISheet sheet, bool includeMerged = true)
+        static public int _GetLastNotEmptyRow(this ISheet sheet, bool includeMerged)
         {
-            return sheet._GetLastNotEmptyRowInColumnRange(1, null, includeMerged);
+            return sheet._GetLastNotEmptyRowInColumnRange(includeMerged, 1, null);
         }
 
         static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
@@ -274,7 +274,7 @@ namespace Cliver
         static public void _AutosizeColumnsInRange(this ISheet sheet, int x1 = 1, int? x2 = null, float padding = 0)
         {
             if (x2 == null)
-                x2 = sheet._GetLastColumn();
+                x2 = sheet._GetLastColumn(false);
             for (int x = x1; x <= x2; x++)
                 sheet._AutosizeColumn(x, padding);
         }
@@ -300,9 +300,9 @@ namespace Cliver
             sheet._GetColumn(x).Autosize(padding);
         }
 
-        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x)
+        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x, RowScope rowScope)
         {
-            return sheet._GetColumn(x).GetCells();
+            return sheet._GetColumn(x).GetCells(rowScope);
         }
 
         /// <summary>

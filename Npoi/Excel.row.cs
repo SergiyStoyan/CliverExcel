@@ -12,18 +12,18 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
-        public int GetLastColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        public int GetLastColumnInRowRange(bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            return GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a._GetLastColumn(includeMerged));
+            return GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastColumn(includeMerged));
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="y"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="y"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastNotEmptyColumnInRow(int y, bool includeMerged = true)
+        public int GetLastNotEmptyColumnInRow(bool includeMerged, int y)
         {
             IRow row = GetRow(y, false);
             if (row == null)
@@ -34,10 +34,10 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="y"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="y"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastColumnInRow(int y, bool includeMerged = true)
+        public int GetLastColumnInRow(bool includeMerged, int y)
         {
             IRow row = GetRow(y, false);
             if (row == null)
@@ -48,15 +48,13 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="includeMerged"></param>
         /// <param name="y1"></param>
         /// <param name="y2"></param>
-        /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastNotEmptyColumnInRowRange(int y1 = 1, int? y2 = null, bool includeMerged = true)
+        public int GetLastNotEmptyColumnInRowRange(bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            if (y2 == null)
-                y2 = Sheet.LastRowNum + 1;
-            return GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
+            return GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
         }
 
         /// <summary>
@@ -64,9 +62,9 @@ namespace Cliver
         /// </summary>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastNotEmptyRow(bool includeMerged = true)
+        public int GetLastNotEmptyRow(bool includeMerged)
         {
-            return GetLastNotEmptyRowInColumnRange(1, null, includeMerged);
+            return GetLastNotEmptyRowInColumnRange(includeMerged, 1, null);
         }
 
         public IRow GetRow(int y, bool createRow)
@@ -74,21 +72,9 @@ namespace Cliver
             return Sheet._GetRow(y, createRow);
         }
 
-        public int GetLastRow(bool includeMerged = true)
+        public IRow RemoveRow(int y)
         {
-            IRow row = Sheet.GetRow(Sheet.LastRowNum);
-            if (row == null)
-                return 0;
-            if (!includeMerged)
-                return row._Y();
-            int maxY = 0;
-            foreach (var c in row.Cells)
-            {
-                var r = c._GetMergedRange();
-                if (r != null && maxY < r.Y2.Value)
-                    maxY = r.Y2.Value;
-            }
-            return maxY;
+            return Sheet._RemoveRow(y);
         }
 
         //public void HighlightRow(int y, ICellStyle style, Color color)
@@ -103,7 +89,7 @@ namespace Cliver
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            GetRowsInRange(RowScope.OnlyExisting, y1, y2).ForEach(a => a.Height = -1);
+            GetRowsInRange(RowScope.ExistingOnly, y1, y2).ForEach(a => a.Height = -1);
         }
 
         public void AutosizeRows()
@@ -127,11 +113,22 @@ namespace Cliver
 
         public enum RowScope
         {
-            OnlyExisting,
+            /// <summary>
+            /// (!)Considerably slows down the enumerating.
+            /// </summary>
+            NotEmptyCellsOnly,
+            NotEmptyOnly,
+            /// <summary>
+            /// Includes no-cell rows.
+            /// </summary>
+            ExistingOnly,
+            /// <summary>
+            /// (!)May return a huge pile of null and no-cell rows after the last actual row.  
+            /// </summary>
             IncludeNull,
             CreateIfNull
         }
-        public IEnumerable<IRow> GetRowsInRange(RowScope rowScope = RowScope.IncludeNull, int y1 = 1, int? y2 = null)
+        public IEnumerable<IRow> GetRowsInRange(RowScope rowScope, int y1 = 1, int? y2 = null)
         {
             return Sheet._GetRowsInRange(rowScope, y1, y2);
         }
@@ -154,11 +151,6 @@ namespace Cliver
         public void ClearStyleInRowRange(ICellStyle style, int y1, int? y2 = null)
         {
             ReplaceStyleInRowRange(style, null, y1, y2);
-        }
-
-        public IEnumerable<IRow> GetRows(RowScope rowScope = RowScope.IncludeNull)
-        {
-            return Sheet._GetRows(rowScope);
         }
 
         public IRow AppendRow<T>(IEnumerable<T> values)

@@ -52,7 +52,7 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastNotEmptyColumn(this IRow row, bool includeMerged = true)
+        static public int _GetLastNotEmptyColumn(this IRow row, bool includeMerged)
         {
             if (row == null || row.Cells.Count < 1)
                 return 0;
@@ -79,7 +79,7 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastColumn(this IRow row, bool includeMerged = true)
+        static public int _GetLastColumn(this IRow row, bool includeMerged)
         {
             if (row == null || row.Cells.Count < 1)
                 return 0;

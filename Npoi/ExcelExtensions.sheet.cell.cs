@@ -31,7 +31,7 @@ namespace Cliver
         {
             for (int y = y1; y <= y2; y++)
             {
-                for (int x = sheet._GetLastNotEmptyColumnInRow(y); x >= x1; x--)
+                for (int x = sheet._GetLastNotEmptyColumnInRow(false, y); x >= x1; x--)
                     sheet._MoveCell(y, x, y, x + shift, onFormulaCellMoved);
                 sheet._GetCell(y, x1, false)?.SetBlank();
             }
@@ -51,7 +51,7 @@ namespace Cliver
         {
             for (int x = x1; x <= x2; x++)
             {
-                for (int y = sheet._GetLastNotEmptyRowInColumn(x); y >= y1; y--)
+                for (int y = sheet._GetLastNotEmptyRowInColumn(false, x); y >= y1; y--)
                     sheet._MoveCell(y, x, y + shift, x, onFormulaCellMoved);
                 sheet._GetCell(y1, x, false)?.SetBlank();
             }

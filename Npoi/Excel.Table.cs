@@ -15,19 +15,35 @@ namespace Cliver
     {
         public class Table
         {
+            //public Table(ISheet sheet)
+            //{
+            //    Sheet = sheet;
+            //    IRow headersRow = Sheet._GetRow(1, true);
+            //    headers = new ReadOnlyCollection<string>(headersRow._GetCells(true).Select(a => a._GetValueAsString()).ToList());
+            //}
+
+            //public Table(ISheet sheet, params string[] headers)
+            //{
+            //    Sheet = sheet;
+            //    Headers = new ReadOnlyCollection<string>(headers.ToList());
+            //}
+
             public Table(Excel excel)
             {
                 Excel = excel;
-                IRow headersRow = excel.GetRow(1, true);
+                Sheet = Excel.Sheet;
+                IRow headersRow = Sheet._GetRow(1, true);
                 headers = new ReadOnlyCollection<string>(headersRow._GetCells(true).Select(a => a._GetValueAsString()).ToList());
             }
 
             public Table(Excel excel, params string[] headers)
             {
                 Excel = excel;
-                Headers = new ReadOnlyCollection<string>(headers.ToList());
+                Sheet = Excel.Sheet;
+                Headers = new ReadOnlyCollection<string>(headers);
             }
 
+            readonly public ISheet Sheet;
             readonly public Excel Excel;
 
             public ReadOnlyCollection<string> Headers
@@ -36,7 +52,7 @@ namespace Cliver
                 set
                 {
                     headers = value;
-                    Excel.GetRow(1, true)._Write(headers);
+                    Sheet._GetRow(1, true)._Write(headers);
                 }
             }
             ReadOnlyCollection<string> headers;
@@ -59,45 +75,103 @@ namespace Cliver
                 return i + 1;
             }
 
+            public void SetColumnStyle(string header, ICellStyle style)
+            {
+                int x = GetHeaderX(header);
+                xs2columnStyle[x] = new ColumnStyle { X = x, Style = style };
+            }
+
+            internal class ColumnStyle
+            {
+                internal ICellStyle Style;
+                internal int X;
+            }
+            Dictionary<int, ColumnStyle> xs2columnStyle = new Dictionary<int, ColumnStyle>();
+
+            public ICellStyle GetColumnStyle(string header)
+            {
+                int x = GetHeaderX(header);
+                xs2columnStyle.TryGetValue(x, out ColumnStyle cs);
+                return cs?.Style;
+            }
+
             ///// <summary>
-            ///// Must be called when the sheet was edited outside this class.
+            ///// Alias for UseCachedDataRows=true
             ///// </summary>
-            //public void ReloadCachedRows()
+            //public void ReloadCachedDataRows()
             //{
-            //    _cachedRows = new List<IRow>();
-            //    foreach (IRow r in Excel.GetRows(false, false))
-            //    {
-            //        while (_cachedRows.Count < r.RowNum)
-            //            _cachedRows.Add(null);
-            //        _cachedRows.Add(r);
-            //    }
+            //    UseCachedDataRows = true;
             //}
 
-            //List<IRow> cachedRows
+            //List<IRow> getDataRows()
             //{
+            //    return Sheet._GetRowsInRange(RowScope.IncludeNull, 2).ToList();
+            //}
+
+            ///// <summary>
+            ///// Saves performance when FindRows() is called more than once. Otherwise, keep it switched off.
+            ///// (!)Every time it is set, the cache is reloaded which should be done if the sheet was edited outside this class.
+            ///// </summary>
+            //public bool UseCachedDataRows
+            //{
+            //    set
+            //    {
+            //        cachedDataRows = value ? getDataRows() : null;
+            //    }
             //    get
             //    {
-            //        if (_cachedRows == null)
-            //            ReloadCachedRows();
-            //        return _cachedRows;
+            //        return cachedDataRows != null;
             //    }
-            //}
-            //List<IRow> _cachedRows;
+            //} 
+            //List<IRow> cachedDataRows = null;
 
+            /// <summary>
+            /// Looks among the passed rows.
+            /// </summary>
+            /// <param name="rows"></param>
+            /// <param name="rowKeys"></param>
+            /// <returns></returns>
             static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, params NamedValue[] rowKeys)
             {
+                foreach (var rk in rowKeys)
+                    rk.ValueAsString = rk.Value?.ToString();
+
                 return rows.Where(a =>
                 {
+                    if (a == null)
+                        return false;
                     foreach (var rk in rowKeys)
-                        if (a.GetCell(rk.ColumnX - 1)?._GetValue() != rk.Value)
+                        if (a.GetCell(rk.X - 1)?._GetValue().ToString() != rk.ValueAsString)
                             return false;
                     return true;
                 });
             }
 
+            ///// <summary>
+            ///// (!)Uses the cache only if the cache is initialized by UseCachedDataRows=true.
+            ///// Otherwise it re-reads the file every call which can be slow.
+            ///// </summary>
+            ///// <param name="rowKeys"></param>
+            ///// <returns></returns>
+            //public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
+            //{
+            //    List<IRow> dataRows = cachedDataRows != null ? cachedDataRows : getDataRows().ToList();
+            //    return FindRows(dataRows, rowKeys);
+            //}
+
+            /// <summary>
+            /// (!)Re-reads the sheet on every call which can be slow.
+            /// </summary>
+            /// <param name="rowKeys"></param>
+            /// <returns></returns>
             public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
             {
-                return FindRows(/*cachedRows*/Excel.GetRowsInRange(RowScope.OnlyExisting, 2), rowKeys);
+                return FindRows(Sheet._GetRows(RowScope.NotEmptyOnly), rowKeys);
+            }
+
+            public IEnumerable<IRow> GetRows(RowScope rowScope)
+            {
+                return Sheet._GetRows(rowScope);
             }
 
             public NamedValue NewNamedValue(string header, object value)
@@ -109,21 +183,34 @@ namespace Cliver
             {
                 public string Header { get; internal set; }
                 public object Value { get; internal set; }
-                public int ColumnX { get; internal set; }
+                public int X { get; internal set; }
+
+                internal string ValueAsString;
 
                 internal NamedValue(string header, object value, int columnX)
                 {
                     Header = header;
                     Value = value;
-                    ColumnX = columnX;
+                    X = columnX;
                 }
             }
 
             public IRow AppendRow<T>(IEnumerable<T> values)
             {
-                IRow r = Excel.AppendRow(values);
-                //cachedRows.Add(r);
+                IRow r = Sheet._AppendRow(values);
+                setColumnStyles(r);
+
+                //if (cachedDataRows != null)
+                //    cachedDataRows.Add(r);
+
                 return r;
+            }
+
+            void setColumnStyles(IRow row)
+            {
+                foreach (ColumnStyle cs in xs2columnStyle.Values)
+                    if (cs != null)
+                        row._GetCell(cs.X, true).CellStyle = cs.Style;
             }
 
             public IRow AppendRow(params string[] values)
@@ -133,19 +220,24 @@ namespace Cliver
 
             public IRow AppendRow(IEnumerable<NamedValue> namedValues)
             {
-                int y0 = Excel.Sheet.LastRowNum;//(!)it is 0 when no row or 1 row
-                int y = y0 + (y0 == 0 && Excel.Sheet.GetRow(y0) == null ? 1 : 2);
-                IRow r = writeRow(y, namedValues);
-                //cachedRows.Add(r);
+                IRow r = writeRow(Sheet._GetLastNotEmptyRow(false) + 1, namedValues);
                 return r;
             }
 
             IRow writeRow(int y, IEnumerable<NamedValue> namedValues)
             {
-                var r = Excel.GetRow(y, true);
+                IRow r = Sheet.GetRow(y - 1);
+                if (r == null)
+                {
+                    r = Sheet.CreateRow(y - 1);
+                    setColumnStyles(r);
+
+                    //if (cachedDataRows != null)
+                    //    cachedDataRows.Insert(r.RowNum, r);
+                }
                 foreach (var nv in namedValues)
                 {
-                    var c = r._GetCell(nv.ColumnX, true);
+                    var c = r._GetCell(nv.X, true);
                     c._SetValue(nv.Value);
                 }
                 return r;
@@ -158,8 +250,12 @@ namespace Cliver
 
             public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
             {
-                IRow r = Excel.InsertRow(y, values);
-                //cachedRows.Insert(r.RowNum, r);
+                IRow r = Sheet._InsertRow(y, values);
+                setColumnStyles(r);
+
+                //if (cachedDataRows != null)
+                //    cachedDataRows.Insert(r.RowNum, r);
+
                 return r;
             }
 
@@ -170,10 +266,10 @@ namespace Cliver
 
             public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)
             {
-                if (y <= Excel.Sheet.LastRowNum + 1)
-                    Excel.Sheet.ShiftRows(y - 1, Excel.Sheet.LastRowNum, 1);
+                int lastRowY = Sheet._GetLastNotEmptyRow(false);
+                if (y <= lastRowY)
+                    Sheet.ShiftRows(y - 1, lastRowY - 1, 1);
                 IRow r = writeRow(y, namedValues);
-                //cachedRows.Insert(r.RowNum, r);
                 return r;
             }
 
@@ -184,8 +280,7 @@ namespace Cliver
 
             public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
             {
-                IRow r = Excel.WriteRow(y, values);
-                //cachedRows[r.RowNum] = r;
+                IRow r = Sheet._WriteRow(y, values);
                 return r;
             }
 
@@ -197,13 +292,20 @@ namespace Cliver
             public IRow WriteRow(int y, IEnumerable<NamedValue> namedValues)
             {
                 IRow r = writeRow(y, namedValues);
-                //cachedRows[r.RowNum] = r;
                 return r;
             }
 
             public IRow WriteRow(int y, params NamedValue[] values)
             {
                 return WriteRow(y, (IEnumerable<NamedValue>)values);
+            }
+
+            public void RemoveRow(int y)
+            {
+                IRow r = Sheet._RemoveRow(y);
+
+                //if (cachedDataRows != null && r != null)
+                //    cachedDataRows.Remove(r);
             }
 
             public ICell GetCell(IRow row, string header, bool create)
@@ -219,6 +321,11 @@ namespace Cliver
             public void SetStyles(IRow row, IEnumerable<ICellStyle> styles)
             {
                 SetStyles(row, styles.ToArray());
+            }
+
+            public void Save(string file = null)
+            {
+                Excel.Save(file);
             }
         }
     }

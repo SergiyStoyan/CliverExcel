@@ -24,12 +24,16 @@ namespace Cliver
             return r;
         }
 
-        static public IEnumerable<IRow> _GetRows(this ISheet sheet, RowScope rowScope = RowScope.IncludeNull)
-        {
-            return sheet._GetRowsInRange(rowScope);
-        }
-
-        static public IEnumerable<IRow> _GetRowsInRange(this ISheet sheet, RowScope rowScope = RowScope.IncludeNull, int y1 = 1, int? y2 = null)
+        /// <summary>
+        /// (!)May return a huge pile of null and empty rows after the last actual row. 
+        /// Use RowScope.ExistingOnly to avoid garbage or call _RemoveEmptyRows() before.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="rowScope"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        /// <returns></returns>
+        static public IEnumerable<IRow> _GetRowsInRange(this ISheet sheet, RowScope rowScope, int y1 = 1, int? y2 = null)
         {
             if (y2 == null)
                 y2 = sheet.LastRowNum + 1;
@@ -39,21 +43,26 @@ namespace Cliver
                 var r = sheet.GetRow(i);
                 if (r == null)
                 {
-                    if (rowScope == RowScope.OnlyExisting)
+                    if (rowScope <= RowScope.ExistingOnly)
                         continue;
                     if (rowScope == RowScope.CreateIfNull)
                         r = sheet.CreateRow(i);
                 }
-                if (r != null)
-                    yield return r;
+                else if (r.LastCellNum < 0)
+                {
+                    if (rowScope <= RowScope.NotEmptyOnly)
+                        continue;
+                }
+                else if (rowScope == RowScope.NotEmptyCellsOnly && r._GetLastNotEmptyColumn(false) < 1)
+                    continue;
+                yield return r;
             }
         }
 
         static public IRow _AppendRow<T>(this ISheet sheet, IEnumerable<T> values)
         {
-            int y0 = sheet.LastRowNum;//(!)it is 0 when no row or 1 row
-            int y = y0 + (y0 == 0 && sheet.GetRow(y0) == null ? 1 : 2);
-            return sheet._WriteRow(y, values);
+            int lastRowY = sheet._GetLastNotEmptyRow(false);
+            return sheet._WriteRow(lastRowY + 1, values);
         }
 
         static public IRow _AppendRow(this ISheet sheet, params string[] values)
@@ -63,8 +72,9 @@ namespace Cliver
 
         static public IRow _InsertRow<T>(this ISheet sheet, int y, IEnumerable<T> values = null)
         {
-            if (y <= sheet.LastRowNum)
-                sheet.ShiftRows(y - 1, sheet.LastRowNum, 1);
+            int lastRowY = sheet._GetLastNotEmptyRow(false);
+            if (y <= lastRowY)
+                sheet.ShiftRows(y - 1, lastRowY - 1, 1);
             return sheet._WriteRow(y, values);
         }
 
@@ -83,6 +93,14 @@ namespace Cliver
         static public IRow _WriteRow(this ISheet sheet, int y, params string[] values)
         {
             return sheet._WriteRow(y, (IEnumerable<string>)values);
+        }
+
+        static public IRow _RemoveRow(this ISheet sheet, int y)
+        {
+            IRow r = sheet.GetRow(y - 1);
+            if (r != null)
+                sheet.RemoveRow(r);
+            return r;
         }
 
         static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
@@ -117,7 +135,7 @@ namespace Cliver
 
         static public void _AutosizeRowsInRange(this ISheet sheet, int y1 = 1, int? y2 = null)
         {
-            sheet._GetRowsInRange(RowScope.OnlyExisting, y1, y2).ForEach(a => a.Height = -1);
+            sheet._GetRowsInRange(RowScope.ExistingOnly, y1, y2).ForEach(a => a.Height = -1);
         }
 
         static public void _AutosizeRows(this ISheet sheet)
@@ -139,35 +157,18 @@ namespace Cliver
             sheet._NewRange(y, 1, y, null).ClearMerging();
         }
 
-        static public int _GetLastRow(this ISheet sheet, bool includeMerged = true)
+        static public int _GetLastColumnInRowRange(this ISheet sheet, bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            IRow row = sheet.GetRow(sheet.LastRowNum);
-            if (row == null)
-                return 0;
-            if (!includeMerged)
-                return row._Y();
-            int maxY = 0;
-            foreach (var c in row.Cells)
-            {
-                var r = c._GetMergedRange();
-                if (r != null && maxY < r.Y2.Value)
-                    maxY = r.Y2.Value;
-            }
-            return maxY;
-        }
-
-        static public int _GetLastColumnInRowRange(this ISheet sheet, int y1 = 1, int? y2 = null, bool includeMerged = true)
-        {
-            return sheet._GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a._GetLastColumn(includeMerged));
+            return sheet._GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastColumn(includeMerged));
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="y"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="y"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastNotEmptyColumnInRow(this ISheet sheet, int y, bool includeMerged = true)
+        static public int _GetLastNotEmptyColumnInRow(this ISheet sheet, bool includeMerged, int y)
         {
             IRow row = sheet._GetRow(y, false);
             if (row == null)
@@ -178,10 +179,10 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="y"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="y"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastColumnInRow(this ISheet sheet, int y, bool includeMerged = true)
+        static public int _GetLastColumnInRow(this ISheet sheet, bool includeMerged, int y)
         {
             IRow row = sheet._GetRow(y, false);
             if (row == null)
@@ -192,15 +193,13 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="includeMerged"></param>
         /// <param name="y1"></param>
         /// <param name="y2"></param>
-        /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastNotEmptyColumnInRowRange(this ISheet sheet, int y1 = 1, int? y2 = null, bool includeMerged = true)
+        static public int _GetLastNotEmptyColumnInRowRange(this ISheet sheet, bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            if (y2 == null)
-                y2 = sheet.LastRowNum + 1;
-            return sheet._GetRowsInRange(RowScope.OnlyExisting, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
+            return sheet._GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
         }
     }
 }

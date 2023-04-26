@@ -18,13 +18,13 @@ namespace Cliver
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="includeMerged"></param>
         /// <param name="x1"></param>
         /// <param name="x2"></param>
-        /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastNotEmptyRowInColumnRange(int x1 = 1, int? x2 = null, bool includeMerged = true)
+        public int GetLastNotEmptyRowInColumnRange(bool includeMerged, int x1 = 1, int? x2 = null)
         {
-            return Sheet._GetLastNotEmptyRowInColumnRange(x1, x2, includeMerged);
+            return Sheet._GetLastNotEmptyRowInColumnRange(includeMerged, x1, x2);
         }
 
         /// <summary>
@@ -44,18 +44,18 @@ namespace Cliver
         /// <param name="x"></param>
         /// <param name="includeMerged"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastNotEmptyRowInColumn(int x, bool includeMerged = true)
+        public int GetLastNotEmptyRowInColumn(bool includeMerged, int x)
         {
-            return Sheet._GetLastNotEmptyRowInColumn(x, includeMerged);
+            return Sheet._GetLastNotEmptyRowInColumn(includeMerged, x);
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="x"></param>
         /// <param name="includeMerged"></param>
+        /// <param name="x"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastRowInColumn(int x, bool includeMerged = true)
+        public int GetLastRowInColumn(bool includeMerged, int x)
         {
             return Sheet._GetColumn(x).GetLastRow(includeMerged);
         }
@@ -136,7 +136,7 @@ namespace Cliver
         /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyColumn(bool includeMerged)
         {
-            return GetLastNotEmptyColumnInRowRange(1, null, includeMerged);
+            return GetLastNotEmptyColumnInRowRange(includeMerged, 1, null);
         }
 
         public void CopyColumn(string fromColumnName, ISheet toSheet, string toColumnName = null)
@@ -169,9 +169,9 @@ namespace Cliver
             Sheet._AutosizeColumn(x, padding);
         }
 
-        public IEnumerable<ICell> GetCellsInColumn(int x)
+        public IEnumerable<ICell> GetCellsInColumn(int x, RowScope rowScope)
         {
-            return Sheet._GetCellsInColumn(x);
+            return Sheet._GetCellsInColumn(x, rowScope);
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace Cliver
             Sheet._AutosizeColumnsInRange(x1, x2, padding);
         }
 
-        public int GetLastColumn(bool includeMerged = true)
+        public int GetLastColumn(bool includeMerged)
         {
             return Sheet._GetLastColumn(includeMerged);
         }
