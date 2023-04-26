@@ -166,7 +166,7 @@ namespace Cliver
             /// <returns></returns>
             public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
             {
-                return FindRows(Sheet._GetRows(RowScope.NotEmptyOnly), rowKeys);
+                return FindRows(Sheet._GetRows(RowScope.WithCellsOnly), rowKeys);
             }
 
             public IEnumerable<IRow> GetRows(RowScope rowScope)
@@ -220,7 +220,7 @@ namespace Cliver
 
             public IRow AppendRow(IEnumerable<NamedValue> namedValues)
             {
-                IRow r = writeRow(Sheet._GetLastNotEmptyRow(false) + 1, namedValues);
+                IRow r = writeRow(Sheet._GetLastRow( LastRowCondition.HasCells, false) + 1, namedValues);
                 return r;
             }
 
@@ -266,7 +266,7 @@ namespace Cliver
 
             public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)
             {
-                int lastRowY = Sheet._GetLastNotEmptyRow(false);
+                int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
                 if (y <= lastRowY)
                     Sheet.ShiftRows(y - 1, lastRowY - 1, 1);
                 IRow r = writeRow(y, namedValues);

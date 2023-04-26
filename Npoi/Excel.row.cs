@@ -14,7 +14,7 @@ namespace Cliver
     {
         public int GetLastColumnInRowRange(bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            return GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastColumn(includeMerged));
+            return GetRowsInRange(RowScope.NotNull, y1, y2).Max(a => a._GetLastColumn(includeMerged));
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace Cliver
         /// <returns>1-based, otherwise 0</returns>
         public int GetLastNotEmptyColumnInRowRange(bool includeMerged, int y1 = 1, int? y2 = null)
         {
-            return GetRowsInRange(RowScope.ExistingOnly, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
+            return GetRowsInRange(RowScope.NotNull, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Cliver
 
         public void AutosizeRowsInRange(int y1 = 1, int? y2 = null)
         {
-            GetRowsInRange(RowScope.ExistingOnly, y1, y2).ForEach(a => a.Height = -1);
+            GetRowsInRange(RowScope.NotNull, y1, y2).ForEach(a => a.Height = -1);
         }
 
         public void AutosizeRows()
@@ -114,18 +114,25 @@ namespace Cliver
         public enum RowScope
         {
             /// <summary>
-            /// (!)Considerably slows down the enumerating.
+            /// (!)Considerably slow due to checking all the cells' values
             /// </summary>
-            NotEmptyCellsOnly,
-            NotEmptyOnly,
+            WithNotEmptyCellsOnly,
             /// <summary>
-            /// Includes no-cell rows.
+            /// Returns only rows with cells.
             /// </summary>
-            ExistingOnly,
+            WithCellsOnly,
             /// <summary>
-            /// (!)May return a huge pile of null and no-cell rows after the last actual row.  
+            /// Returns only rows existing as objects.
+            /// </summary>
+            NotNull,
+            /// <summary>
+            /// Returns NULL for non-existing rows within the range.
+            /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
             /// </summary>
             IncludeNull,
+            /// <summary>
+            /// (!)When using it, make sure that ISheet::LastRowNum is not huge.
+            /// </summary>
             CreateIfNull
         }
         public IEnumerable<IRow> GetRowsInRange(RowScope rowScope, int y1 = 1, int? y2 = null)

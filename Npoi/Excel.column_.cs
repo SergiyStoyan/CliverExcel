@@ -55,9 +55,9 @@ namespace Cliver
         /// <param name="includeMerged"></param>
         /// <param name="x"></param>
         /// <returns>1-based, otherwise 0</returns>
-        public int GetLastRowInColumn(bool includeMerged, int x)
+        public int GetLastRowInColumn(LastRowCondition lastRowCondition, bool includeMerged, int x)
         {
-            return Sheet._GetColumn(x).GetLastRow(includeMerged);
+            return Sheet._GetColumn(x).GetLastRow(lastRowCondition, includeMerged);
         }
 
         /// <summary>

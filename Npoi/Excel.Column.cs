@@ -30,25 +30,38 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            public int GetLastRow(bool includeMerged)
+            public int GetLastRow(LastRowCondition lastRowCondition, bool includeMerged)
             {
-                for (int i = Sheet.LastRowNum; i >= 0; i--)
+                IRow row = null;
+                switch (lastRowCondition)
                 {
-                    IRow row = Sheet.GetRow(i);
-                    if (row == null)
-                        continue;
-                    var c = row.GetCell(X - 1);
-                    if (c == null)
-                        continue;
-                    if (includeMerged)
-                    {
-                        var r = c._GetMergedRange();
-                        if (r != null)
-                            return r.Y2.Value;
-                    }
-                    return c.RowIndex + 1;
+                    case LastRowCondition.NotEmpty:
+                        return GetLastNotEmptyRow(includeMerged);
+                    case LastRowCondition.HasCells:
+                        for (int i = Sheet.LastRowNum; i >= 0; i--)
+                        {
+                            row = Sheet.GetRow(i);
+                            if (row == null)
+                                continue;
+                            if (row.GetCell(X - 1) != null)
+                                break;
+                        }
+                        break;
+                    case LastRowCondition.NotNull:
+                        row = Sheet.GetRow(Sheet.LastRowNum);
+                        break;
+                    default:
+                        throw new Exception("Unknown option: " + lastRowCondition.ToString());
                 }
-                return 0;
+                if (row == null)
+                    return 0;
+                if (!includeMerged)
+                    return row._Y();
+                var c = row.GetCell(X - 1);
+                var r = c._GetMergedRange();
+                if (r != null)
+                    return r.Y2.Value;
+                return row._Y();
             }
 
             public IEnumerable<ICell> GetCells(bool createCells)
@@ -59,7 +72,7 @@ namespace Cliver
             public IEnumerable<ICell> GetCellsInRange(bool createCells, int y1 = 1, int? y2 = null)
             {
                 if (y2 == null)
-                    y2 = GetLastRow(false);
+                    y2 = GetLastRow(LastRowCondition.HasCells, false);
                 for (int y = y1; y <= y2; y++)
                     yield return GetCell(y, createCells);
             }
@@ -106,7 +119,7 @@ namespace Cliver
             {
                 if (clearMerging)
                     ClearMerging();
-                foreach (var r in Sheet._GetRows(RowScope.ExistingOnly))
+                foreach (var r in Sheet._GetRows(RowScope.NotNull))
                 {
                     var c = r.GetCell(X - 1);
                     if (c != null)
@@ -121,13 +134,13 @@ namespace Cliver
 
             public void ShiftCellsDown(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
             {
-                for (int y = GetLastRow(true); y >= y1; y--)
+                for (int y = GetLastRow(LastRowCondition.HasCells, true); y >= y1; y--)
                     Sheet._MoveCell(y, X, y + shift, X, onFormulaCellMoved);
             }
 
             public void ShiftCellsUp(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
             {
-                int y2 = GetLastRow(true);
+                int y2 = GetLastRow(LastRowCondition.HasCells, true);
                 for (int y = y1; y <= y2; y++)
                     Sheet._MoveCell(y, X, y - shift, X, onFormulaCellMoved);
             }

@@ -80,9 +80,9 @@ namespace Cliver
         /// <param name="includeMerged"></param>
         /// <param name="x"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _GetLastRowInColumn(this ISheet sheet, bool includeMerged, int x)
+        static public int _GetLastRowInColumn(this ISheet sheet, LastRowCondition lastRowCondition, bool includeMerged, int x)
         {
-            return sheet._GetColumn(x).GetLastRow(includeMerged);
+            return sheet._GetColumn(x).GetLastRow(lastRowCondition, includeMerged);
         }
 
         /// <summary>

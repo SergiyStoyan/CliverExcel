@@ -11,24 +11,35 @@ namespace Cliver
 {
     public partial class Excel
     {
-        public void RemoveEmptyRows(bool removeIfEmptyCells)
+        public void RemoveEmptyRows(bool includeEmptyCellRows, bool shiftRemainingRows)
         {
-            Sheet._RemoveEmptyRows(removeIfEmptyCells);
+            Sheet._RemoveEmptyRows(includeEmptyCellRows, shiftRemainingRows);
         }
 
-        public int GetLastRow(bool includeMerged)
+        public enum LastRowCondition
         {
-            return Sheet._GetLastRow(includeMerged);
+            /// <summary>
+            /// (!)Considerably slow due to checking all the cells' values
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Row with cells.
+            /// </summary>
+            HasCells,
+            /// <summary>
+            /// Row existing as an object.
+            /// </summary>
+            NotNull,
+        }
+
+        public int GetLastRow(LastRowCondition lastRowCondition, bool includeMerged)
+        {
+            return Sheet._GetLastRow(lastRowCondition, includeMerged);
         }
 
         public IEnumerable<IRow> GetRows(RowScope rowScope)
         {
             return Sheet._GetRows(rowScope);
-        }
-
-        public IRow GetLastRowWithCells()
-        {
-            return Sheet._GetLastRowWithCells();
         }
     }
 }
