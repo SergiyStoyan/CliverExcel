@@ -14,6 +14,11 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
+        public IEnumerable<ISheet> GetSheets()
+        {
+            return Workbook._GetSheets();
+        }
+
         /// <summary>
         /// Set the active sheet. If no sheet with such name exists, a new sheet is created.
         /// (!)The name will be corrected to remove unacceptable symbols.

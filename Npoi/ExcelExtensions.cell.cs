@@ -83,8 +83,8 @@ namespace Cliver
         static public string _GetValueAsString(this ICell cell, bool allowNull = false)
         {
             object o = cell?._GetValue();
-            if (!allowNull && o == null)
-                return string.Empty;
+            if (o == null)
+                return allowNull ? null : string.Empty;
             if (o is DateTime dt)
                 return dt.ToString("yyyy-MM-dd hh:mm:ss");
             return o?.ToString();
@@ -265,7 +265,7 @@ namespace Cliver
 
         static public Excel.Range _GetMergedRange(this ICell cell)
         {
-            return cell.Sheet._getMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
+            return cell.Sheet._GetMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
         static public void _ClearMerging(this ICell cell)

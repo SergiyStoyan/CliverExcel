@@ -187,15 +187,5 @@ namespace Cliver
                 PasteRange(Copy(), toY, toX, toSheet);
             }
         }
-
-        public Range NewRange(int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
-        {
-            return new Range(Sheet, y1, x1, y2, x2);
-        }
-
-        public Range GetMergedRange(int y, int x)
-        {
-            return Sheet._getMergedRange(y, x);
-        }
     }
 }

@@ -12,6 +12,7 @@ using System.Linq;
 using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
 using NPOI.Util;
+using NPOI.HSSF.UserModel;
 
 namespace Cliver
 {
@@ -114,7 +115,7 @@ namespace Cliver
             return r._GetCell(cs.X, createCell);
         }
 
-        static public void RemoveCell(this ISheet sheet, int y, int x)
+        static public void _RemoveCell(this ISheet sheet, int y, int x)
         {
             IRow r = sheet.GetRow(y);
             if (r == null)
@@ -123,14 +124,6 @@ namespace Cliver
             if (c == null)
                 return;
             r.RemoveCell(c);
-        }
-
-        static internal Range _getMergedRange(this ISheet sheet, int y, int x)
-        {
-            foreach (var mr in sheet.MergedRegions)
-                if (mr.IsInRange(y - 1, x - 1))
-                    return new Range(sheet, mr.FirstRow + 1, mr.FirstColumn + 1, mr.LastRow + 1, mr.LastColumn + 1);
-            return null;
         }
 
         static public void _CreateDropdown<T>(this ISheet sheet, int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
@@ -154,5 +147,41 @@ namespace Cliver
             p.Resize(1);
             //p.Resize(1, 1);
         }
+
+        static public Range _GetMergedRange(this ISheet sheet, int y, int x)
+        {
+            foreach (var mr in sheet.MergedRegions)
+                if (mr.IsInRange(y - 1, x - 1))
+                    return new Range(sheet, mr.FirstRow + 1, mr.FirstColumn + 1, mr.LastRow + 1, mr.LastColumn + 1);
+            return null;
+        }
+
+        static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x)
+        {
+            if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
+            {
+                XSSFDrawing dp = (XSSFDrawing)sheet.CreateDrawingPatriarch();
+                foreach (XSSFShape s in dp.GetShapes())
+                {
+                    XSSFPicture p = s as XSSFPicture;
+                    if (p == null)
+                        continue;
+                    var a = p.ClientAnchor;
+                    if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
+                    {
+                        IPictureData pictureData = p.PictureData;
+                        yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
+                    }
+                }
+            }
+            else if (sheet.Workbook is HSSFWorkbook hSSFWorkbook)
+            {
+                HSSFPatriarch g;
+
+            }
+            else
+                throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);
+        }
+
     }
 }

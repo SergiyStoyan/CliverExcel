@@ -3,75 +3,26 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using NPOI.HSSF.UserModel;
-using NPOI.HSSF.Util;
 using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
-using System;
+using NPOI.SS.Util;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
 
 namespace Cliver
 {
-    public partial class Excel 
+    public partial class Excel
     {
-        //public void Unhighlight(Color color)
-        //{
-        //    if (Workbook is XSSFWorkbook)
-        //    {
-        //        if (color == null)
-        //        {
-        //            foreach (XSSFCellStyle s in GetStyles())
-        //                s.SetFillForegroundColor(null);
-        //            return;
-        //        }
-        //        XSSFColor c = new XSSFColor(color.RGB);
-        //        foreach (XSSFCellStyle s in GetStyles())
-        //        {
-        //            if (AreColorsEqual(s.FillForegroundColorColor, c))
-        //                s.SetFillForegroundColor(null);
-        //        }
-        //    }
-        //    else if (Workbook is HSSFWorkbook hw)
-        //    {
-        //        if (color == null)
-        //        {
-        //            foreach (HSSFCellStyle s in GetStyles())
-        //                s.FillForegroundColor = 0;
-        //            return;
-        //        }
-        //        HSSFPalette palette = hw.GetCustomPalette();
-        //        HSSFColor c = palette.FindColor(color.RGB[0], color.RGB[1], color.RGB[2]);
-        //        foreach (HSSFCellStyle s in GetStyles())
-        //        {
-        //            if (AreColorsEqual(color, c))
-        //                s.FillForegroundColor = 0;
-        //        }
-        //    }
-        //    else
-        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
-        //}
-
-        public ICellStyle Highlight(ICellStyle style, Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
-        {
-            return highlight(this, style, createOnlyUniqueStyle, color, fillPattern);
-        }
-
         /// <summary>
         /// Intended for either adding or removing backgound color.
         /// (!)When createUniqueStyleOnly, it is slow.
         /// </summary>
-        /// <param name="excel"></param>
         /// <param name="style"></param>
-        /// <param name="createUniqueStyleOnly"></param>
         /// <param name="color"></param>
         /// <param name="fillPattern"></param>
+        /// <param name="createOnlyUniqueStyle"></param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        static internal ICellStyle highlight(Excel excel, ICellStyle style, bool createOnlyUniqueStyle, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        public ICellStyle Highlight(ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
         {
-            return excel.Workbook._highlight(style, createOnlyUniqueStyle, color, fillPattern);
+            return Workbook._Highlight(style, color, fillPattern, createOnlyUniqueStyle);
         }
 
         /// <summary>
@@ -93,6 +44,7 @@ namespace Cliver
 
         /// <summary>
         /// Both styles can be unregistered. (!)However, font and format used by them must be registered in the respective workbooks.
+        /// Font and format, if do not exist in the destination workbook, will be created there.
         /// </summary>
         /// <param name="fromStyle"></param>
         /// <param name="toStyle"></param>
@@ -150,26 +102,12 @@ namespace Cliver
 
         /// <summary>
         /// Makes all the duplicated styles unused. Call GetUnusedStyles() after this method to re-use styles.
+        /// (!)Tends to be slow on big sheets.
         /// </summary>
         /// <exception cref="Exception"></exception>
         public void OptimiseStyles()
         {
             Workbook._OptimiseStyles();
-        }
-
-        public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
-        {
-            Sheet._ReplaceStyle(style1, style2);
-        }
-
-        public void SetStyle(ICellStyle style, bool createCells)
-        {
-            Sheet._SetStyle(style, createCells);
-        }
-
-        public void UnsetStyle(ICellStyle style)
-        {
-            Sheet._UnsetStyle(style);
         }
     }
 }

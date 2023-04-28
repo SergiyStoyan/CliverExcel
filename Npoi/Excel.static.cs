@@ -81,7 +81,7 @@ namespace Cliver
                     if (c != null)
                         c._Copy(toY + yi, toX + xi, toSheet);
                     else
-                        toSheet.RemoveCell(toY + yi, toX + xi);
+                        toSheet._RemoveCell(toY + yi, toX + xi);
                 }
             }
         }

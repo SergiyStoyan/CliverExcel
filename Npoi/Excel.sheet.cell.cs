@@ -4,7 +4,7 @@
 //        http://www.cliversoft.com
 //********************************************************************************************
 using NPOI.SS.UserModel;
-using NPOI.Util;
+using NPOI.SS.Util;
 using System;
 using System.Collections.Generic;
 
@@ -12,6 +12,16 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public void SetLink(int y, int x, Uri uri)
+        {
+            Sheet._SetLink(y, x, uri);
+        }
+
+        public Uri GetLink(int y, int x)
+        {
+            return Sheet._GetLink(y, x);
+        }
+
         public void ShiftCellsRight(int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             Sheet._ShiftCellsRight(x1, y1, y2, shift, onFormulaCellMoved);
@@ -37,6 +47,21 @@ namespace Cliver
             Sheet._CopyCell(fromCellY, fromCellX, toCellY, toCellX);
         }
 
+        public string GetValueAsString(int y, int x, bool allowNull = false)
+        {
+            return Sheet._GetValueAsString(y, x, allowNull);
+        }
+
+        public object GetValue(int y, int x)
+        {
+            return Sheet._GetValue(y, x);
+        }
+
+        public void SetValue(int y, int x, object value)
+        {
+            Sheet._SetValue(y, x, value);
+        }
+
         public void MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, Action<ICell> onFormulaCellMoved = null)
         {
             Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved);
@@ -52,39 +77,29 @@ namespace Cliver
             return Sheet._GetCell(address, createCell);
         }
 
-        //public void HighlightCell(int y, int x, ICellStyle style, Color color)
-        //{
-        //    GetCell(y, x, true).Highlight(style, color);
-        //}
-
-        //public void Highlight(ICell cell, ICellStyle style, Color color)
-        //{
-        //    cell.Highlight(style, color);
-        //}
-
-        public void SetLink(int y, int x, Uri uri)
+        public void RemoveCell(int y, int x)
         {
-            Sheet._SetLink(y, x, uri);
+            Sheet._RemoveCell(y, x);
         }
 
-        public Uri GetLink(int y, int x)
+        public void CreateDropdown<T>(int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
         {
-            return Sheet._GetLink(y, x);
+            Sheet._CreateDropdown(y, x, values, value, allowBlank);
         }
 
-        public string GetValueAsString(int y, int x, bool allowNull = false)
+        public void AddImage(Image image)
         {
-            return Sheet._GetValueAsString(y, x, allowNull);
+            Sheet._AddImage(image);
         }
 
-        public object GetValue(int y, int x)
+        public Range GetMergedRange(int y, int x)
         {
-            return Sheet._GetValue(y, x);
+            return Sheet._GetMergedRange(y, x);
         }
 
-        public void SetValue(int y, int x, object value)
+        public IEnumerable<Image> GetImages(int y, int x)
         {
-            Sheet._SetValue(y, x, value);
+            return Sheet._GetImages(y, x);
         }
 
         /// <summary>
@@ -103,21 +118,6 @@ namespace Cliver
             {
                 Sheet._SetValue(y, x, value);
             }
-        }
-
-        public IEnumerable<Image> GetImages(int y, int x)
-        {
-            return Sheet._GetImages(y, x);
-        }
-
-        public void AddImage(Image image)
-        {
-            Sheet._AddImage(image);
-        }
-
-        public void CreateDropdown<T>(int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
-        {
-            Sheet._CreateDropdown(y, x, values, value, allowBlank);
         }
     }
 }

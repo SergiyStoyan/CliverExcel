@@ -16,6 +16,53 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        //public void Unhighlight(Color color)
+        //{
+        //    if (Workbook is XSSFWorkbook)
+        //    {
+        //        if (color == null)
+        //        {
+        //            foreach (XSSFCellStyle s in GetStyles())
+        //                s.SetFillForegroundColor(null);
+        //            return;
+        //        }
+        //        XSSFColor c = new XSSFColor(color.RGB);
+        //        foreach (XSSFCellStyle s in GetStyles())
+        //        {
+        //            if (AreColorsEqual(s.FillForegroundColorColor, c))
+        //                s.SetFillForegroundColor(null);
+        //        }
+        //    }
+        //    else if (Workbook is HSSFWorkbook hw)
+        //    {
+        //        if (color == null)
+        //        {
+        //            foreach (HSSFCellStyle s in GetStyles())
+        //                s.FillForegroundColor = 0;
+        //            return;
+        //        }
+        //        HSSFPalette palette = hw.GetCustomPalette();
+        //        HSSFColor c = palette.FindColor(color.RGB[0], color.RGB[1], color.RGB[2]);
+        //        foreach (HSSFCellStyle s in GetStyles())
+        //        {
+        //            if (AreColorsEqual(color, c))
+        //                s.FillForegroundColor = 0;
+        //        }
+        //    }
+        //    else
+        //        throw new Exception("Unsupported workbook type: " + Workbook.GetType().FullName);
+        //}
+
+        /// <summary>
+        /// Intended for either adding or removing backgound color.
+        /// (!)When createUniqueStyleOnly, it is slow.
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="style"></param>
+        /// <param name="color"></param>
+        /// <param name="fillPattern"></param>
+        /// <param name="createOnlyUniqueStyle"></param>
+        /// <returns></returns>
         static public ICellStyle _Highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
         {
             return workbook._highlight(style, createOnlyUniqueStyle, color, fillPattern);

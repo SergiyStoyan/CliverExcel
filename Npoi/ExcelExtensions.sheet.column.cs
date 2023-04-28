@@ -178,6 +178,7 @@ namespace Cliver
         {
             return sheet._GetColumn(x).GetLastNotEmptyRow(includeMerged);
         }
+
         static public Column _GetColumn(this ISheet sheet, int x)
         {
             return new Column(sheet, x);

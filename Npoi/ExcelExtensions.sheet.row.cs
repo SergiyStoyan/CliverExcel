@@ -9,11 +9,92 @@ using System.Collections.Generic;
 using NPOI.SS.UserModel;
 using static Cliver.Excel;
 using System.Linq;
+using NPOI.HSSF.UserModel;
+using NPOI.XSSF.UserModel;
 
 namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        /// <summary>
+        /// Removes empty rows.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="includeEmptyCellRows">might considerably slow down if TRUE</param>
+        /// <param name="shiftRemainingRows">the remaining rows are shifted if TRUE</param>
+        public static void _RemoveEmptyRows(this ISheet sheet, bool includeEmptyCellRows, bool shiftRemainingRows)
+        {
+            int removedRowsCount = 0;
+            for (int i = sheet.LastRowNum; i >= 0; i--)
+            {
+                var r = sheet.GetRow(i);
+                if (r != null)
+                {
+                    if (r.LastCellNum >= 0
+                        && (!includeEmptyCellRows || r._GetLastNotEmptyColumn(false) > 0)
+                        )
+                    {
+                        if (removedRowsCount > 0)
+                        {
+                            if (r.RowNum + 1 + removedRowsCount <= sheet.LastRowNum)
+                                sheet.ShiftRows(r.RowNum + 1 + removedRowsCount, sheet.LastRowNum, -removedRowsCount);
+                            removedRowsCount = 0;
+                        }
+                        continue;
+                    }
+                    sheet.RemoveRow(r);
+                }
+                if (shiftRemainingRows)
+                    removedRowsCount++;
+            }
+            if (removedRowsCount > 0
+                && 1 + removedRowsCount <= sheet.LastRowNum
+                )
+                sheet.ShiftRows(1 + removedRowsCount, sheet.LastRowNum, -removedRowsCount);
+        }
+
+        static public IEnumerable<IRow> _GetRows(this ISheet sheet, RowScope rowScope)
+        {
+            return sheet._GetRowsInRange(rowScope);
+        }
+
+        static public int _GetLastRow(this ISheet sheet, LastRowCondition lastRowCondition, bool includeMerged)
+        {
+            IRow row = null;
+            switch (lastRowCondition)
+            {
+                case LastRowCondition.NotEmpty:
+                    return sheet._GetLastNotEmptyRow(includeMerged);
+                case LastRowCondition.HasCells:
+                    for (int i = sheet.LastRowNum; i >= 0; i--)
+                    {
+                        row = sheet.GetRow(i);
+                        if (row == null)
+                            continue;
+                        if (row.LastCellNum >= 0)
+                            break;
+                    }
+                    break;
+                case LastRowCondition.NotNull:
+                    row = sheet.GetRow(sheet.LastRowNum);
+                    break;
+                default:
+                    throw new Exception("Unknown option: " + lastRowCondition.ToString());
+            }
+            if (row == null)
+                return 0;
+            if (!includeMerged)
+                return row._Y();
+            int maxY = 0;
+            foreach (var c in row.Cells)
+            {
+                var r = c._GetMergedRange();
+                if (r != null && maxY < r.Y2.Value)
+                    maxY = r.Y2.Value;
+            }
+            return maxY;
+        }
+
         static public IRow _GetRow(this ISheet sheet, int y, bool createRow)
         {
             IRow r = sheet.GetRow(y - 1);
