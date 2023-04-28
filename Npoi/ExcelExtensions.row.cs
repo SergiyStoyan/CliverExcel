@@ -25,14 +25,6 @@ namespace Cliver
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved);
         }
 
-        //static public ICell GetCell(this IRow r, string header, bool create)
-        //{
-        //    ICell c = r.GetCell(x - 1);
-        //    if (c == null && create)
-        //        return r.CreateCell(x - 1);
-        //    return c;
-        //}
-
         static public ICell _GetCell(this IRow r, int x, bool createCell)
         {
             ICell c = r.GetCell(x - 1);
@@ -40,11 +32,6 @@ namespace Cliver
                 return r.CreateCell(x - 1);
             return c;
         }
-
-        //static public void Highlight(this IRow row, ICellStyle style, Excel.Color color)
-        //{
-        //    row.RowStyle = Excel.highlight(row.Sheet.Workbook, style, color);
-        //}
 
         /// <summary>
         /// 
@@ -144,7 +131,7 @@ namespace Cliver
         }
 
 
-        static public void _Clear(this IRow row, int y, bool clearMerging)
+        static public void _Clear(this IRow row, bool clearMerging)
         {
             if (clearMerging)
                 row._ClearMerging();
@@ -154,6 +141,43 @@ namespace Cliver
         static public void _ClearMerging(this IRow row)
         {
             new Excel.Range(row.Sheet, row._Y(), 1, row._Y(), null).ClearMerging();
+        }
+
+        /// <summary> 
+        /// Value of the specified cell.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        static public object _GetValue(this IRow row, int x)
+        {
+            return row._GetCell(x, false)?._GetValue();
+        }
+
+        /// <summary>
+        /// Value of the specified cell.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="x"></param>
+        /// <param name="allowNull"></param>
+        /// <returns></returns>
+        static public string _GetValueAsString(this IRow row, int x, bool allowNull = false)
+        {
+            ICell c = row._GetCell(x, false);
+            if (c == null)
+                return allowNull ? null : string.Empty;
+            return c._GetValueAsString(allowNull);
+        }
+
+        /// <summary>
+        /// Images anchored in the specified cell coordinates. The cell may not exist.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        static public IEnumerable<Excel.Image> _GetImages(this IRow row, int x)
+        {
+            return row.Sheet._GetImages(row._Y(), x);
         }
     }
 }

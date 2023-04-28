@@ -147,7 +147,7 @@ namespace Cliver
             {
                 hssfColor = palette.AddColor(color.R, color.G, color.B);
             }
-            catch (Exception e)
+            catch 
             {//pallete is full
                 short? findUnusedColorIndex()
                 {

@@ -146,7 +146,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// Safe against the API's one
+            /// Safe comparing to the API's one
             /// </summary>
             /// <param name="x"></param>
             /// <param name="width">units of 1/256th of a character width</param>
@@ -158,7 +158,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// Safe against the API's one
+            /// Safe comparing to the API's one
             /// </summary>
             /// <param name="x"></param>
             /// <param name="width">a character width</param>
@@ -198,6 +198,30 @@ namespace Cliver
             public void Copy(ISheet toSheet, int toX)
             {
                 new Range(Sheet, 1, X, null, X).Copy(1, toX, toSheet);
+            }
+
+            public object GetValue(int y)
+            {
+                return GetCell(y, false)?._GetValue();
+            }
+
+            public string GetValueAsString(int y, bool allowNull = false)
+            {
+                ICell c = GetCell(y, false);
+                if (c == null)
+                    return allowNull ? null : string.Empty;
+                return c._GetValueAsString(allowNull);
+            }
+
+            /// <summary>
+            /// Images anchored in the specified cell coordinates. The cell may possibly not exist.
+            /// </summary>
+            /// <param name="row"></param>
+            /// <param name="x"></param>
+            /// <returns></returns>
+            public IEnumerable<Excel.Image> GetImages(int y)
+            {
+                return Sheet._GetImages(y, X);
             }
         }
     }

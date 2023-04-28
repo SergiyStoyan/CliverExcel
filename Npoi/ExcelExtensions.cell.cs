@@ -200,7 +200,7 @@ namespace Cliver
                 return;
             }
             if (string.IsNullOrEmpty(cell._GetValueAsString()))
-                cell.SetCellValue(LinkEmptyValueFiller);
+                cell.SetCellValue(Excel.LinkEmptyValueFiller);
             if (cell.Sheet.Workbook is XSSFWorkbook)
                 cell.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
             else if (cell.Sheet.Workbook is HSSFWorkbook)
@@ -208,7 +208,6 @@ namespace Cliver
             else
                 throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
         }
-        public static string LinkEmptyValueFiller = "           ";
 
         static public void _UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
         {
@@ -257,11 +256,6 @@ namespace Cliver
             }
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
-
-        //static public void Highlight(this ICell cell, ICellStyle style, Excel.Color color)
-        //{
-        //    cell.CellStyle = Excel.highlight(cell.Sheet.Workbook, style, color);
-        //}
 
         static public Excel.Range _GetMergedRange(this ICell cell)
         {

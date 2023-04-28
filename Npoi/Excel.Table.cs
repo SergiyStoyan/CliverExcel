@@ -164,14 +164,14 @@ namespace Cliver
             /// </summary>
             /// <param name="rowKeys"></param>
             /// <returns></returns>
-            public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
+            public IEnumerable<IRow> FindDataRows(params NamedValue[] rowKeys)
             {
-                return FindRows(Sheet._GetRows(RowScope.WithCells), rowKeys);
+                return FindRows(Sheet._GetRows(RowScope.WithCells).Skip(1), rowKeys);
             }
 
-            public IEnumerable<IRow> GetRows(RowScope rowScope)
+            public IEnumerable<IRow> GetDataRows(RowScope rowScope)
             {
-                return Sheet._GetRows(rowScope);
+                return Sheet._GetRows(rowScope).Skip(1);
             }
 
             public NamedValue NewNamedValue(string header, object value)

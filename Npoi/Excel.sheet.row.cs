@@ -33,12 +33,12 @@ namespace Cliver
             /// </summary>
             NotNull,
             /// <summary>
-            /// Returns NULL for non-existing rows within the range.
+            /// Returns all the rows withing the range with non-existing rows represented as NULL.
             /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
             /// </summary>
             IncludeNull,
             /// <summary>
-            /// (!)When using it, make sure that ISheet::LastRowNum is not huge.
+            /// Returns all the rows withing the range with non-existing rows having been created.
             /// </summary>
             CreateIfNull
         }

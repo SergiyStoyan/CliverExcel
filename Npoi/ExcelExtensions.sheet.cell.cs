@@ -13,6 +13,8 @@ using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
 using NPOI.Util;
 using NPOI.HSSF.UserModel;
+using NPOI.SS.Formula.PTG;
+using NPOI.SS.Formula;
 
 namespace Cliver
 {
@@ -126,6 +128,16 @@ namespace Cliver
             r.RemoveCell(c);
         }
 
+        static public void _UpdateFormulaRange(this ISheet sheet, int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
+        {
+            sheet._GetCell(y, x, false)?._UpdateFormulaRange(rangeY1Shift, rangeX1Shift, rangeY2Shift, rangeX2Shift);
+        }
+
+        static public void _ClearMerging(this ISheet sheet, int y, int x)
+        {
+            sheet._GetCell(y, x, false)?._ClearMerging();
+        }
+
         static public void _CreateDropdown<T>(this ISheet sheet, int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
         {
             sheet._GetCell(y, x, true)._CreateDropdown(values, value, allowBlank);
@@ -156,6 +168,14 @@ namespace Cliver
             return null;
         }
 
+        /// <summary>        
+        /// Images anchored in the specified cell coordinates. The cell may possibly not exist.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x)
         {
             if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
@@ -176,8 +196,8 @@ namespace Cliver
             }
             else if (sheet.Workbook is HSSFWorkbook hSSFWorkbook)
             {
-                HSSFPatriarch g;
-
+                //HSSFPatriarch g;
+                throw new Exception("TBD for: " + sheet.Workbook.GetType().FullName);
             }
             else
                 throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);

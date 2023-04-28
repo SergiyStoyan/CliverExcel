@@ -307,7 +307,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Safe against the API's one
+        /// Safe comparing to the API's one
         /// </summary>
         /// <param name="x"></param>
         /// <param name="width">units of 1/256th of a character width</param>
@@ -317,7 +317,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Safe against the API's one
+        /// Safe comparing to the API's one
         /// </summary>
         /// <param name="x"></param>
         /// <param name="width">a character width</param>

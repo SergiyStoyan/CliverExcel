@@ -3,8 +3,12 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.HSSF.UserModel;
+using NPOI.SS.Formula.PTG;
+using NPOI.SS.Formula;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 
@@ -12,6 +16,7 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public static string LinkEmptyValueFiller = "           ";
         public void SetLink(int y, int x, Uri uri)
         {
             Sheet._SetLink(y, x, uri);
@@ -82,6 +87,16 @@ namespace Cliver
             Sheet._RemoveCell(y, x);
         }
 
+        public void UpdateFormulaRange(int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
+        {
+            Sheet._UpdateFormulaRange(y, x, rangeY1Shift, rangeX1Shift, rangeY2Shift, rangeX2Shift);
+        }
+
+        public void ClearMerging(int y, int x)
+        {
+            Sheet._ClearMerging(y, x);
+        }
+
         public void CreateDropdown<T>(int y, int x, IEnumerable<T> values, T value, bool allowBlank = true)
         {
             Sheet._CreateDropdown(y, x, values, value, allowBlank);
@@ -100,24 +115,6 @@ namespace Cliver
         public IEnumerable<Image> GetImages(int y, int x)
         {
             return Sheet._GetImages(y, x);
-        }
-
-        /// <summary>
-        /// (!)Never returns NULL.
-        /// </summary>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public string this[int y, int x]
-        {
-            get
-            {
-                return Sheet._GetValueAsString(y, x, false);
-            }
-            set
-            {
-                Sheet._SetValue(y, x, value);
-            }
         }
     }
 }

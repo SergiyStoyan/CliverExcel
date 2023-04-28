@@ -83,6 +83,24 @@ namespace Cliver
 
         public bool Disposed { get { return Workbook == null; } }
 
+        /// <summary>
+        /// (!)Never returns NULL.
+        /// </summary>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        public string this[int y, int x]
+        {
+            get
+            {
+                return Sheet._GetValueAsString(y, x, false);
+            }
+            set
+            {
+                Sheet._SetValue(y, x, value);
+            }
+        }
+
         public class Image
         {
             //public IClientAnchor Anchor;
