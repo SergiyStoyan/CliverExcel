@@ -55,84 +55,62 @@ namespace Cliver
 
         /// <summary>
         /// Intended for either adding or removing backgound color.
-        /// (!)When createUniqueStyleOnly, it is slow.
+        /// The style can be unregistered but on HSSFWorkbook the color will be added to the palette.
         /// </summary>
         /// <param name="workbook"></param>
         /// <param name="style"></param>
         /// <param name="color"></param>
         /// <param name="fillPattern"></param>
-        /// <param name="createOnlyUniqueStyle"></param>
         /// <returns></returns>
-        static public ICellStyle _Highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
+        static public void _Highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
-            return workbook._highlight(style, createOnlyUniqueStyle, color, fillPattern);
+            workbook._highlight(style, color, fillPattern);
         }
+
+        //public enum HighlightOption
+        //{
+        //    GetRegisteredUniqueStyle,
+        //    GetRegisteredStyle,
+        //    GetUnregisteredStyle
+        //}
 
         /// <summary>
         /// Intended for either adding or removing backgound color.
-        /// (!)When createUniqueStyleOnly, it is slow.
+        /// The style can be unregistered but on HSSFWorkbook the color will be added to the palette.
         /// </summary>
-        static internal ICellStyle _highlight(this IWorkbook workbook, ICellStyle style, bool createOnlyUniqueStyle, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
+        static internal void _highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
+            if (style == null)
+                return;
             if (workbook is XSSFWorkbook)
             {
-                XSSFCellStyle cs;
+                XSSFCellStyle cs = (XSSFCellStyle)style;
                 if (color == null)
                 {
-                    if (style == null)
-                        return null;
-                    cs = (XSSFCellStyle)style;
                     cs.SetFillForegroundColor(null);
                     cs.FillPattern = FillPattern.NoFill;
-                    return cs;
+                    return;
                 }
-                if (createOnlyUniqueStyle)
-                {
-                    cs = style == null ? (XSSFCellStyle)workbook._CreateUnregisteredStyle() : (XSSFCellStyle)workbook._CloneUnregisteredStyle(style);
-                    cs.SetFillForegroundColor(new XSSFColor(color.RGB));
-                    cs.FillPattern = fillPattern;
-                    return workbook._GetRegisteredStyle(cs);
-                }
-                cs = style == null ? (XSSFCellStyle)workbook.CreateCellStyle() : (XSSFCellStyle)style;
                 cs.SetFillForegroundColor(new XSSFColor(color.RGB));
                 cs.FillPattern = fillPattern;
-                return cs;
+                return;
             }
             if (workbook is HSSFWorkbook)
             {
+                HSSFCellStyle cs = (HSSFCellStyle)style;
                 if (color == null)
                 {
-                    if (style == null)
-                        return null;
-                    style.FillForegroundColor = 0;
-                    style.FillPattern = FillPattern.NoFill;
-                    return style;
+                    cs.FillForegroundColor = 0;
+                    cs.FillPattern = FillPattern.NoFill;
+                    return;
                 }
                 HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
                 HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
                 if (hssfColor == null)
-                {
                     hssfColor = getRegisteredHSSFColor((HSSFWorkbook)workbook, color);
-                    HSSFCellStyle hcs = style == null ? (HSSFCellStyle)workbook.CreateCellStyle() : (HSSFCellStyle)style;
-                    hcs.FillForegroundColor = hssfColor.Indexed;
-                    hcs.FillPattern = fillPattern;
-                    return hcs;
-                }
-                ICellStyle cs;
-                if (createOnlyUniqueStyle)
-                {
-                    if (style == null)
-                        cs = workbook._CreateUnregisteredStyle();
-                    else
-                        cs = workbook._CloneUnregisteredStyle(style);
-                    cs.FillForegroundColor = hssfColor.Indexed;
-                    cs.FillPattern = fillPattern;
-                    return workbook._GetRegisteredStyle(cs);
-                }
-                cs = style == null ? (HSSFCellStyle)workbook.CreateCellStyle() : (HSSFCellStyle)style;
                 cs.FillForegroundColor = hssfColor.Indexed;
                 cs.FillPattern = fillPattern;
-                return cs;
+                return;
             }
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
         }
@@ -147,7 +125,7 @@ namespace Cliver
             {
                 hssfColor = palette.AddColor(color.R, color.G, color.B);
             }
-            catch 
+            catch
             {//pallete is full
                 short? findUnusedColorIndex()
                 {

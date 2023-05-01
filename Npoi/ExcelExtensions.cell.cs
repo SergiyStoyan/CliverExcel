@@ -28,7 +28,11 @@ namespace Cliver
         static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, ISheet toSheet = null)
         {
             if (toSheet == null)
+            {
+                if (fromCell == null)
+                    return null;
                 toSheet = fromCell.Sheet;
+            }
             if (fromCell == null)
             {
                 IRow toRow = toSheet._GetRow(toCellY, false);
@@ -106,7 +110,7 @@ namespace Cliver
                         {
                             return cell.DateCellValue;
                         }
-                        catch (Exception e)//!!!bug in NPOI2.5.1: after called Save(), it throws NullReferenceException: GetLocaleCalendar()  https://github.com/nissl-lab/npoi/issues/358
+                        catch /*(Exception e)*///!!!bug in NPOI2.5.1: after called Save(), it throws NullReferenceException: GetLocaleCalendar()  https://github.com/nissl-lab/npoi/issues/358
                         {
                             //Log.Warning("NPOI bug", e);
                             return DateTime.FromOADate(cell.NumericCellValue);

@@ -13,16 +13,15 @@ namespace Cliver
     {
         /// <summary>
         /// Intended for either adding or removing backgound color.
-        /// (!)When createUniqueStyleOnly, it is slow.
+        /// The style can be unregistered but on HSSFWorkbook the color will be added to the palette.
         /// </summary>
         /// <param name="style"></param>
         /// <param name="color"></param>
         /// <param name="fillPattern"></param>
-        /// <param name="createOnlyUniqueStyle"></param>
         /// <returns></returns>
-        public ICellStyle Highlight(ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground, bool createOnlyUniqueStyle = true)
+        public void Highlight(ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
-            return Workbook._Highlight(style, color, fillPattern, createOnlyUniqueStyle);
+            Workbook._Highlight(style, color, fillPattern);
         }
 
         /// <summary>

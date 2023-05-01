@@ -108,7 +108,7 @@ namespace Cliver
                         )
                         row.RowStyle = style2;
                     int maxX = X2 != null ? X2.Value : row.LastCellNum;
-                    for (int x = X1; x < maxX; x++)
+                    for (int x = X1; x <= maxX; x++)
                     {
                         ICell c = row._GetCell(x, false);
                         if (c != null && c.CellStyle?.Index == style1.Index)
@@ -128,11 +128,11 @@ namespace Cliver
                     if (Y1 == 1 && Y2 == null)
                         row.RowStyle = style;
                     int maxX = X2 != null ? X2.Value : row.LastCellNum;
-                    for (int x = X1; x < maxX; x++)
+                    for (int x = X1; x <= maxX; x++)
                     {
                         ICell c = row._GetCell(x, createCells);
                         if (c != null)
-                            c.CellStyle = null;
+                            c.CellStyle = style;
                     }
                 }
             }

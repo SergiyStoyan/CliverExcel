@@ -86,12 +86,11 @@ namespace Cliver
             if (!includeMerged)
                 return row._Y();
             int maxY = 0;
-            foreach (var c in row.Cells)
-            {
-                var r = c._GetMergedRange();
-                if (r != null && maxY < r.Y2.Value)
-                    maxY = r.Y2.Value;
-            }
+            foreach (var mr in sheet.MergedRegions)
+                foreach (var c in row.Cells)
+                    if (mr.IsInRange(c.RowIndex, c.ColumnIndex))
+                        if (maxY < mr.LastRow)
+                            maxY = mr.LastRow;
             return maxY;
         }
 
