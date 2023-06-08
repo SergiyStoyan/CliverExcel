@@ -133,6 +133,17 @@ namespace Cliver
             /// <returns></returns>
             static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, params NamedValue[] rowKeys)
             {
+                return FindRows(rows, (IEnumerable<NamedValue>)rowKeys);
+            }
+
+            /// <summary>
+            /// Looks among the passed rows.
+            /// </summary>
+            /// <param name="rows"></param>
+            /// <param name="rowKeys"></param>
+            /// <returns></returns>
+            static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, IEnumerable<NamedValue> rowKeys)
+            {
                 foreach (var rk in rowKeys)
                     rk.ValueAsString = rk.Value?.ToString();
 

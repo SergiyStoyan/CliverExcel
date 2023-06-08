@@ -178,6 +178,14 @@ namespace Cliver
             return workbook._CopyStyle(unregisteredStyle, style);
         }
 
+        /// <summary>
+        /// Style can be unregistered.
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="style"></param>
+        /// <param name="styleWorkbook"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         static public IEnumerable<ICellStyle> _FindEqualStyles(this IWorkbook workbook, ICellStyle style, IWorkbook styleWorkbook = null)
         {
             if (styleWorkbook != null && styleWorkbook.GetType() != workbook.GetType())
@@ -445,7 +453,7 @@ namespace Cliver
                 toStyle.SetFont(f1);
             else
             {
-                IFont f2 = workbook._GetRegisteredFont(f1.IsBold, (IndexedColors)Enum.ToObject(typeof(IndexedColors), f1.Color), (short)f1.FontHeight, f1.FontName, f1.IsItalic, f1.IsStrikeout, f1.TypeOffset, f1.Underline);
+                IFont f2 = workbook._GetRegisteredFont(f1);
                 toStyle.SetFont(f2);
             }
             return toStyle;
@@ -453,11 +461,12 @@ namespace Cliver
 
         static public ICellStyle _CreateUnregisteredStyle(this IWorkbook workbook)
         {
+            IFont f = workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0) : workbook.CreateFont();
+            //IFont f = workbook._CreateUnregisteredFont();
             if (workbook is XSSFWorkbook)
             {
                 XSSFWorkbook w = new XSSFWorkbook();
                 ICellStyle s = new XSSFCellStyle(w.GetStylesSource());
-                IFont f = workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0) : w.CreateFont();
                 s.SetFont(f);//otherwise it throws an exception on accessing font
                 return s;
             }
@@ -465,11 +474,20 @@ namespace Cliver
             {
                 HSSFWorkbook w = new HSSFWorkbook();
                 ICellStyle s = new HSSFCellStyle(0, new NPOI.HSSF.Record.ExtendedFormatRecord(), w);
-                IFont f = workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0) : w.CreateFont();
                 s.SetFont(f);//set default font
                 return s;
             }
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        }
+
+        static public IFont _CreateUnregisteredFont(this IWorkbook workbook)
+        {
+            if (workbook is XSSFWorkbook)
+                return new XSSFFont();
+            if (workbook is HSSFWorkbook)
+                return new HSSFFont(0, new NPOI.HSSF.Record.FontRecord());
+            throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+            //return workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0).CreateCloneByJson() : null;
         }
 
         /// <summary>
@@ -482,6 +500,51 @@ namespace Cliver
         {
             ICellStyle toStyle = workbook._CreateUnregisteredStyle();
             return workbook._CopyStyle(fromStyle, toStyle, cloneStyleWorkbook);
+            //return fromStyle.CreateCloneByJson();
+        }
+
+        /// <summary>
+        /// Creates an unregistered copy of a font.
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="font"></param>
+        /// <returns></returns>
+        static public IFont _CloneUnregisteredFont(this IWorkbook workbook, IFont font)
+        {
+            IFont f = workbook._CreateUnregisteredFont();
+            f.IsBold = font.IsBold;
+            f.Color = font.Color;
+            f.FontHeight = font.FontHeight;
+            f.FontName = font.FontName;
+            f.IsItalic = font.IsItalic;
+            f.IsStrikeout = font.IsStrikeout;
+            f.TypeOffset = font.TypeOffset;
+            f.Underline = font.Underline;
+            return f;
+        }
+
+        /// <summary>
+        /// If the font does not exists, it is created.
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="font"></param>
+        /// <returns></returns>
+        static public IFont _GetRegisteredFont(this IWorkbook workbook, IFont font)
+        {
+            IFont f = workbook.FindFont(font.IsBold, font.Color, (short)font.FontHeight, font.FontName, font.IsItalic, font.IsStrikeout, font.TypeOffset, font.Underline);
+            if (f == null)
+            {
+                f = workbook.CreateFont();
+                f.IsBold = font.IsBold;
+                f.Color = font.Color;
+                f.FontHeight = font.FontHeight;
+                f.FontName = font.FontName;
+                f.IsItalic = font.IsItalic;
+                f.IsStrikeout = font.IsStrikeout;
+                f.TypeOffset = font.TypeOffset;
+                f.Underline = font.Underline;
+            }
+            return f;
         }
 
         /// <summary>
@@ -496,15 +559,15 @@ namespace Cliver
         /// <param name="fontSuperScript"></param>
         /// <param name="fontUnderlineType"></param>
         /// <returns></returns>
-        static public IFont _GetRegisteredFont(this IWorkbook workbook, bool bold, IndexedColors color, short fontHeightInPoints, string name, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
+        static public IFont _GetRegisteredFont(this IWorkbook workbook, bool bold, short color, short fontHeightInPoints, string name, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
         {
             short fontHeight = (short)(20 * fontHeightInPoints);
-            IFont f = workbook.FindFont(bold, color.Index, fontHeight, name, italic, strikeout, typeOffset, underline);
+            IFont f = workbook.FindFont(bold, color, fontHeight, name, italic, strikeout, typeOffset, underline);
             if (f == null)
             {
                 f = workbook.CreateFont();
                 f.IsBold = bold;
-                f.Color = color.Index;
+                f.Color = color;
                 f.FontHeight = fontHeight;
                 f.FontName = name;
                 f.IsItalic = italic;

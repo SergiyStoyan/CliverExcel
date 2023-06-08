@@ -154,6 +154,17 @@ namespace Cliver
             return row._GetCell(x, false)?._GetValue();
         }
 
+        /// <summary> 
+        /// Set value of the specified cell.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        static public void _SetValue(this IRow row, int x, object value)
+        {
+            row._GetCell(x, false)?._SetValue(value);
+        }
+
         /// <summary>
         /// Value of the specified cell.
         /// </summary>
@@ -178,6 +189,16 @@ namespace Cliver
         static public IEnumerable<Excel.Image> _GetImages(this IRow row, int x)
         {
             return row.Sheet._GetImages(row._Y(), x);
+        }
+
+        static public Uri _GetLink(this IRow row, int x)
+        {
+            return row._GetCell(x, false)?._GetLink();
+        }
+
+        static public void _SetLink(this IRow row, int x, Uri uri)
+        {
+            row._GetCell(x, true)._SetLink(uri);
         }
     }
 }

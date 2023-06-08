@@ -60,6 +60,11 @@ namespace Cliver
             return Workbook._CreateUnregisteredStyle();
         }
 
+        public IFont _CreateUnregisteredFont()
+        {
+            return Workbook._CreateUnregisteredFont();
+        }
+
         /// <summary>
         /// Creates an unregistered copy of a style.
         /// </summary>
@@ -69,7 +74,26 @@ namespace Cliver
         public ICellStyle CloneUnregisteredStyle(ICellStyle fromStyle, IWorkbook cloneStyleWorkbook = null)
         {
             return Workbook._CloneUnregisteredStyle(fromStyle, cloneStyleWorkbook);
+        }
 
+        /// <summary>
+        /// Creates an unregistered copy of a font.
+        /// </summary>
+        /// <param name="font"></param>
+        /// <returns></returns>
+        public IFont CloneUnregisteredFont(IFont font)
+        {
+            return Workbook._CloneUnregisteredFont(font);
+        }
+
+        /// <summary>
+        /// If the font does not exists, it is created.
+        /// </summary>
+        /// <param name="font"></param>
+        /// <returns></returns>
+        public IFont GetRegisteredFont(IFont font)
+        {
+            return Workbook._GetRegisteredFont(font);
         }
 
         /// <summary>
@@ -84,7 +108,7 @@ namespace Cliver
         /// <param name="fontSuperScript"></param>
         /// <param name="fontUnderlineType"></param>
         /// <returns></returns>
-        public IFont GetRegisteredFont(bool bold, IndexedColors color, short fontHeightInPoints, string name, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
+        public IFont GetRegisteredFont(bool bold, short color, short fontHeightInPoints, string name, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
         {
             return Workbook._GetRegisteredFont(bold, color, fontHeightInPoints, name, italic, strikeout, typeOffset, underline);
         }
