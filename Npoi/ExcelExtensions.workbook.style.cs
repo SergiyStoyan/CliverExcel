@@ -453,7 +453,7 @@ namespace Cliver
                 toStyle.SetFont(f1);
             else
             {
-                IFont f2 = workbook._GetRegisteredFont(f1);
+                IFont f2 = toStyleWorkbook._GetRegisteredFont(f1);
                 toStyle.SetFont(f2);
             }
             return toStyle;
@@ -487,7 +487,6 @@ namespace Cliver
             if (workbook is HSSFWorkbook)
                 return new HSSFFont(0, new NPOI.HSSF.Record.FontRecord());
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
-            //return workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0).CreateCloneByJson() : null;
         }
 
         /// <summary>
@@ -500,7 +499,6 @@ namespace Cliver
         {
             ICellStyle toStyle = workbook._CreateUnregisteredStyle();
             return workbook._CopyStyle(fromStyle, toStyle, cloneStyleWorkbook);
-            //return fromStyle.CreateCloneByJson();
         }
 
         /// <summary>
