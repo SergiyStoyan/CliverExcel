@@ -152,7 +152,7 @@ namespace Cliver
                     if (a == null)
                         return false;
                     foreach (var rk in rowKeys)
-                        if (a.GetCell(rk.X - 1)?._GetValue().ToString() != rk.ValueAsString)
+                        if (a._GetValueAsString(rk.X) != rk.ValueAsString)
                             return false;
                     return true;
                 });
