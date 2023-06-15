@@ -144,15 +144,20 @@ namespace Cliver
             /// <returns></returns>
             static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, IEnumerable<NamedValue> rowKeys)
             {
-                foreach (var rk in rowKeys)
-                    rk.ValueAsString = rk.Value?.ToString();
-
+                foreach (NamedValue rk in rowKeys)
+                {
+                    if (rk.IsEqual == null)
+                    {
+                        string valueAsString = rk.Value?.ToString();
+                        rk.IsEqual = (object o) => { return o?.ToString() == valueAsString; };
+                    }
+                }
                 return rows.Where(a =>
                 {
                     if (a == null)
                         return false;
                     foreach (var rk in rowKeys)
-                        if (a._GetValueAsString(rk.X) != rk.ValueAsString)
+                        if (!rk.IsEqual(a._GetValue(rk.X)))
                             return false;
                     return true;
                 });
@@ -195,8 +200,7 @@ namespace Cliver
                 public string Header { get; internal set; }
                 public object Value { get; internal set; }
                 public int X { get; internal set; }
-
-                internal string ValueAsString;
+                public Func<object, bool> IsEqual = null;
 
                 internal NamedValue(string header, object value, int columnX)
                 {
