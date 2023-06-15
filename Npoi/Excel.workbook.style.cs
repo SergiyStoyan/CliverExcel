@@ -60,7 +60,7 @@ namespace Cliver
             return Workbook._CreateUnregisteredStyle();
         }
 
-        public IFont _CreateUnregisteredFont()
+        public IFont CreateUnregisteredFont()
         {
             return Workbook._CreateUnregisteredFont();
         }
