@@ -149,7 +149,7 @@ namespace Cliver
                     if (rk.IsEqual == null)
                     {
                         string valueAsString = rk.Value?.ToString();
-                        rk.IsEqual = (object o) => { return o?.ToString() == valueAsString; };
+                        rk.IsEqual = (ICell cell) => { return cell?._GetValueAsString(true) == valueAsString; };
                     }
                 }
                 return rows.Where(a =>
@@ -157,7 +157,7 @@ namespace Cliver
                     if (a == null)
                         return false;
                     foreach (var rk in rowKeys)
-                        if (!rk.IsEqual(a._GetValue(rk.X)))
+                        if (!rk.IsEqual(a.GetCell(rk.X - 1)))
                             return false;
                     return true;
                 });
@@ -200,7 +200,7 @@ namespace Cliver
                 public string Header { get; internal set; }
                 public object Value { get; internal set; }
                 public int X { get; internal set; }
-                public Func<object, bool> IsEqual = null;
+                public Func<ICell, bool> IsEqual = null;
 
                 internal NamedValue(string header, object value, int columnX)
                 {
