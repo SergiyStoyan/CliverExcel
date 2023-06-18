@@ -79,6 +79,16 @@ namespace Cliver
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
         {
             ICell c = sheet._GetCell(y, x, false);
+            if (c == null)
+                return allowNull ? null : string.Empty;
+            return c?._GetValueAsString(allowNull);
+        }
+
+        static public string _GetValueAsString(this ISheet sheet, string cellAddress, bool allowNull = false)
+        {
+            ICell c = sheet._GetCell(cellAddress, false);
+            if (c == null)
+                return allowNull ? null : string.Empty;
             return c?._GetValueAsString(allowNull);
         }
 
@@ -91,6 +101,12 @@ namespace Cliver
         static public void _SetValue(this ISheet sheet, int y, int x, object value)
         {
             ICell c = sheet._GetCell(y, x, true);
+            c._SetValue(value);
+        }
+
+        static public void _SetValue(this ISheet sheet, string cellAddress, object value)
+        {
+            ICell c = sheet._GetCell(cellAddress, true);
             c._SetValue(value);
         }
 
@@ -108,9 +124,9 @@ namespace Cliver
             return r._GetCell(x, createCell);
         }
 
-        static public ICell _GetCell(this ISheet sheet, string address, bool createCell)
+        static public ICell _GetCell(this ISheet sheet, string cellAddress, bool createCell)
         {
-            var cs = GetCoordinates(address);
+            var cs = GetCoordinates(cellAddress);
             IRow r = sheet._GetRow(cs.Y, createCell);
             if (r == null)
                 return null;

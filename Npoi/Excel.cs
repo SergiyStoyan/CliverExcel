@@ -101,6 +101,21 @@ namespace Cliver
             }
         }
 
+        /// <summary>
+        /// (!)Never returns NULL.
+        /// </summary>
+        public string this[string cellAddress]
+        {
+            get
+            {
+                return Sheet._GetValueAsString(cellAddress, false);
+            }
+            set
+            {
+                Sheet._SetValue(cellAddress, value);
+            }
+        }
+
         public class Image
         {
             //public IClientAnchor Anchor;

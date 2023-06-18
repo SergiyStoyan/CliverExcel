@@ -91,13 +91,13 @@ namespace Cliver
         /// <param name="cellValue"></param>
         /// <param name="cellY"></param>
         /// <returns>1-based, otherwise 0</returns>
-        static public int _FindColumnByCellValue(this ISheet sheet, Regex cellValue, int cellY = 1)
+        static public int _FindColumnByCellValue(this ISheet sheet, Regex cellValueRegex, int cellY = 1)
         {
             IRow row = sheet._GetRow(cellY, false);
             if (row == null)
                 return 0;
             for (int x = 1; x <= row.Cells.Count; x++)
-                if (cellValue.IsMatch(sheet._GetValueAsString(cellY, x, false)))
+                if (cellValueRegex.IsMatch(sheet._GetValueAsString(cellY, x, false)))
                     return x;
             return 0;
         }

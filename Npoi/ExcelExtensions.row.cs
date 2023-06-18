@@ -81,6 +81,12 @@ namespace Cliver
             return row.LastCellNum;
         }
 
+        /// <summary>
+        /// Get all the cells up to the last one.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="createCells"></param>
+        /// <returns></returns>
         static public IEnumerable<ICell> _GetCells(this IRow row, bool createCells)
         {
             return _GetCellsInRange(row, createCells);
