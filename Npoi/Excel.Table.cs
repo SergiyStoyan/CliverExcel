@@ -14,7 +14,7 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
-        public class Table
+        public partial class Table
         {
             //public Table(ISheet sheet)
             //{
@@ -35,112 +35,29 @@ namespace Cliver
                 Sheet = Excel.Sheet;
                 IRow headersRow = Sheet._GetRow(1, true);
                 int emptyCount = 0;
-                var hs = headersRow._GetCells(true).Select(a => a._GetValueAsString()).TakeWhile(a => !string.IsNullOrWhiteSpace(a) || ++emptyCount < 2).ToList();
-                SetColumns(hs);
+                ////allow 1 empty header (as unique)
+                //var hs = headersRow._GetCells(true).Select(a => a._GetValueAsString()).TakeWhile(a => !string.IsNullOrWhiteSpace(a) || ++emptyCount < 2).ToList();
+                //allow 1 empty-header column (as unique) and ignore the rest empty-header columns
+                var hs = headersRow._GetCells(true).Select(a => a._GetValueAsString()).Where(a => !string.IsNullOrWhiteSpace(a) || ++emptyCount < 2).ToList();
+                SetColumns(SetColumnMode.OverrideAll, hs);
             }
 
-            public Table(Excel excel, params string[] headers)
+            public Table(Excel excel, SetColumnMode setColumnMode, params string[] headers) : this(excel, setColumnMode, (IEnumerable<string>)headers) { }
+
+            public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<string> headers) : this(excel)
             {
-                Excel = excel;
-                Sheet = Excel.Sheet;
-                SetColumns(headers);
+                SetColumns(setColumnMode, headers);
             }
 
-            public Table(Excel excel, params Column[] columns)
+            public Table(Excel excel, SetColumnMode setColumnMode, params Column[] columns) : this(excel, setColumnMode, (IEnumerable<Column>)columns) { }
+
+            public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(excel)
             {
-                Excel = excel;
-                Sheet = Excel.Sheet;
-                SetColumns(columns);
+                SetColumns(setColumnMode, columns);
             }
 
             readonly public ISheet Sheet;
             readonly public Excel Excel;
-
-            public ReadOnlyCollection<Column> Columns { get; private set; }
-
-            public void SetColumns(params string[] headers)
-            {
-                SetColumns((IEnumerable<string>)headers);
-            }
-
-            public void SetColumns(IEnumerable<string> headers)
-            {
-                SetColumns(headers.Select(a => new Column(a)));
-            }
-
-            public void SetColumns(params Column[] columns)
-            {
-                SetColumns((IEnumerable<Column>)columns);
-            }
-
-            public void SetColumns(IEnumerable<Column> columns)
-            {
-                var duplicates = columns.GroupBy(a => a.Header).Where(a => a.Count() > 1).Select(a => "'" + a.Key + "'").ToList();
-                if (duplicates.Count > 0)
-                    throw new Exception("Columns duplicated: " + string.Join(", ", duplicates));
-                Columns = new ReadOnlyCollection<Column>(columns?.ToList());
-                Columns?.Select((a, i) => (column: a, x: i + 1)).ForEach(a => { a.column.X = a.x; });
-                Sheet._GetRow(1, true)._Write(Columns?.Select((a, i) => a.Header));
-                //headers2Column.Clear();
-                //Columns?.ForEach(a => headers2Column[a.Header] = a);
-            }
-
-            //Dictionary<string, Column> headers2Column = new Dictionary<string, Column>();
-
-            public Column GetColumn(string header, bool exceptionIfNotFound = true)
-            {
-                //headers2Column.TryGetValue(header, out Column column);
-                return GetColumn((v) => { return v == header; }, exceptionIfNotFound);
-            }
-
-            public Column GetColumn(Regex headerRegex, bool exceptionIfNotFound = true)
-            {
-                return GetColumn((v) => { return headerRegex.IsMatch(v); }, exceptionIfNotFound);
-            }
-
-            public Column GetColumn(Func<string, bool> IsHeaderMatch, bool exceptionIfNotFound = true)
-            {
-                var c = Columns.FirstOrDefault(a => IsHeaderMatch(a.Header));
-                if (c == null && exceptionIfNotFound)
-                    throw new Exception("Column was not found.");
-                return c;
-            }
-
-            public class Column
-            {
-                //public class Columns : ReadOnlyCollection<Column>
-                //{
-                //    public Column this[string header]
-                //    {
-                //        get
-                //        {
-                //            return this.FirstOrDefault(a => a.Header == header);
-                //        }
-                //    }
-                //}
-                public readonly string Header;
-                public int X { get; internal set; } = -1;
-                public ICellStyle DataStyle;
-                //public Func<string, bool> IsMatch = (v)=> { return v == Header; } ;
-
-                internal Column(string header, int x, ICellStyle dataStyle)
-                {
-                    Header = header;
-                    X = x;
-                    DataStyle = dataStyle;
-                }
-
-                /// <summary>
-                /// Used only to write new headers
-                /// </summary>
-                /// <param name="header"></param>
-                /// <param name="style"></param>
-                public Column(/*Table table, */string header, ICellStyle dataStyle = null/*, Func<ICell, bool> isMatch = null*/)
-                {
-                    Header = header;
-                    DataStyle = dataStyle;
-                }
-            }
 
             ///// <summary>
             ///// Alias for UseCachedDataRows=true
@@ -237,44 +154,6 @@ namespace Cliver
                 return Sheet._GetRows(rowScope).Skip(1);
             }
 
-            public class NamedValue
-            {
-                public Column Column { get; internal set; }
-                public object Value { get; internal set; }
-                public int X { get { return Column.X; } }
-                public Func<ICell, bool> IsValueMatch = null;
-
-                public NamedValue(Column column, object value, Func<ICell, bool> isValueMatch = null)
-                {
-                    if (column.X <= 0)
-                        throw new Exception("Column has no X set.");
-                    Column = column;
-                    Value = value;
-                    IsValueMatch = isValueMatch;
-                }
-
-                public NamedValue(Table table, string header, object value, Func<ICell, bool> isValueMatch = null)
-                {
-                    Column = table.GetColumn(header);
-                    Value = value;
-                    IsValueMatch = isValueMatch;
-                }
-
-                public NamedValue(Table table, Func<string, bool> isHeaderMatch, object value, Func<ICell, bool> isValueMatch = null)
-                {
-                    Column = table.GetColumn(isHeaderMatch);
-                    Value = value;
-                    IsValueMatch = isValueMatch;
-                }
-
-                public NamedValue(Table table, Regex headerRegex, object value, Func<ICell, bool> isValueMatch = null)
-                {
-                    Column = table.GetColumn(headerRegex);
-                    Value = value;
-                    IsValueMatch = isValueMatch;
-                }
-            }
-
             public IRow AppendRow<T>(IEnumerable<T> values)
             {
                 IRow r = Sheet._AppendRow(values);
@@ -343,6 +222,11 @@ namespace Cliver
                 return InsertRow(y, (IEnumerable<string>)values);
             }
 
+            public IRow InsertRow(int y, params NamedValue[] values)
+            {
+                return InsertRow(y, (IEnumerable<NamedValue>)values);
+            }
+
             public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)
             {
                 int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
@@ -352,10 +236,31 @@ namespace Cliver
                 return r;
             }
 
-            public IRow InsertRow(int y, params NamedValue[] values)
-            {
-                return InsertRow(y, (IEnumerable<NamedValue>)values);
-            }
+            //public IRow InsertFullRow<T>(int y, IEnumerable<T> values = null)
+            //{if()
+            //    IRow r = Sheet._InsertRow(y, values);
+            //    setColumnStyles(r);
+
+            //    //if (cachedDataRows != null)
+            //    //    cachedDataRows.Insert(r.RowNum, r);
+
+            //    return r;
+            //}
+
+            //public IRow InsertFullRow(int y, params string[] values)
+            //{
+            //    return InsertFullRow(y, (IEnumerable<string>)values);
+            //}
+
+            //public IRow InsertFullRow(int y, params NamedValue[] values)
+            //{
+            //    return InsertFullRow(y, (IEnumerable<NamedValue>)values);
+            //}
+
+            //public IRow InsertFullRow(int y, IEnumerable<NamedValue> namedValues)
+            //{
+            //    return InsertRow(y, (IEnumerable<NamedValue>)values);
+            //}
 
             public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
             {
@@ -387,6 +292,13 @@ namespace Cliver
                 //    cachedDataRows.Remove(r);
             }
 
+            /// <summary>
+            /// (!)Seeks the column each call.
+            /// </summary>
+            /// <param name="row"></param>
+            /// <param name="header"></param>
+            /// <param name="create"></param>
+            /// <returns></returns>
             public ICell GetCell(IRow row, string header, bool create)
             {
                 return row._GetCell(GetColumn(header).X, create);
@@ -395,6 +307,11 @@ namespace Cliver
             public ICell GetCell(IRow row, Column column, bool create)
             {
                 return row._GetCell(column.X, create);
+            }
+
+            public ICell GetCell(int y, Column column, bool create)
+            {
+                return Sheet._GetCell(y, column.X, create);
             }
 
             public void SetStyles(IRow row, params ICellStyle[] styles)
