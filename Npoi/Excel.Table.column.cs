@@ -35,79 +35,190 @@ namespace Cliver
 
             public enum SetColumnMode
             {
+                /// <summary>
+                /// The listed columns override the header row content.
+                /// </summary>
                 OverrideAll,
-                KeepExisting,
-                ThrowExceptionIfDiffer
+                /// <summary>
+                /// The listed columns, that are not found in the header row in any order, are added to the right.
+                /// </summary>
+                ExpandOldHeaders,
+                /// <summary>
+                /// The listed columns all must be found in the header row in any order.
+                /// </summary>
+                FindHeaders,
+                /// <summary>
+                /// The listed columns all must be found in the header row in the listed order.
+                /// </summary>
+                FindHeadersOrdered,
+                /// <summary>
+                /// If the header row is empty then the listed columns are set. Otherwise they all must be found in the header row in any order.
+                /// </summary>
+                CreateOrFindHeaders,
+                /// <summary>
+                /// If the header row is empty then the listed columns are set. Otherwise they all must be found in the header row in the listed order.
+                /// </summary>
+                CreateOrFindHeadersOrdered,
             }
+            /// <summary>
+            /// (!)NULLs among input columns are allowed. They make gaps between columns but they are not listed in Columns.
+            /// </summary>
+            /// <param name="setColumnMode"></param>
+            /// <param name="columns"></param>
+            /// <exception cref="Exception"></exception>
             public void SetColumns(SetColumnMode setColumnMode, IEnumerable<Column> columns)
             {
-                var duplicates = columns.GroupBy(a => a.Header).Where(a => a.Count() > 1).Select(a => "'" + a.Key + "'").ToList();
-                if (duplicates.Count > 0)
-                    throw new Exception("Columns duplicated: " + string.Join(", ", duplicates));
-
                 switch (setColumnMode)
                 {
                     case SetColumnMode.OverrideAll:
-                        Columns = new ReadOnlyCollection<Column>(columns?.ToList());
+                        columns = columns
+                            .Select((a, i) => (column: a, x: i + 1))
+                            .Where(a =>
+                            {
+                                if (a.column == null)
+                                    return false;
+                                a.column.X = a.x;
+                                return true;
+                            })
+                            .Select(a => a.column);
+                        Columns = new ReadOnlyCollection<Column>(columns.ToList());
                         break;
 
-                    case SetColumnMode.KeepExisting:
+                    case SetColumnMode.ExpandOldHeaders:
                         {
                             List<Column> cs = columns.ToList();
-                            List<Column> ccs = Columns.ToList();
+                            List<Column> c0s = Columns.ToList();
+                            int lastX = c0s[c0s.Count - 1].X;
                             for (int i = cs.Count - 1; i >= 0; i--)
                             {
                                 Column c = cs[i];
-                                var cc = Columns.FirstOrDefault(a => c.IsHeaderMatch(a.Header));
-                                if (cc != null)
+                                if (c == null)
                                 {
-                                    ccs.Remove(cc);
-                                    ccs.Insert(cc.X - 1, c);
                                     cs.RemoveAt(i);
+                                    continue;
+                                }
+                                for (int j = c0s.Count - 1; j >= 0; j--)
+                                {
+                                    Column c0 = c0s[j];
+                                    if (c.IsHeaderMatch(c0.Header))
+                                    {
+                                        c.X = c0.X;
+                                        c0s.RemoveAt(j);
+                                        c0s.Insert(j, c);
+                                        cs.RemoveAt(i);
+                                        break;
+                                    }
                                 }
                             }
-                            Columns = new ReadOnlyCollection<Column>(ccs.Concat(cs).ToList());
+                            cs = cs.Select((a, i) => (column: a, x: c0s.Count + i))
+                                .Where(a =>
+                                {
+                                    if (a.column == null)
+                                        return false;
+                                    a.column.X = a.x;
+                                    return true;
+                                })
+                                .Select(a => a.column)
+                                .ToList();
+                            Columns = new ReadOnlyCollection<Column>(c0s.Concat(cs).ToList());
                         }
                         break;
 
-                    case SetColumnMode.ThrowExceptionIfDiffer:
+                    case SetColumnMode.FindHeaders:
                         {
-                            List<Column> cs = columns.ToList();
+                            List<Column> cs = columns.Where(a => a != null).ToList();
                             if (cs.Count > Columns.Count)
                                 throw new Exception("The number of existing columns " + Columns.Count + " < the number of new columns " + cs.Count);
-                            int i = 0;
-                            foreach (Column c in columns)
+                            List<Column> c0s = Columns.ToList();
+                            for (int i = cs.Count - 1; i >= 0; i--)
                             {
-                                Column cc = Columns[i++];
-                                if (!c.IsHeaderMatch(cc.Header))
-                                    throw new Exception("Existing column[x=" + cc.X + "] '" + cc.Header + "' differs from the new one '" + c.Header + "'");
+                                Column c = cs[i];
+                                int j = c0s.Count - 1;
+                                for (; j >= 0; j--)
+                                {
+                                    Column c0 = c0s[j];
+                                    if (c.IsHeaderMatch(c0.Header))
+                                    {
+                                        c.X = c0.X;
+                                        c0s.RemoveAt(j);
+                                        c0s.Insert(j, c);
+                                        break;
+                                    }
+                                }
+                                if (j < 0)
+                                    throw new Exception("Column '" + c.Header + "' does not exist in the table.");
                             }
-                            Columns = new ReadOnlyCollection<Column>(columns?.ToList());
+                            Columns = new ReadOnlyCollection<Column>(c0s);
                         }
                         break;
+
+                    case SetColumnMode.FindHeadersOrdered:
+                        {
+                            List<Column> cs = columns.ToList();
+                            int notEmptyCount = cs.Where(a => a != null).Count();
+                            if (notEmptyCount > Columns.Count)
+                                throw new Exception("The number of existing columns " + Columns.Count + " < the number of new columns " + notEmptyCount);
+                            List<Column> c0s = Columns.ToList();
+                            int emptyCount = 0;
+                            for (int i = 0; i < cs.Count; i++)
+                            {
+                                Column c = cs[i];
+                                if (c == null)
+                                {
+                                    emptyCount++;
+                                    if (c0s[i].X < i + emptyCount)
+                                        throw new Exception("NULL column[position=" + i + "] does not exist in the table.");
+                                    continue;
+                                }
+                                Column c0 = c0s[i + emptyCount];
+                                if (!c.IsHeaderMatch(c0.Header))
+                                    throw new Exception("Existing column[x=" + c0.X + "] '" + c0.Header + "' differs from the new one '" + c.Header + "'");
+                                c.X = c0.X;
+                                c0s.RemoveAt(i);
+                                c0s.Insert(i, c);
+                            }
+                            Columns = new ReadOnlyCollection<Column>(c0s);
+                        }
+                        break;
+
+                    case SetColumnMode.CreateOrFindHeaders:
+                        if (Columns.Any())
+                            goto case SetColumnMode.FindHeaders;
+                        goto case SetColumnMode.OverrideAll;
+
+                    case SetColumnMode.CreateOrFindHeadersOrdered:
+                        if (Columns.Any())
+                            goto case SetColumnMode.FindHeadersOrdered;
+                        goto case SetColumnMode.OverrideAll;
 
                     default:
                         throw new Exception("Unknown case: " + setColumnMode);
                 }
 
-                Columns?.Select((a, i) => (column: a, x: i + 1)).ForEach(a =>
+                Columns.ForEach(a => { a.Table = this; });
+
+                for (int i = 0; i < Columns.Count; i++)
                 {
-                    a.column.X = a.x;
-                    a.column.Table = this;
-                });
-                Sheet._GetRow(1, true)._Write(Columns?.Select((a, i) => a.Header));
+                    Column c = Columns[i];
+                    for (int j = i + 1; j < Columns.Count; j++)
+                    {
+                        Column cj = Columns[j];
+                        if (cj.X == c.X)
+                            throw new Exception("Columns have the same X: '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
+                        if (cj.IsHeaderMatch(c.Header))
+                            throw new Exception("Columns are equal by IsHeaderMatch(): '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
+                    }
+                }
+
+                WriteRow(1, Columns.Select(a => new Cell(a, a.Header)));
+
                 var r2 = Sheet._GetRow(2, false);
                 if (r2 != null)
                     Columns.ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
-                //headers2Column.Clear();
-                //Columns?.ForEach(a => headers2Column[a.Header] = a);
             }
-
-            //Dictionary<string, Column> headers2Column = new Dictionary<string, Column>();
 
             public Column GetColumn(string header, bool exceptionIfNotFound = true)
             {
-                //headers2Column.TryGetValue(header, out Column column);
                 return GetColumn((v) => { return v == header; }, exceptionIfNotFound);
             }
 
@@ -127,6 +238,8 @@ namespace Cliver
             public void InsertColumn(int x, Column column)
             {
                 Sheet._ShiftColumnsRight(x, 1);
+                if (column == null)
+                    return;
                 column.X = x;
                 Sheet._GetCell(1, x, true)._SetValue(column.Header);
                 var cs = Columns.ToList();
@@ -167,8 +280,8 @@ namespace Cliver
                 /// <param name="style"></param>
                 public Column(string header, ICellStyle dataStyle = null, Func<string, bool> isHeaderMatch = null)
                 {
-                    if (header == null)
-                        throw new ArgumentNullException("header");
+                    if (string.IsNullOrWhiteSpace(header))
+                        throw new Exception("Header cannot be empty space.");
                     Header = header;
                     SetDataStyle(dataStyle, false);
                     IsHeaderMatch = isHeaderMatch != null ? isHeaderMatch : (h) => { return h == Header; };

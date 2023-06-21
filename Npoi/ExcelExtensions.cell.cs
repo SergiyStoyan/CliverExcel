@@ -163,26 +163,15 @@ namespace Cliver
         static public void _SetValue(this ICell cell, object value)
         {
             if (value == null)
-            {
                 cell.SetBlank();
-                return;
-            }
-            if (value is double d)
-            {
+            else if (value is double d)
                 cell.SetCellValue(d);
-                return;
-            }
-            if (value is bool b)
-            {
+            else if (value is bool b)
                 cell.SetCellValue(b);
-                return;
-            }
-            if (value is DateTime dt)
-            {
+            else if (value is DateTime dt)
                 cell.SetCellValue(dt);
-                return;
-            }
-            cell.SetCellValue(value?.ToString());
+            else 
+                cell.SetCellValue(value?.ToString());
         }
 
         static public Uri _GetLink(this ICell cell)

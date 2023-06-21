@@ -25,11 +25,11 @@ namespace Cliver
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved);
         }
 
-        static public ICell _GetCell(this IRow r, int x, bool createCell)
+        static public ICell _GetCell(this IRow row, int x, bool createCell)
         {
-            ICell c = r.GetCell(x - 1);
+            ICell c = row.GetCell(x - 1);
             if (c == null && createCell)
-                return r.CreateCell(x - 1);
+                return row.CreateCell(x - 1);
             return c;
         }
 

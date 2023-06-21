@@ -3,6 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
@@ -16,38 +17,32 @@ namespace Cliver
     {
         public partial class Table
         {
-            //public Table(ISheet sheet)
-            //{
-            //    Sheet = sheet;
-            //    IRow headersRow = Sheet._GetRow(1, true);
-            //    headers = new ReadOnlyCollection<string>(headersRow._GetCells(true).Select(a => a._GetValueAsString()).ToList());
-            //}
-
-            //public Table(ISheet sheet, params string[] headers)
-            //{
-            //    Sheet = sheet;
-            //    Headers = new ReadOnlyCollection<string>(headers.ToList());
-            //}
-
             public Table(Excel excel)
             {
                 Excel = excel;
                 Sheet = Excel.Sheet;
                 IRow headersRow = Sheet._GetRow(1, true);
-                int emptyCount = 0;
-                ////allow 1 empty header (as unique)
-                //var hs = headersRow._GetCells(true).Select(a => a._GetValueAsString()).TakeWhile(a => !string.IsNullOrWhiteSpace(a) || ++emptyCount < 2).ToList();
-                //allow 1 empty-header column (as unique) and ignore the rest empty-header columns
-                var hs = headersRow._GetCells(true).Select(a => a._GetValueAsString()).Where(a => !string.IsNullOrWhiteSpace(a) || ++emptyCount < 2).ToList();
-                SetColumns(SetColumnMode.OverrideAll, hs);
+                //empty-header columns are passed through
+                List<Column> columns = headersRow._GetCells(true)
+                    .Select(a => (header: a._GetValueAsString(), x: a._X()))
+                    .Where(a => !string.IsNullOrEmpty(a.header))
+                    .Select(a =>
+                    {
+                        Column c = new Column(a.header);
+                        c.X = a.x;
+                        c.Table = this;
+                        return c;
+                    })
+                    .ToList();
+                Columns = new ReadOnlyCollection<Column>(columns);
             }
 
-            public Table(Excel excel, SetColumnMode setColumnMode, params string[] headers) : this(excel, setColumnMode, (IEnumerable<string>)headers) { }
+            //public Table(Excel excel, SetColumnMode setColumnMode, params string[] headers) : this(excel, setColumnMode, (IEnumerable<string>)headers) { }
 
-            public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<string> headers) : this(excel)
-            {
-                SetColumns(setColumnMode, headers);
-            }
+            //public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<string> headers) : this(excel)
+            //{
+            //    SetColumns(setColumnMode, headers);
+            //}
 
             public Table(Excel excel, SetColumnMode setColumnMode, params Column[] columns) : this(excel, setColumnMode, (IEnumerable<Column>)columns) { }
 
@@ -59,94 +54,108 @@ namespace Cliver
             readonly public ISheet Sheet;
             readonly public Excel Excel;
 
-            ///// <summary>
-            ///// Alias for UseCachedDataRows=true
-            ///// </summary>
-            //public void ReloadCachedDataRows()
-            //{
-            //    UseCachedDataRows = true;
-            //}
-
-            //List<IRow> getDataRows()
-            //{
-            //    return Sheet._GetRowsInRange(RowScope.IncludeNull, 2).ToList();
-            //}
-
-            ///// <summary>
-            ///// Saves performance when FindRows() is called more than once. Otherwise, keep it switched off.
-            ///// (!)Every time it is set, the cache is reloaded which should be done if the sheet was edited outside this class.
-            ///// </summary>
-            //public bool UseCachedDataRows
-            //{
-            //    set
-            //    {
-            //        cachedDataRows = value ? getDataRows() : null;
-            //    }
-            //    get
-            //    {
-            //        return cachedDataRows != null;
-            //    }
-            //} 
-            //List<IRow> cachedDataRows = null;
-
             /// <summary>
             /// Looks among the passed rows.
+            /// (!)Rows and keys must belong to the same table.
             /// </summary>
             /// <param name="rows"></param>
             /// <param name="rowKeys"></param>
             /// <returns></returns>
-            static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, params NamedValue[] rowKeys)
+            static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, params Key[] keys)
             {
-                return FindRows(rows, (IEnumerable<NamedValue>)rowKeys);
+                return FindRows(rows, (IEnumerable<Key>)keys);
+            }
+
+            public class Key
+            {
+                public Column Column { get; internal set; }
+                public int X { get { return Column.X; } }
+                public Func<ICell, bool> IsValueMatch = null;
+
+                public Key(Column column, object value) : this(column, getIsValueMatch(value)) { }
+                static Func<ICell, bool> getIsValueMatch(object value)
+                {
+                    string v = value.ToString();
+                    return (c) => { return c?._GetValueAsString() == v; };
+                }
+
+                public Key(Column column, Func<ICell, bool> isValueMatch)
+                {
+                    if (column.Table == null)
+                        throw new Exception("Column is not initialized: no Table set.");
+                    Column = column;
+                    IsValueMatch = isValueMatch;
+                }
+
+                public Key(Cell cell) : this(cell.Column, cell.Value) { }
+
+                public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
+            }
+
+            public class Cell
+            {
+                public Column Column { get; internal set; }
+                public object Value { get; internal set; }
+                public int X { get { return Column.X; } }
+
+                public Cell(Column column, object value)
+                {
+                    if (column.Table == null)
+                        throw new Exception("Column is not initialized: no Table set.");
+                    Column = column;
+                    Value = value;
+                }
+
+                //public NamedValue(Table table, string header, object value, Func<ICell, bool> isValueMatch = null)
+                //{
+                //    Column = table.GetColumn(header);
+                //    Value = value;
+                //    IsValueMatch = isValueMatch;
+                //}
+
+                //public NamedValue(Table table, Func<string, bool> isHeaderMatch, object value, Func<ICell, bool> isValueMatch = null)
+                //{
+                //    Column = table.GetColumn(isHeaderMatch);
+                //    Value = value;
+                //    IsValueMatch = isValueMatch;
+                //}
+
+                //public NamedValue(Table table, Regex headerRegex, object value, Func<ICell, bool> isValueMatch = null)
+                //{
+                //    Column = table.GetColumn(headerRegex);
+                //    Value = value;
+                //    IsValueMatch = isValueMatch;
+                //}
             }
 
             /// <summary>
             /// Looks among the passed rows.
+            /// (!)Rows and keys must belong to the same table.
             /// </summary>
             /// <param name="rows"></param>
             /// <param name="rowKeys"></param>
             /// <returns></returns>
-            static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, IEnumerable<NamedValue> rowKeys)
+            static public IEnumerable<IRow> FindRows(IEnumerable<IRow> rows, IEnumerable<Key> keys)
             {
-                foreach (NamedValue rk in rowKeys)
-                {
-                    if (rk.IsValueMatch == null)
-                    {
-                        string valueAsString = rk.Value?.ToString();
-                        rk.IsValueMatch = (ICell cell) => { return cell?._GetValueAsString(true) == valueAsString; };
-                    }
-                }
                 return rows.Where(a =>
                 {
                     if (a == null)
                         return false;
-                    foreach (var rk in rowKeys)
-                        if (!rk.IsValueMatch(a.GetCell(rk.X - 1)))
+                    foreach (var k in keys)
+                        if (!k.IsValueMatch(a.GetCell(k.X - 1)))
                             return false;
                     return true;
                 });
             }
-
-            ///// <summary>
-            ///// (!)Uses the cache only if the cache is initialized by UseCachedDataRows=true.
-            ///// Otherwise it re-reads the file every call which can be slow.
-            ///// </summary>
-            ///// <param name="rowKeys"></param>
-            ///// <returns></returns>
-            //public IEnumerable<IRow> FindRows(params NamedValue[] rowKeys)
-            //{
-            //    List<IRow> dataRows = cachedDataRows != null ? cachedDataRows : getDataRows().ToList();
-            //    return FindRows(dataRows, rowKeys);
-            //}
 
             /// <summary>
             /// (!)Re-reads the sheet on every call which can be slow.
             /// </summary>
             /// <param name="rowKeys"></param>
             /// <returns></returns>
-            public IEnumerable<IRow> FindDataRows(params NamedValue[] rowKeys)
+            public IEnumerable<IRow> FindDataRows(params Key[] keys)
             {
-                return FindRows(Sheet._GetRows(RowScope.WithCells).Skip(1), rowKeys);
+                return FindRows(Sheet._GetRows(RowScope.WithCells).Skip(1), keys);
             }
 
             public IEnumerable<IRow> GetDataRows(RowScope rowScope)
@@ -154,16 +163,16 @@ namespace Cliver
                 return Sheet._GetRows(rowScope).Skip(1);
             }
 
-            public IRow AppendRow<T>(IEnumerable<T> values)
-            {
-                IRow r = Sheet._AppendRow(values);
-                setColumnStyles(r);
+            //public IRow AppendRow<T>(IEnumerable<T> values)
+            //{
+            //    IRow r = Sheet._AppendRow(values);
+            //    setColumnStyles(r);
 
-                //if (cachedDataRows != null)
-                //    cachedDataRows.Add(r);
+            //    //if (cachedDataRows != null)
+            //    //    cachedDataRows.Add(r);
 
-                return r;
-            }
+            //    return r;
+            //}
 
             void setColumnStyles(IRow row)
             {
@@ -171,73 +180,24 @@ namespace Cliver
                     row._GetCell(c.X, true).CellStyle = c.DataStyle;
             }
 
-            public IRow AppendRow(params string[] values)
-            {
-                return AppendRow((IEnumerable<string>)values);
-            }
+            //public IRow AppendRow(params string[] values)
+            //{
+            //    return AppendRow((IEnumerable<string>)values);
+            //}
 
-            public IRow AppendRow(IEnumerable<NamedValue> namedValues)
+            public IRow AppendRow(IEnumerable<Cell> cells)
             {
-                IRow r = writeRow(Sheet._GetLastRow(LastRowCondition.HasCells, false) + 1, namedValues);
+                IRow r = WriteRow(Sheet._GetLastRow(LastRowCondition.HasCells, false) + 1, cells);
                 return r;
             }
 
-            IRow writeRow(int y, IEnumerable<NamedValue> namedValues)
+            public IRow AppendRow(params Cell[] cells)
             {
-                IRow r = Sheet.GetRow(y - 1);
-                if (r == null)
-                {
-                    r = Sheet.CreateRow(y - 1);
-                    setColumnStyles(r);
-
-                    //if (cachedDataRows != null)
-                    //    cachedDataRows.Insert(r.RowNum, r);
-                }
-                foreach (var nv in namedValues)
-                {
-                    var c = r._GetCell(nv.X, true);
-                    c._SetValue(nv.Value);
-                }
-                return r;
+                return AppendRow((IEnumerable<Cell>)cells);
             }
 
-            public IRow AppendRow(params NamedValue[] values)
-            {
-                return AppendRow((IEnumerable<NamedValue>)values);
-            }
-
-            public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
-            {
-                IRow r = Sheet._InsertRow(y, values);
-                setColumnStyles(r);
-
-                //if (cachedDataRows != null)
-                //    cachedDataRows.Insert(r.RowNum, r);
-
-                return r;
-            }
-
-            public IRow InsertRow(int y, params string[] values)
-            {
-                return InsertRow(y, (IEnumerable<string>)values);
-            }
-
-            public IRow InsertRow(int y, params NamedValue[] values)
-            {
-                return InsertRow(y, (IEnumerable<NamedValue>)values);
-            }
-
-            public IRow InsertRow(int y, IEnumerable<NamedValue> namedValues)
-            {
-                int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
-                if (y <= lastRowY)
-                    Sheet.ShiftRows(y - 1, lastRowY - 1, 1);
-                IRow r = writeRow(y, namedValues);
-                return r;
-            }
-
-            //public IRow InsertFullRow<T>(int y, IEnumerable<T> values = null)
-            //{if()
+            //public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
+            //{
             //    IRow r = Sheet._InsertRow(y, values);
             //    setColumnStyles(r);
 
@@ -247,10 +207,24 @@ namespace Cliver
             //    return r;
             //}
 
-            //public IRow InsertFullRow(int y, params string[] values)
+            //public IRow InsertRow(int y, params string[] values)
             //{
-            //    return InsertFullRow(y, (IEnumerable<string>)values);
+            //    return InsertRow(y, (IEnumerable<string>)values);
             //}
+
+            public IRow InsertRow(int y, params Cell[] cells)
+            {
+                return InsertRow(y, (IEnumerable<Cell>)cells);
+            }
+
+            public IRow InsertRow(int y, IEnumerable<Cell> cells)
+            {
+                int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
+                if (y <= lastRowY)
+                    Sheet.ShiftRows(y - 1, lastRowY - 1, 1);
+                IRow r = WriteRow(y, cells);
+                return r;
+            }
 
             //public IRow InsertFullRow(int y, params NamedValue[] values)
             //{
@@ -262,26 +236,39 @@ namespace Cliver
             //    return InsertRow(y, (IEnumerable<NamedValue>)values);
             //}
 
-            public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
+            //public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
+            //{
+            //    IRow r = Sheet._WriteRow(y, values);
+            //    return r;
+            //}
+
+            //public IRow WriteRow(int y, params string[] values)
+            //{
+            //    return WriteRow(y, (IEnumerable<string>)values);
+            //}
+
+            public IRow WriteRow(int y, IEnumerable<Cell> cells)
             {
-                IRow r = Sheet._WriteRow(y, values);
+                IRow r = Sheet.GetRow(y - 1);
+                if (r == null)
+                {
+                    r = Sheet.CreateRow(y - 1);
+                    setColumnStyles(r);
+
+                    //if (cachedDataRows != null)
+                    //    cachedDataRows.Insert(r.RowNum, r);
+                }
+                foreach (var cell in cells)
+                {
+                    var c = r._GetCell(cell.X, true);
+                    c._SetValue(cell.Value);
+                }
                 return r;
             }
 
-            public IRow WriteRow(int y, params string[] values)
+            public IRow WriteRow(int y, params Cell[] cells)
             {
-                return WriteRow(y, (IEnumerable<string>)values);
-            }
-
-            public IRow WriteRow(int y, IEnumerable<NamedValue> namedValues)
-            {
-                IRow r = writeRow(y, namedValues);
-                return r;
-            }
-
-            public IRow WriteRow(int y, params NamedValue[] values)
-            {
-                return WriteRow(y, (IEnumerable<NamedValue>)values);
+                return WriteRow(y, (IEnumerable<Cell>)cells);
             }
 
             public IRow RemoveRow(int y, bool shiftRemainingRows)
@@ -292,17 +279,17 @@ namespace Cliver
                 //    cachedDataRows.Remove(r);
             }
 
-            /// <summary>
-            /// (!)Seeks the column each call.
-            /// </summary>
-            /// <param name="row"></param>
-            /// <param name="header"></param>
-            /// <param name="create"></param>
-            /// <returns></returns>
-            public ICell GetCell(IRow row, string header, bool create)
-            {
-                return row._GetCell(GetColumn(header).X, create);
-            }
+            ///// <summary>
+            ///// (!)Seeks the column each call.
+            ///// </summary>
+            ///// <param name="row"></param>
+            ///// <param name="header"></param>
+            ///// <param name="create"></param>
+            ///// <returns></returns>
+            //public ICell GetCell(IRow row, string header, bool create)
+            //{
+            //    return row._GetCell(GetColumn(header).X, create);
+            //}
 
             public ICell GetCell(IRow row, Column column, bool create)
             {
