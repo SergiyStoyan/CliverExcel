@@ -18,15 +18,15 @@ namespace Cliver
         {
             public ReadOnlyCollection<Column> Columns { get; private set; }
 
-            public void SetColumns(SetColumnMode setColumnMode, params string[] headers)
-            {
-                SetColumns(setColumnMode, (IEnumerable<string>)headers);
-            }
+            //public void SetColumns(SetColumnMode setColumnMode, params string[] headers)
+            //{
+            //    SetColumns(setColumnMode, (IEnumerable<string>)headers);
+            //}
 
-            public void SetColumns(SetColumnMode setColumnMode, IEnumerable<string> headers)
-            {
-                SetColumns(setColumnMode, headers.Select(a => new Column(a)));
-            }
+            //public void SetColumns(SetColumnMode setColumnMode, IEnumerable<string> headers)
+            //{
+            //    SetColumns(setColumnMode, headers.Select(a => new Column(a)));
+            //}
 
             public void SetColumns(SetColumnMode setColumnMode, params Column[] columns)
             {
@@ -38,27 +38,27 @@ namespace Cliver
                 /// <summary>
                 /// The listed columns override the header row content.
                 /// </summary>
-                OverrideAll,
+                Override,
                 /// <summary>
                 /// The listed columns, that are not found in the header row in any order, are added to the right.
                 /// </summary>
-                ExpandOldHeaders,
+                FindOrAppend,
                 /// <summary>
-                /// The listed columns all must be found in the header row in any order.
+                /// The listed columns must exist in the header row in any order.
                 /// </summary>
-                FindHeaders,
+                Find,
                 /// <summary>
-                /// The listed columns all must be found in the header row in the listed order.
+                /// The listed columns must exist in the header row in the listed order.
                 /// </summary>
-                FindHeadersOrdered,
+                FindOrdered,
                 /// <summary>
-                /// If the header row is empty then the listed columns are set. Otherwise they all must be found in the header row in any order.
+                /// If the header row is empty then the listed columns are written there. Else they must exist in the header row in any order.
                 /// </summary>
-                CreateOrFindHeaders,
+                CreateOrFind,
                 /// <summary>
-                /// If the header row is empty then the listed columns are set. Otherwise they all must be found in the header row in the listed order.
+                /// If the header row is empty then the listed columns are written there. Else they must exist in the header row in the listed order.
                 /// </summary>
-                CreateOrFindHeadersOrdered,
+                CreateOrFindOrdered,
             }
             /// <summary>
             /// (!)NULLs among input columns are allowed. They make gaps between columns but they are not listed in Columns.
@@ -70,7 +70,7 @@ namespace Cliver
             {
                 switch (setColumnMode)
                 {
-                    case SetColumnMode.OverrideAll:
+                    case SetColumnMode.Override:
                         columns = columns
                             .Select((a, i) => (column: a, x: i + 1))
                             .Where(a =>
@@ -84,7 +84,7 @@ namespace Cliver
                         Columns = new ReadOnlyCollection<Column>(columns.ToList());
                         break;
 
-                    case SetColumnMode.ExpandOldHeaders:
+                    case SetColumnMode.FindOrAppend:
                         {
                             List<Column> cs = columns.ToList();
                             List<Column> c0s = Columns.ToList();
@@ -124,7 +124,7 @@ namespace Cliver
                         }
                         break;
 
-                    case SetColumnMode.FindHeaders:
+                    case SetColumnMode.Find:
                         {
                             List<Column> cs = columns.Where(a => a != null).ToList();
                             if (cs.Count > Columns.Count)
@@ -152,7 +152,7 @@ namespace Cliver
                         }
                         break;
 
-                    case SetColumnMode.FindHeadersOrdered:
+                    case SetColumnMode.FindOrdered:
                         {
                             List<Column> cs = columns.ToList();
                             int notEmptyCount = cs.Where(a => a != null).Count();
@@ -181,15 +181,15 @@ namespace Cliver
                         }
                         break;
 
-                    case SetColumnMode.CreateOrFindHeaders:
+                    case SetColumnMode.CreateOrFind:
                         if (Columns.Any())
-                            goto case SetColumnMode.FindHeaders;
-                        goto case SetColumnMode.OverrideAll;
+                            goto case SetColumnMode.Find;
+                        goto case SetColumnMode.Override;
 
-                    case SetColumnMode.CreateOrFindHeadersOrdered:
+                    case SetColumnMode.CreateOrFindOrdered:
                         if (Columns.Any())
-                            goto case SetColumnMode.FindHeadersOrdered;
-                        goto case SetColumnMode.OverrideAll;
+                            goto case SetColumnMode.FindOrdered;
+                        goto case SetColumnMode.Override;
 
                     default:
                         throw new Exception("Unknown case: " + setColumnMode);
@@ -214,7 +214,7 @@ namespace Cliver
 
                 var r2 = Sheet._GetRow(2, false);
                 if (r2 != null)
-                    Columns.ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
+                    Columns.Where(a => a.DataStyle == null).ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
             }
 
             public Column GetColumn(string header, bool exceptionIfNotFound = true)
@@ -244,15 +244,17 @@ namespace Cliver
                 Sheet._GetCell(1, x, true)._SetValue(column.Header);
                 var cs = Columns.ToList();
                 cs.Insert(column.X - 1, column);
-                Columns = new ReadOnlyCollection<Column>(cs);
+                SetColumns(SetColumnMode.FindOrdered, cs);
             }
 
             public void RemoveColumn(Column column)
             {
+                if (column.Table == null)
+                    throw new Exception("Column is not initialized: no Table set.");
                 Sheet._ShiftColumnsLeft(column.X, 1);
                 var cs = Columns.ToList();
                 cs.RemoveAt(column.X - 1);
-                Columns = new ReadOnlyCollection<Column>(cs);
+                SetColumns(SetColumnMode.FindOrdered, cs);
             }
 
             public class Column

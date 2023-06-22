@@ -72,13 +72,6 @@ namespace Cliver
                 public int X { get { return Column.X; } }
                 public Func<ICell, bool> IsValueMatch = null;
 
-                public Key(Column column, object value) : this(column, getIsValueMatch(value)) { }
-                static Func<ICell, bool> getIsValueMatch(object value)
-                {
-                    string v = value.ToString();
-                    return (c) => { return c?._GetValueAsString() == v; };
-                }
-
                 public Key(Column column, Func<ICell, bool> isValueMatch)
                 {
                     if (column.Table == null)
@@ -87,9 +80,22 @@ namespace Cliver
                     IsValueMatch = isValueMatch;
                 }
 
+                public Key(Column column, object value) : this(column, getIsValueMatch(value)) { }
+                static Func<ICell, bool> getIsValueMatch(object value)
+                {
+                    string v = value.ToString();
+                    return (c) => { return c?._GetValueAsString() == v; };
+                }
+
                 public Key(Cell cell) : this(cell.Column, cell.Value) { }
 
                 public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
+
+                public Key(Cell cell, Regex isValueMatchRegex) : this(cell.Column, getIsValueMatch(isValueMatchRegex)) { }
+                static Func<ICell, bool> getIsValueMatch(Regex isValueMatchRegex)
+                {
+                    return (c) => { return isValueMatchRegex.IsMatch(c._GetValueAsString()); };
+                }
             }
 
             public class Cell
