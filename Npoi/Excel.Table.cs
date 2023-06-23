@@ -66,12 +66,21 @@ namespace Cliver
                 return FindRows(rows, (IEnumerable<Key>)keys);
             }
 
+            /// <summary>
+            /// Key for seeking matches in a column.
+            /// </summary>
             public class Key
             {
                 public Column Column { get; internal set; }
                 public int X { get { return Column.X; } }
                 public Func<ICell, bool> IsValueMatch = null;
 
+                /// <summary>
+                /// Key that matchs by isValueMatch().
+                /// </summary>
+                /// <param name="column"></param>
+                /// <param name="isValueMatch"></param>
+                /// <exception cref="Exception"></exception>
                 public Key(Column column, Func<ICell, bool> isValueMatch)
                 {
                     if (column.Table == null)
@@ -80,6 +89,11 @@ namespace Cliver
                     IsValueMatch = isValueMatch;
                 }
 
+                /// <summary>
+                /// Key that is equal value.
+                /// </summary>
+                /// <param name="column"></param>
+                /// <param name="value"></param>
                 public Key(Column column, object value) : this(column, getIsValueMatch(value)) { }
                 static Func<ICell, bool> getIsValueMatch(object value)
                 {
@@ -87,15 +101,36 @@ namespace Cliver
                     return (c) => { return c?._GetValueAsString() == v; };
                 }
 
+                /// <summary>
+                /// Key that matchs by valueMatchRegex.
+                /// </summary>
+                /// <param name="column"></param>
+                /// <param name="valueMatchRegex"></param>
+                public Key(Column column, Regex valueMatchRegex) : this(column, getIsValueMatch(valueMatchRegex)) { }
+                static Func<ICell, bool> getIsValueMatch(Regex valueMatchRegex)
+                {
+                    return (c) => { return valueMatchRegex.IsMatch(c._GetValueAsString()); };
+                }
+
+                /// <summary>
+                /// Key that is equal cell.Value.
+                /// </summary>
+                /// <param name="cell"></param>
                 public Key(Cell cell) : this(cell.Column, cell.Value) { }
 
+                /// <summary>
+                /// Key that is equal value.
+                /// </summary>
+                /// <param name="cell"></param>
+                /// <param name="isValueMatch"></param>
                 public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
 
-                public Key(Cell cell, Regex isValueMatchRegex) : this(cell.Column, getIsValueMatch(isValueMatchRegex)) { }
-                static Func<ICell, bool> getIsValueMatch(Regex isValueMatchRegex)
-                {
-                    return (c) => { return isValueMatchRegex.IsMatch(c._GetValueAsString()); };
-                }
+                /// <summary>
+                /// Key that matchs by valueMatchRegex().
+                /// </summary>
+                /// <param name="cell"></param>
+                /// <param name="valueMatchRegex"></param>
+                public Key(Cell cell, Regex valueMatchRegex) : this(cell.Column, getIsValueMatch(valueMatchRegex)) { }
             }
 
             public class Cell
@@ -260,9 +295,6 @@ namespace Cliver
                 {
                     r = Sheet.CreateRow(y - 1);
                     setColumnStyles(r);
-
-                    //if (cachedDataRows != null)
-                    //    cachedDataRows.Insert(r.RowNum, r);
                 }
                 foreach (var cell in cells)
                 {
@@ -280,9 +312,6 @@ namespace Cliver
             public IRow RemoveRow(int y, bool shiftRemainingRows)
             {
                 return Sheet._RemoveRow(y, shiftRemainingRows);
-
-                //if (cachedDataRows != null && r != null)
-                //    cachedDataRows.Remove(r);
             }
 
             ///// <summary>

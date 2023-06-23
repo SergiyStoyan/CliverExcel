@@ -16,6 +16,9 @@ namespace Cliver
     {
         public partial class Table
         {
+            /// <summary>
+            /// All the columns in the Table. They are always registered/initialized in this list.
+            /// </summary>
             public ReadOnlyCollection<Column> Columns { get; private set; }
 
             //public void SetColumns(SetColumnMode setColumnMode, params string[] headers)
@@ -28,6 +31,12 @@ namespace Cliver
             //    SetColumns(setColumnMode, headers.Select(a => new Column(a)));
             //}
 
+            /// <summary>
+            /// Registers/initializes the listed columns. It is a necessary call in the beginning of using Excel.Table.
+            /// (!)NULLs among input columns are allowed. They make gaps between columns but they do not go to Columns.
+            /// </summary>
+            /// <param name="setColumnMode"></param>
+            /// <param name="columns"></param>
             public void SetColumns(SetColumnMode setColumnMode, params Column[] columns)
             {
                 SetColumns(setColumnMode, (IEnumerable<Column>)columns);
@@ -60,8 +69,10 @@ namespace Cliver
                 /// </summary>
                 CreateOrFindOrdered,
             }
+
             /// <summary>
-            /// (!)NULLs among input columns are allowed. They make gaps between columns but they are not listed in Columns.
+            /// Registers/initializes the listed columns. It is a necessary call in the beginning of using Excel.Table.
+            /// (!)NULLs among input columns are allowed. They make gaps between columns but they do not go to Columns.
             /// </summary>
             /// <param name="setColumnMode"></param>
             /// <param name="columns"></param>
@@ -217,19 +228,34 @@ namespace Cliver
                     Columns.Where(a => a.DataStyle == null).ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
             }
 
+            /// <summary>
+            /// Find a registered column matched by header.
+            /// </summary>
+            /// <param name="header"></param>
+            /// <param name="exceptionIfNotFound"></param>
+            /// <returns></returns>
             public Column GetColumn(string header, bool exceptionIfNotFound = true)
             {
                 return GetColumn((v) => { return v == header; }, exceptionIfNotFound);
             }
 
-            public Column GetColumn(Regex headerRegex, bool exceptionIfNotFound = true)
+            /// <summary>
+            /// Find a registered column matched by headerMatchRegex.
+            /// </summary>
+            /// <param name="headerMatchRegex"></param>
+            /// <param name="exceptionIfNotFound"></param>
+            /// <returns></returns>
+            public Column GetColumn(Regex headerMatchRegex, bool exceptionIfNotFound = true)
             {
-                return GetColumn((v) => { return headerRegex.IsMatch(v); }, exceptionIfNotFound);
+                return GetColumn((v) => { return headerMatchRegex.IsMatch(v); }, exceptionIfNotFound);
             }
 
-            public Column GetColumn(Func<string, bool> IsHeaderMatch, bool exceptionIfNotFound = true)
+            /// <summary>
+            /// Find a registered column matched by isHeaderMatch.
+            /// </summary>
+            public Column GetColumn(Func<string, bool> isHeaderMatch, bool exceptionIfNotFound = true)
             {
-                var c = Columns.FirstOrDefault(a => IsHeaderMatch(a.Header));
+                var c = Columns.FirstOrDefault(a => isHeaderMatch(a.Header));
                 if (c == null && exceptionIfNotFound)
                     throw new Exception("Column was not found.");
                 return c;
