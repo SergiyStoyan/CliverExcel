@@ -17,7 +17,7 @@ namespace Cliver
         public partial class Table
         {
             /// <summary>
-            /// All the columns in the Table. They are always registered/initialized in this list.
+            /// All the columns in the Table. In this list they are always registered/initialized.
             /// </summary>
             public ReadOnlyCollection<Column> Columns { get; private set; }
 
@@ -71,8 +71,8 @@ namespace Cliver
             }
 
             /// <summary>
-            /// Registers/initializes the listed columns. It is a necessary call in the beginning of using Excel.Table.
-            /// (!)NULLs among input columns are allowed. They make gaps between columns but they do not go to Columns.
+            /// Registers/initializes the listed columns. It is a necessary call before using Excel.Table, which can be made in a derived Table's constructor.
+            /// (!)NULLs among input columns are allowed. They make gaps between columns but they do not go into Columns.
             /// </summary>
             /// <param name="setColumnMode"></param>
             /// <param name="columns"></param>
@@ -302,7 +302,7 @@ namespace Cliver
                 public Func<string, bool> IsHeaderMatch { get; internal set; }
 
                 /// <summary>
-                /// (!)Until a new column is passed to Excel.Table.Columns, it remains non-initialized.
+                /// (!)Until a new column is registered in Excel.Table.Columns, it is not initialized and cannot be used in most methods.
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>

@@ -67,7 +67,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// Key for seeking matches in a column.
+            /// Key for seeking cell matches in a column.
             /// </summary>
             public class Key
             {
@@ -76,7 +76,7 @@ namespace Cliver
                 public Func<ICell, bool> IsValueMatch = null;
 
                 /// <summary>
-                /// Key that matchs by isValueMatch().
+                /// Key that matches by isValueMatch().
                 /// </summary>
                 /// <param name="column"></param>
                 /// <param name="isValueMatch"></param>
@@ -90,7 +90,8 @@ namespace Cliver
                 }
 
                 /// <summary>
-                /// Key that is equal value.
+                /// Key that is equal to value.
+                /// (!)Column must be listed in Table.Columns
                 /// </summary>
                 /// <param name="column"></param>
                 /// <param name="value"></param>
@@ -102,7 +103,8 @@ namespace Cliver
                 }
 
                 /// <summary>
-                /// Key that matchs by valueMatchRegex.
+                /// Key that matches by valueMatchRegex.
+                /// (!)Column must be listed in Table.Columns
                 /// </summary>
                 /// <param name="column"></param>
                 /// <param name="valueMatchRegex"></param>
@@ -113,20 +115,20 @@ namespace Cliver
                 }
 
                 /// <summary>
-                /// Key that is equal cell.Value.
+                /// Key that is equal to cell.Value.
                 /// </summary>
                 /// <param name="cell"></param>
                 public Key(Cell cell) : this(cell.Column, cell.Value) { }
 
                 /// <summary>
-                /// Key that is equal value.
+                /// Key that matches by isValueMatch().
                 /// </summary>
                 /// <param name="cell"></param>
                 /// <param name="isValueMatch"></param>
                 public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
 
                 /// <summary>
-                /// Key that matchs by valueMatchRegex().
+                /// Key that matches by valueMatchRegex().
                 /// </summary>
                 /// <param name="cell"></param>
                 /// <param name="valueMatchRegex"></param>
@@ -139,6 +141,12 @@ namespace Cliver
                 public object Value { get; internal set; }
                 public int X { get { return Column.X; } }
 
+                /// <summary>
+                /// (!)Column must be listed in Table.Columns
+                /// </summary>
+                /// <param name="column"></param>
+                /// <param name="value"></param>
+                /// <exception cref="Exception"></exception>
                 public Cell(Column column, object value)
                 {
                     if (column.Table == null)
@@ -183,8 +191,12 @@ namespace Cliver
                     if (a == null)
                         return false;
                     foreach (var k in keys)
+                    {
+                        //if (a.Sheet != k.Column.Table.Sheet)
+                        //    throw new Exception("Row[x=" + (a.RowNum + 1) + "] and key[X='" + k.X + "] belong to different sheets.");
                         if (!k.IsValueMatch(a.GetCell(k.X - 1)))
                             return false;
+                    }
                     return true;
                 });
             }
@@ -196,7 +208,7 @@ namespace Cliver
             /// <returns></returns>
             public IEnumerable<IRow> FindDataRows(params Key[] keys)
             {
-                return FindRows(Sheet._GetRows(RowScope.WithCells).Skip(1), keys);
+                return FindRows(GetDataRows(RowScope.WithCells), keys);
             }
 
             public IEnumerable<IRow> GetDataRows(RowScope rowScope)
@@ -267,16 +279,6 @@ namespace Cliver
                 return r;
             }
 
-            //public IRow InsertFullRow(int y, params NamedValue[] values)
-            //{
-            //    return InsertFullRow(y, (IEnumerable<NamedValue>)values);
-            //}
-
-            //public IRow InsertFullRow(int y, IEnumerable<NamedValue> namedValues)
-            //{
-            //    return InsertRow(y, (IEnumerable<NamedValue>)values);
-            //}
-
             //public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
             //{
             //    IRow r = Sheet._WriteRow(y, values);
@@ -298,6 +300,8 @@ namespace Cliver
                 }
                 foreach (var cell in cells)
                 {
+                    //if (r.Sheet != cell.Column.Table.Sheet)
+                    //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
                     var c = r._GetCell(cell.X, true);
                     c._SetValue(cell.Value);
                 }
