@@ -111,7 +111,7 @@ namespace Cliver
                                 for (int j = c0s.Count - 1; j >= 0; j--)
                                 {
                                     Column c0 = c0s[j];
-                                    if (c.IsHeaderMatch(c0.Header))
+                                    if (c.Header == c0.Header)
                                     {
                                         c.X = c0.X;
                                         c0s.RemoveAt(j);
@@ -148,7 +148,7 @@ namespace Cliver
                                 for (; j >= 0; j--)
                                 {
                                     Column c0 = c0s[j];
-                                    if (c.IsHeaderMatch(c0.Header))
+                                    if (c.Header == c0.Header)
                                     {
                                         c.X = c0.X;
                                         c0s.RemoveAt(j);
@@ -182,7 +182,7 @@ namespace Cliver
                                     continue;
                                 }
                                 Column c0 = c0s[i + emptyCount];
-                                if (!c.IsHeaderMatch(c0.Header))
+                                if (c.Header != c0.Header)
                                     throw new Exception("Existing column[x=" + c0.X + "] '" + c0.Header + "' differs from the new one '" + c.Header + "'");
                                 c.X = c0.X;
                                 c0s.RemoveAt(i);
@@ -216,8 +216,8 @@ namespace Cliver
                         Column cj = Columns[j];
                         if (cj.X == c.X)
                             throw new Exception("Columns have the same X: '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
-                        if (cj.IsHeaderMatch(c.Header))
-                            throw new Exception("Columns are equal by IsHeaderMatch(): '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
+                        if (cj.Header == c.Header)
+                            throw new Exception("Columns are equal by headers: '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
                     }
                 }
 
@@ -237,6 +237,17 @@ namespace Cliver
             public Column GetColumn(string header, bool exceptionIfNotFound = true)
             {
                 return GetColumn((v) => { return v == header; }, exceptionIfNotFound);
+            }
+
+            /// <summary>
+            /// Find a registered column matched by the input column's header.
+            /// </summary>
+            /// <param name="column"></param>
+            /// <param name="exceptionIfNotFound"></param>
+            /// <returns></returns>
+            public Column GetColumn(Column column, bool exceptionIfNotFound = true)
+            {
+                return GetColumn((v) => { return column.Header == v; }, exceptionIfNotFound);
             }
 
             /// <summary>
@@ -299,20 +310,17 @@ namespace Cliver
 
                 public Table Table { get; internal set; } = null;
 
-                public Func<string, bool> IsHeaderMatch { get; internal set; }
-
                 /// <summary>
                 /// (!)Until a new column is registered in Excel.Table.Columns, it is not initialized and cannot be used in most methods.
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
-                public Column(string header, ICellStyle dataStyle = null, Func<string, bool> isHeaderMatch = null)
+                public Column(string header, ICellStyle dataStyle = null)
                 {
                     if (string.IsNullOrWhiteSpace(header))
-                        throw new Exception("Header cannot be empty space.");
+                        throw new Exception("Header cannot be empty or space.");
                     Header = header;
                     SetDataStyle(dataStyle, false);
-                    IsHeaderMatch = isHeaderMatch != null ? isHeaderMatch : (h) => { return h == Header; };
                 }
 
                 public ICell GetCell(int y, bool create)
