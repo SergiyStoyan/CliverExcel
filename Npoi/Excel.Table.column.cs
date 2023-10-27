@@ -7,6 +7,7 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -225,7 +226,10 @@ namespace Cliver
 
                 var r2 = Sheet._GetRow(2, false);
                 if (r2 != null)
+                {
                     Columns.Where(a => a.DataStyle == null).ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
+                    Columns.Where(a => a.DataType == null).ForEach(a => a.SetDataType(r2._GetCell(a.X, false)?.CellType, false));
+                }
             }
 
             /// <summary>
@@ -308,6 +312,15 @@ namespace Cliver
                             c.CellStyle = DataStyle;
                 }
 
+                public CellType? DataType { get; private set; } = null;
+                public void SetDataType(CellType? dataType, bool updateExistingCells)
+                {
+                    DataType = dataType;
+                    if (updateExistingCells && dataType != null)
+                        foreach (ICell c in GetDataCells(RowScope.WithCells))
+                            c.SetCellType(dataType.Value);
+                }
+
                 public Table Table { get; internal set; } = null;
 
                 /// <summary>
@@ -315,12 +328,13 @@ namespace Cliver
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
-                public Column(string header, ICellStyle dataStyle = null)
+                public Column(string header, ICellStyle dataStyle = null, CellType? dataType = null)
                 {
                     if (string.IsNullOrWhiteSpace(header))
                         throw new Exception("Header cannot be empty or space.");
                     Header = header;
                     SetDataStyle(dataStyle, false);
+                    SetDataType(dataType, false);
                 }
 
                 public ICell GetCell(int y, bool create)

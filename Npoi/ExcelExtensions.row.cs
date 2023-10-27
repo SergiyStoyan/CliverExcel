@@ -12,6 +12,33 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        public enum SetRowStyleMode
+        {
+            NotCells,
+            OnlyCells,
+            AllRow
+        }
+        static public void _SetStyle(this IRow row, ICellStyle style, SetRowStyleMode setRowStyleMode = SetRowStyleMode.AllRow)
+        {
+            switch (setRowStyleMode)
+            {
+                case SetRowStyleMode.NotCells:
+                    row.RowStyle = style;
+                    break;
+                case SetRowStyleMode.AllRow:
+                    row.RowStyle = style;
+                    foreach (ICell c in row.Cells)
+                        c.CellStyle = style;
+                    break;
+                case SetRowStyleMode.OnlyCells:
+                    foreach (ICell c in row.Cells)
+                        c.CellStyle = style;
+                    break;
+                default:
+                    throw new Exception("Unknown option: " + setRowStyleMode);
+            }
+        }
+
         static public void _ShiftCellsRight(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int x = row._GetLastColumn(true); x >= x1; x--)

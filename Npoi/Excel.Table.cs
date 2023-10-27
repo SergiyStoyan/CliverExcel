@@ -233,6 +233,13 @@ namespace Cliver
                     row._GetCell(c.X, true).CellStyle = c.DataStyle;
             }
 
+            void setColumnTypes(IRow row)
+            {
+                foreach (Column c in Columns)
+                    if (c.DataType != null)
+                        row._GetCell(c.X, true).SetCellType(c.DataType.Value);
+            }
+
             //public IRow AppendRow(params string[] values)
             //{
             //    return AppendRow((IEnumerable<string>)values);
@@ -297,6 +304,7 @@ namespace Cliver
                 {
                     r = Sheet.CreateRow(y - 1);
                     setColumnStyles(r);
+                    setColumnTypes(r);
                 }
                 foreach (var cell in cells)
                 {
