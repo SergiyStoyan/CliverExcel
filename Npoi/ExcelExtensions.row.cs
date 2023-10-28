@@ -70,9 +70,9 @@ namespace Cliver
         {
             if (row == null || row.Cells.Count < 1)
                 return 0;
-            for (int x0 = row.Cells.Count - 1; x0 >= 0; x0--)
+            for (int i = row.Cells.Count - 1; i >= 0; i--)
             {
-                var c = row.GetCell(x0);
+                var c = row.Cells[i];
                 if (!string.IsNullOrWhiteSpace(c?._GetValueAsString()))
                 {
                     if (includeMerged)

@@ -116,6 +116,19 @@ namespace Cliver
             }
         }
 
+        ///// <summary> 
+        ///// (!)Never returns NULL. Row is created if does not exist.
+        ///// </summary>
+        ///// <param name="y">1-based</param>
+        ///// <returns></returns>
+        //public IRow this[int y]!!!do not do it: it is ambiguous: row or column?
+        //{
+        //    get
+        //    {
+        //        return Sheet._GetRow(y, true);
+        //    }
+        //}
+
         public class Image
         {
             //public IClientAnchor Anchor;
