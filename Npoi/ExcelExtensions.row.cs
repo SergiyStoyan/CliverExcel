@@ -14,23 +14,32 @@ namespace Cliver
     {
         public enum SetRowStyleMode
         {
-            NotCells,
-            OnlyCells,
-            AllRow
+            /// <summary>
+            /// Set the row default style.
+            /// </summary>
+            RowOnly,
+            /// <summary>
+            /// Set style of the existing cells.
+            /// </summary>
+            CellsOnly,
+            /// <summary>
+            /// Set both the row default style and style of the existing cells.
+            /// </summary>
+            RowAndCells
         }
-        static public void _SetStyle(this IRow row, ICellStyle style, SetRowStyleMode setRowStyleMode = SetRowStyleMode.AllRow)
+        static public void _SetStyle(this IRow row, ICellStyle style, SetRowStyleMode setRowStyleMode)
         {
             switch (setRowStyleMode)
             {
-                case SetRowStyleMode.NotCells:
+                case SetRowStyleMode.RowOnly:
                     row.RowStyle = style;
                     break;
-                case SetRowStyleMode.AllRow:
+                case SetRowStyleMode.RowAndCells:
                     row.RowStyle = style;
                     foreach (ICell c in row.Cells)
                         c.CellStyle = style;
                     break;
-                case SetRowStyleMode.OnlyCells:
+                case SetRowStyleMode.CellsOnly:
                     foreach (ICell c in row.Cells)
                         c.CellStyle = style;
                     break;

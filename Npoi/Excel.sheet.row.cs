@@ -21,7 +21,8 @@ namespace Cliver
         public enum RowScope
         {
             /// <summary>
-            /// (!)Considerably slow due to checking all the cells' values
+            /// Returns only rows with at least one not empty cell.
+            /// (!)Slow due to checking all the cells' values.
             /// </summary>
             NotEmpty,
             /// <summary>
@@ -33,7 +34,7 @@ namespace Cliver
             /// </summary>
             NotNull,
             /// <summary>
-            /// Returns all the rows withing the range with non-existing rows represented as NULL.
+            /// Returns all the rows withing the range with non-existing rows represented as NULL. 
             /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
             /// </summary>
             IncludeNull,
@@ -111,6 +112,11 @@ namespace Cliver
         public IRow RemoveRow(int y, bool shiftRemainingRows)
         {
             return Sheet._RemoveRow(y, shiftRemainingRows);
+        }
+
+        public void _MoveRow(int y1, int y2)
+        {
+            Sheet._MoveRow(y1, y2);
         }
 
         public void ShiftRowCellsRight(int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)

@@ -62,13 +62,13 @@ namespace Cliver
                 /// </summary>
                 FindOrdered,
                 /// <summary>
-                /// If the header row is empty then the listed columns are written there. Else they must exist in the header row in any order.
+                /// The listed columns must exist in the header row in any order, or the header row must be empty in which case the listed columns are created.
                 /// </summary>
-                CreateOrFind,
+                FindOrCreate,
                 /// <summary>
-                /// If the header row is empty then the listed columns are written there. Else they must exist in the header row in the listed order.
+                /// The listed columns must exist in the header row in the listed order, or the header row must be empty in which case the listed columns are created.
                 /// </summary>
-                CreateOrFindOrdered,
+                FindOrderedOrCreate,
             }
 
             /// <summary>
@@ -193,12 +193,12 @@ namespace Cliver
                         }
                         break;
 
-                    case SetColumnMode.CreateOrFind:
+                    case SetColumnMode.FindOrCreate:
                         if (Columns.Any())
                             goto case SetColumnMode.Find;
                         goto case SetColumnMode.Override;
 
-                    case SetColumnMode.CreateOrFindOrdered:
+                    case SetColumnMode.FindOrderedOrCreate:
                         if (Columns.Any())
                             goto case SetColumnMode.FindOrdered;
                         goto case SetColumnMode.Override;
@@ -291,7 +291,7 @@ namespace Cliver
             public void RemoveColumn(Column column)
             {
                 if (column.Table == null)
-                    throw new Exception("Column is not initialized: no Table set.");
+                    throw new Exception("Column is not initialized: Table is not set.");
                 Sheet._ShiftColumnsLeft(column.X, 1);
                 var cs = Columns.ToList();
                 cs.RemoveAt(column.X - 1);

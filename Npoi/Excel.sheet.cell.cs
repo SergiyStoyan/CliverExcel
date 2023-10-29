@@ -3,12 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using NPOI.HSSF.UserModel;
-using NPOI.SS.Formula.PTG;
-using NPOI.SS.Formula;
 using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 

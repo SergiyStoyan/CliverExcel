@@ -9,8 +9,6 @@ using System.Collections.Generic;
 using NPOI.SS.UserModel;
 using static Cliver.Excel;
 using System.Linq;
-using NPOI.HSSF.UserModel;
-using NPOI.XSSF.UserModel;
 
 namespace Cliver
 {
@@ -207,6 +205,23 @@ namespace Cliver
             if (shiftRemainingRows)
                 sheet.ShiftRows(r.RowNum + 1, sheet.LastRowNum, -1);
             return r;
+        }
+
+        static public void _MoveRow(this ISheet sheet, int y1, int y2)
+        {
+            if (y1 == y2)
+                return;
+            sheet.ShiftRows(y2 - 1, sheet.LastRowNum, 1);
+            if (y1 > y2)
+            {
+                sheet.ShiftRows(y1, y1, y2 - y1 - 1);
+                sheet.ShiftRows(y1 + 1, sheet.LastRowNum, -1);
+            }
+            else
+            {
+                sheet.ShiftRows(y1 - 1, y1 - 1, y2 - y1);
+                sheet.ShiftRows(y1, sheet.LastRowNum, -1);
+            }
         }
 
         static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)

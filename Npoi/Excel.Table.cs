@@ -84,7 +84,7 @@ namespace Cliver
                 public Key(Column column, Func<ICell, bool> isValueMatch)
                 {
                     if (column.Table == null)
-                        throw new Exception("Column is not initialized: no Table set.");
+                        throw new Exception("Column is not initialized: Table is not set.");
                     Column = column;
                     IsValueMatch = isValueMatch;
                 }
@@ -150,7 +150,7 @@ namespace Cliver
                 public Cell(Column column, object value)
                 {
                     if (column.Table == null)
-                        throw new Exception("Column is not initialized: no Table set.");
+                        throw new Exception("Column is not initialized: Table is not set.");
                     Column = column;
                     Value = value;
                 }
@@ -324,6 +324,11 @@ namespace Cliver
             public IRow RemoveRow(int y, bool shiftRemainingRows)
             {
                 return Sheet._RemoveRow(y, shiftRemainingRows);
+            }
+
+            public void MoveRow(int y1, int y2)
+            {
+                Sheet._MoveRow(y1, y2);
             }
 
             ///// <summary>
