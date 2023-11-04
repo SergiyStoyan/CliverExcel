@@ -33,41 +33,25 @@ namespace Cliver
         static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int y = y1; y <= y2; y++)
-            {
-                for (int x = sheet._GetLastNotEmptyColumnInRow(false, y); x >= x1; x--)
-                    sheet._MoveCell(y, x, y, x + shift, onFormulaCellMoved);
-                sheet._GetCell(y, x1, false)?.SetBlank();
-            }
+                sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
         }
 
         static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int y = y1; y <= y2; y++)
-            {
-                for (int x = 1; x <= x1; x++)
-                    sheet._MoveCell(y, x, y, x - shift, onFormulaCellMoved);
-                sheet._GetCell(y, x1, false)?.SetBlank();
-            }
+                sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
         }
 
         static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int x = x1; x <= x2; x++)
-            {
-                for (int y = sheet._GetLastNotEmptyRowInColumn(false, x); y >= y1; y--)
-                    sheet._MoveCell(y, x, y + shift, x, onFormulaCellMoved);
-                sheet._GetCell(y1, x, false)?.SetBlank();
-            }
+                sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
         }
 
         static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
         {
             for (int x = x1; x <= x2; x++)
-            {
-                for (int y = 1; y <= y1; y++)
-                    sheet._MoveCell(y, x, y - shift, x, onFormulaCellMoved);
-                sheet._GetCell(y1, x, false)?.SetBlank();
-            }
+                sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
         }
 
         static public void _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX)

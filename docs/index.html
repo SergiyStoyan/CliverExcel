@@ -11,18 +11,15 @@
 <body>
 <script src="prism.js"></script>
 <div class='header'>
-<div class='mainHeader'>Cliver Excel 4.*</div>
+<div class='mainHeader'>Cliver Excel 5.*</div>
 </div>
 
 <div class='content'>
 <h1><a name='CliverExcel'>Overview</a></h1>
-CliverExcel is an API for creating and editing excel files.
+CliverExcel is an .NET API for creating and editing excel files.
 
-<p>
-It wraps the NPOI lib and, besides its own API, allows accessing the NPOI methods, too. 
-
-<p>
-CliverExcel's goal is to provide an API more handy and advanced than NPOI's.
+<br>
+It is based on the NPOI lib and allows accessing the NPOI's API, besides its own. Its goal is to provide an API more advanced than NPOI's.
 
 		
 <p><b>Compatibility</b>
@@ -53,6 +50,7 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 	int y = xls.GetLastNotEmptyRow();
 	string s = xls[y, 1];
 	xls.CreateDropdown(y, 2, new int[] { 1, 2, 3 }, 1);
+	xls.Save();
 }</script>
 		
 		
@@ -66,22 +64,23 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 	int y = xls.Sheet._GetLastNotEmptyRow();
 	string s = xls.Sheet._GetCell(y, 1, true)._GetValueAsString();
 	xls.Sheet._GetCell(y, 2, true)._CreateDropdown(new int[] { 1, 2, 3 }, 1);
+	xls.Save();
 }</script>
 
 
 
 <h1>API</h1>
 
-<p>All the methods are plainly accessible through the class <code>Cliver.Excel</code>. In this class their scope is restricted by the current workbook and worksheet. 
+<p>All the methods are plainly accessible through the class <code>Cliver.Excel</code>. In this class their scope is defaulted to the opened workbook and currently picked worksheet. 
 
-<p>Alternatively, they are also presented as extension methods in the NPOI types <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. <span class='attention'>(!)</span>The extension methods start with '_' to be easily distinguished from the NPOI natives.
+<p>Alternatively, all the basic methods are presented as extension methods of the NPOI types <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. <br><span class='attention'>(!)</span>The extension methods start with '_' to be easily distinguished from the NPOI natives.
 
 <p>
-<span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the method you are using. In the CliverExcel methods, column and row indexes are always represented by x and y respectively. 
+<span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the methods you are using. In the CliverExcel methods' arguments, column and row indexes are always represented by 'x' and 'y' respectively. 
 
 
 <h2>Excel.Column</h2>
-The class <code>Excel.Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is purely native to CliverExcel as has no underlying NPOI type.
+The class <code>Excel.Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is native to CliverExcel as has no underlying NPOI type.
 
 
 
@@ -137,42 +136,124 @@ It is always commendable when styles are managed in a way that they are not dupl
 		r._GetCell(1, true).CellStyle = rowStyle1;
 		r._GetCell(2, true).CellStyle = rowStyle2;
 	}
+	
+	xls.Save();
 }</script>
 
-<br>
-<p>If you only need to add highlighting to a style, use the method <code>Highlight()</code>. It will create a new style only if no equivalent style exists in the workbook:
+
+<h2>Highlighting</h2>
+<p>If you need to add highlighting to a style, use the method <code>Highlight()</code>:
 	
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
-	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Highlight(null, new Excel.Color(Color.LightGray));//a new style is created only if no equivalent style exists in the workbook
-	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Highlight(null, new Excel.Color(Color.LightPink));//a new style is created only if no equivalent style exists in the workbook	
+	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Workbook._CreateUnregisteredStyle();
+	xls.Highlight(rowStyle1, new Excel.Color(System.Drawing.Color.LightGray));
+	rowStyle1 = xls.GetRegisteredStyle(rowStyle1);
 	
+	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Workbook._CreateUnregisteredStyle();
+	xls.Highlight(rowStyle2, new Excel.Color(System.Drawing.Color.LightPink));
+	rowStyle2 = xls.GetRegisteredStyle(rowStyle2);
+		
 	foreach (var r in xls.GetRows(Excel.RowScope.CreateIfNull))
 	{
-		r.RowStyle = r._Y() % 2 == 0 ? rowStyle1 : rowStyle2;
+		r._SetStyle(r._Y() % 2 == 0 ? rowStyle1 : rowStyle2, Excel.RowStyleMode.RowAndCells);
 	}
+	
+	xls.Save();
 }</script>
-                    
+      
+
+<h2>Fonts</h2> 
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	var font = xls.GetRegisteredFont(true, NPOI.SS.UserModel.IndexedColors.Automatic.Index, 10, "Arial");
+	xls.GetCell(1, 1, true).CellStyle.SetFont(font);
+	
+	xls.Save();
+}</script>            
 
 <h1>Excel.Table</h1>
 
 <code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers.
-<p>Usage example:
-	
+<p>An example:
+
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
-	var table = new Excel.Table(xls, "Header1", "Header2");
-		
-	Excel.Table.NamedValue[] keys = new Excel.Table.NamedValue[]{
-		table.NewNamedValue("Header1", "key1")
-	};
-	NPOI.SS.UserModel.IRow r = table.FindRows(keys).LastOrDefault();	
+	Column header1 = new Column("Header1");
+	Column header2 = new Column("Header2");
+
+	var table = new Excel.Table(xls, SetColumnMode.FindOrCreate, header1, header2);
+
+	NPOI.SS.UserModel.IRow r = table.FindDataRows(new Key(header1, "value1")).LastOrDefault();
+	table.InsertRow(r == null ? 1 : r._Y(), new Cell(header1, "value1"), new Cell(header2, "value2"));
 	
-	Excel.Table.NamedValue[] values = new Excel.Table.NamedValue[]{
-		table.NewNamedValue("Header1", "value1")
-		, table.NewNamedValue("Header2", "value2")
-	};
-	table.InsertRow(r == null ? 1 : r.Y(), values);
+	xls.Save();
+}</script>
+
+
+<h2>Inheriting Excel.Table</h2>
+<p>Usually it is handy to inherit <code>Excel.Table</code> and extend the heir with custom methods as in the following:
+<script type="text/plain" class="language-csharp">public class JobTable : Excel.Table
+{	
+	public JobTable(Excel xls) : base(xls)
+	{
+		SetColumns(SetColumnMode.Find, JobId, PoId, PoCost);
+
+		StyleError = Excel.Workbook._CreateUnregisteredStyle();
+		Excel.Highlight(StyleError, new Excel.Color(255, 220, 220));
+		StyleError = Excel.GetRegisteredStyle(StyleError);
+	}
+
+	static public readonly Column JobId = new Column("Job");
+	static public readonly Column PoId = new Column("Po");
+	static public readonly Column PoCost = new Column("PoCost");
+
+	public readonly NPOI.SS.UserModel.ICellStyle StyleError;
+
+	public void Record(string jobId, string poId, decimal poCost, string poLink, bool error = false)
+	{
+		Key jobIdKey = new Key(JobId, jobId);
+		Key poIdKey = new Key(PoId, (NPOI.SS.UserModel.ICell cell) => { return cell?._GetValueAsString(true)?.Trim() == poId; });
+
+		NPOI.SS.UserModel.IRow row = FindDataRows(jobIdKey, poIdKey).FirstOrDefault();
+		if (row == null)
+			row = AppendRow(
+				new Cell(JobId, jobId)
+				, new Cell(PoId, poId)
+				, new Cell(PoCost, poCost)
+			);
+		else
+			WriteRow(row._Y(),
+				new Cell(JobId, jobId)
+				, new Cell(PoId, poId)
+				, new Cell(PoCost, poCost)
+			);
+
+		GetCell(row, PoId, true)._SetLink(new Uri(poLink, UriKind.Absolute));
+
+		if (error)
+			row._SetStyle(StyleError, ExcelExtensions.SetRowStyleMode.CellsOnly);
+	}
+
+	public void Save()
+	{
+		//xls.AutosizeColumnsInRange(1, table.Headers.Count, 1.5f);!!!very slow
+		const float charWidth = 1.14388f;
+		Excel.SetColumnWidth(JobId.X, charWidth * 15);
+		Excel.SetColumnWidth(PoId.X, charWidth * 15);
+		Excel.SetColumnWidth(PoCost.X, charWidth * 15);
+		Excel.Save();
+	}
+}
+
+...
+
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	JobTable jt = new JobTable(xls);
+	jt.Record("job1", "po1", 100);
+	jt.Record("job1", "po2", 0, true);	
+	jt.Save();
 }</script>
 
                

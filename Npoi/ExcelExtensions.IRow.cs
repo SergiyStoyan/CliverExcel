@@ -12,53 +12,52 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        public enum SetRowStyleMode
+        static public void _SetStyle(this IRow row, ICellStyle style, Excel.RowStyleMode rowStyleMode)
         {
-            /// <summary>
-            /// Set the row default style.
-            /// </summary>
-            RowOnly,
-            /// <summary>
-            /// Set style of the existing cells.
-            /// </summary>
-            CellsOnly,
-            /// <summary>
-            /// Set both the row default style and style of the existing cells.
-            /// </summary>
-            RowAndCells
-        }
-        static public void _SetStyle(this IRow row, ICellStyle style, SetRowStyleMode setRowStyleMode)
-        {
-            switch (setRowStyleMode)
+            switch (rowStyleMode)
             {
-                case SetRowStyleMode.RowOnly:
+                case Excel.RowStyleMode.RowOnly:
                     row.RowStyle = style;
                     break;
-                case SetRowStyleMode.RowAndCells:
+                case Excel.RowStyleMode.RowAndCells:
                     row.RowStyle = style;
                     foreach (ICell c in row.Cells)
                         c.CellStyle = style;
                     break;
-                case SetRowStyleMode.CellsOnly:
+                case Excel.RowStyleMode.CellsOnly:
                     foreach (ICell c in row.Cells)
                         c.CellStyle = style;
                     break;
                 default:
-                    throw new Exception("Unknown option: " + setRowStyleMode);
+                    throw new Exception("Unknown option: " + rowStyleMode);
             }
         }
 
         static public void _ShiftCellsRight(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
         {
+            if (shift < 0)
+                throw new Exception("Shift cannot be < 0: " + shift);
             for (int x = row._GetLastColumn(true); x >= x1; x--)
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved);
         }
 
         static public void _ShiftCellsLeft(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
         {
+            if (shift < 0)
+                throw new Exception("Shift cannot be < 0: " + shift);
+            if (shift >= x1)
+                throw new Exception("Shifting left before the first column: shift=" + shift + ", x1=" + x1);
             int x2 = row._GetLastColumn(true);
             for (int x = x1; x <= x2; x++)
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved);
+        }
+
+        static public void _ShiftCells(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        {
+            if (shift >= 0)
+                _ShiftCellsRight(row, x1, shift, onFormulaCellMoved);
+            else
+                _ShiftCellsLeft(row, x1, -shift, onFormulaCellMoved);
         }
 
         static public ICell _GetCell(this IRow row, int x, bool createCell)

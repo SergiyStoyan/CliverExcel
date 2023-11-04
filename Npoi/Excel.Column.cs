@@ -134,15 +134,29 @@ namespace Cliver
 
             public void ShiftCellsDown(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
             {
+                if (shift < 0)
+                    throw new Exception("Shift cannot be < 0: " + shift);
                 for (int y = GetLastRow(LastRowCondition.HasCells, true); y >= y1; y--)
                     Sheet._MoveCell(y, X, y + shift, X, onFormulaCellMoved);
             }
 
             public void ShiftCellsUp(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
             {
+                if (shift < 0)
+                    throw new Exception("Shift cannot be < 0: " + shift);
+                if (shift >= y1)
+                    throw new Exception("Shifting up before the first row: shift=" + shift + ", y1=" + y1);
                 int y2 = GetLastRow(LastRowCondition.HasCells, true);
                 for (int y = y1; y <= y2; y++)
                     Sheet._MoveCell(y, X, y - shift, X, onFormulaCellMoved);
+            }
+
+            public void ShiftCells(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+            {
+                if (shift >= 0)
+                    ShiftCellsUp(y1, shift, onFormulaCellMoved);
+                else
+                    ShiftCellsDown(y1, -shift, onFormulaCellMoved);
             }
 
             /// <summary>

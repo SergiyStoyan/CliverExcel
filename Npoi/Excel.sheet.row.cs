@@ -114,7 +114,7 @@ namespace Cliver
             return Sheet._RemoveRow(y, shiftRemainingRows);
         }
 
-        public void _MoveRow(int y1, int y2)
+        public void MoveRow(int y1, int y2)
         {
             Sheet._MoveRow(y1, y2);
         }
@@ -206,6 +206,26 @@ namespace Cliver
         public int GetLastNotEmptyColumnInRowRange(bool includeMerged, int y1 = 1, int? y2 = null)
         {
             return Sheet._GetLastNotEmptyColumnInRowRange(includeMerged, y1, y2);
+        }
+
+        public enum RowStyleMode
+        {
+            /// <summary>
+            /// Set the row default style.
+            /// </summary>
+            RowOnly,
+            /// <summary>
+            /// Set style of the existing cells.
+            /// </summary>
+            CellsOnly,
+            /// <summary>
+            /// Set both the row default style and style of the existing cells.
+            /// </summary>
+            RowAndCells
+        }
+        public void SetStyle(int y, ICellStyle style, RowStyleMode rowStyleMode)
+        {
+            Sheet._GetRow(y, true)._SetStyle(style, rowStyleMode);
         }
     }
 }

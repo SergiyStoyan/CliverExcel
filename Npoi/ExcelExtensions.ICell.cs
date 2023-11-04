@@ -170,7 +170,7 @@ namespace Cliver
                 cell.SetCellValue(b);
             else if (value is DateTime dt)
                 cell.SetCellValue(dt);
-            else 
+            else
                 cell.SetCellValue(value?.ToString());
         }
 

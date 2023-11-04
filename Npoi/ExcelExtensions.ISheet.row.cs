@@ -234,6 +234,11 @@ namespace Cliver
             sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
         }
 
+        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        {
+            sheet._GetRow(y, false)?._ShiftCells(x1, shift, onFormulaCellMoved);
+        }
+
         static public void _SetStyleInRow(this ISheet sheet, ICellStyle style, bool createCells, int y)
         {
             sheet._SetStyleInRowRange(style, createCells, y, y);

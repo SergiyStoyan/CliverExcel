@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>5.7.0</Version>
+	  <Version>5.8.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,10 +17,15 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>comparing to v4:
-- Excel.Table changed;
-- some methods added;
-- fixes;</PackageReleaseNotes>
+	  <PackageReleaseNotes>v5.7 =&gt; v5.8
+- SetRowStyleMode changed to RowStyleMode;
+- ShiftCells*() fixed;
+- ShiftCells() added;
+
+v5.6 =&gt; v5.7
+- _MoveRow() added;
+- SetColumnMode changed;
+- SetRowStyleMode changed;</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

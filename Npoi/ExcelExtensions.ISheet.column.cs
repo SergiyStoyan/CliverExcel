@@ -219,12 +219,17 @@ namespace Cliver
 
         static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
         {
-            sheet._GetColumn(x).ShiftCellsDown(y1, shift, onFormulaCellMoved);
+            sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
         }
 
         static public void _ShiftColumnCellsUp(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
         {
-            sheet._GetColumn(x).ShiftCellsUp(y1, shift, onFormulaCellMoved);
+            sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
+        }
+
+        static public void _ShiftColumnCells(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        {
+            sheet._GetColumn(x)?.ShiftCells(y1, shift, onFormulaCellMoved);
         }
 
         /// <summary>
