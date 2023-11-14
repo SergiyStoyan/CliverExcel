@@ -13,9 +13,9 @@ namespace Cliver
 {
     public partial class Excel
     {
-        public void RemoveEmptyRows(bool includeEmptyCellRows, bool shiftRemainingRows)
+        public void RemoveEmptyRows(bool includeEmptyCellRows, bool shiftRowsBelow)
         {
-            Sheet._RemoveEmptyRows(includeEmptyCellRows, shiftRemainingRows);
+            Sheet._RemoveEmptyRows(includeEmptyCellRows, shiftRowsBelow);
         }
 
         public enum RowScope
@@ -109,9 +109,9 @@ namespace Cliver
             return Sheet._WriteRow(y, values);
         }
 
-        public IRow RemoveRow(int y, bool shiftRemainingRows)
+        public IRow RemoveRow(int y, bool shiftRowsBelow)
         {
-            return Sheet._RemoveRow(y, shiftRemainingRows);
+            return Sheet._RemoveRow(y, shiftRowsBelow);
         }
 
         public void MoveRow(int y1, int y2)
@@ -119,12 +119,12 @@ namespace Cliver
             Sheet._MoveRow(y1, y2);
         }
 
-        public void ShiftRowCellsRight(int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftRowCellsRight(int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftRowCellsRight(y, x1, shift, onFormulaCellMoved);
         }
 
-        public void ShiftRowCellsLeft(int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftRowCellsLeft(int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftRowCellsLeft(y, x1, shift, onFormulaCellMoved);
         }

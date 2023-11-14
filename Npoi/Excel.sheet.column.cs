@@ -14,6 +14,52 @@ namespace Cliver
 {
     public partial class Excel
     {
+        //public enum ColumnScope
+        //{
+        //    /// <summary>
+        //    /// Returns only columns with at least one not empty cell.
+        //    /// (!)Slow due to checking all the cells' values.
+        //    /// </summary>
+        //    NotEmpty,
+        //    /// <summary>
+        //    /// Returns only columns with cells.
+        //    /// </summary>
+        //    WithCells,
+        //    /// <summary>
+        //    /// Returns only rows existing as objects.
+        //    /// </summary>
+        //    NotNull,
+        //    /// <summary>
+        //    /// Returns all the rows withing the range with non-existing rows represented as NULL. 
+        //    /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
+        //    /// </summary>
+        //    IncludeNull,
+        //    /// <summary>
+        //    /// Returns all the rows withing the range with non-existing rows having been created.
+        //    /// </summary>
+        //    CreateIfNull
+        //}
+
+        public Column AppendColumn<T>(IEnumerable<T> values)
+        {
+            return Sheet._AppendColumn(values);
+        }
+
+        public Column AppendColumn<T>(params string[] values)
+        {
+            return Sheet._AppendColumn(values);
+        }
+
+        public Column InsertColumn<T>(int x, IEnumerable<T> values = null)
+        {
+          return  Sheet._InsertColumn(x, values);
+        }
+
+        public void RemoveColumn(int x, bool shiftRemainingColumns)
+        {
+            Sheet._RemoveColumn(x, shiftRemainingColumns);
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -59,12 +105,12 @@ namespace Cliver
             return Sheet._FindColumnByCellValue(cellValue, cellY);
         }
 
-        public void ShiftColumnsRight(int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftColumnsRight(int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftColumnsRight(x1, shift, onFormulaCellMoved);
         }
 
-        public void ShiftColumnsLeft(int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftColumnsLeft(int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftColumnsLeft(x1, shift, onFormulaCellMoved);
         }
@@ -135,12 +181,12 @@ namespace Cliver
             return Sheet._GetLastNotEmptyRow(includeMerged);
         }
 
-        public void ShiftColumnCellsDown(int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftColumnCellsDown(int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftColumnCellsDown(x, y1, shift, onFormulaCellMoved);
         }
 
-        public void ShiftColumnCellsUp(int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftColumnCellsUp(int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftColumnCellsUp(x, y1, shift, onFormulaCellMoved);
         }

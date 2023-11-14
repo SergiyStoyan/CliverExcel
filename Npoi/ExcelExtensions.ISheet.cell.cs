@@ -20,35 +20,35 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetLink(this ISheet sheet, int y, int x, Uri uri)
+        static public void _SetLink(this ISheet sheet, int y, int x, string link)
         {
-            sheet._GetCell(y, x, true)._SetLink(uri);
+            sheet._GetCell(y, x, true)._SetLink(link);
         }
 
-        static public Uri _GetLink(this ISheet sheet, int y, int x)
+        static public string _GetLink(this ISheet sheet, int y, int x)
         {
-            return sheet._GetCell(y, x, false)?._GetLink();
+            return sheet?._GetCell(y, x, false)?._GetLink();
         }
 
-        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             for (int y = y1; y <= y2; y++)
                 sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             for (int y = y1; y <= y2; y++)
                 sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             for (int x = x1; x <= x2; x++)
                 sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             for (int x = x1; x <= x2; x++)
                 sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
@@ -94,7 +94,7 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public void _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, Action<ICell> onFormulaCellMoved = null)
+        static public void _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
             fromCell._Move(toCellY, toCellX, onFormulaCellMoved);
@@ -119,13 +119,7 @@ namespace Cliver
 
         static public void _RemoveCell(this ISheet sheet, int y, int x)
         {
-            IRow r = sheet.GetRow(y);
-            if (r == null)
-                return;
-            ICell c = r.GetCell(x);
-            if (c == null)
-                return;
-            r.RemoveCell(c);
+            sheet._GetCell(y, x, false)?._Remove();
         }
 
         static public void _UpdateFormulaRange(this ISheet sheet, int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)

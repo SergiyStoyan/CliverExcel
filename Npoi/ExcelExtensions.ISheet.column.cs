@@ -18,6 +18,86 @@ namespace Cliver
     static public partial class ExcelExtensions
     {
         /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        static public Column _AppendColumn(this ISheet sheet, params string[] values)
+        {
+            return sheet._AppendColumn(values);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sheet"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        static public Column _AppendColumn<T>(this ISheet sheet, IEnumerable<T> values)
+        {
+            int x = sheet._GetLastColumn(false) + 1;
+            Column c = new Column(sheet, x);
+            c._Write(values);
+            return c;
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sheet"></param>
+        /// <param name="x"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        static public Column _InsertColumn<T>(this ISheet sheet, int x, IEnumerable<T> values = null)
+        {
+            sheet._ShiftColumnsRight(x, 1);
+            Column c = new Column(sheet, x);
+            c._Write(values);
+            return c;
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="x"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        static public Column _InsertColumn(this ISheet sheet, int x, params string[] values)
+        {
+            return sheet._InsertColumn(x, (IEnumerable<string>)values);
+        }
+
+        static public Column _WriteColumn<T>(this ISheet sheet, int x, IEnumerable<T> values)
+        {
+            Column c = sheet._GetColumn(x);
+            c._Write(values);
+            return c;
+        }
+
+        static public Column _WriteColumn(this ISheet sheet, int x, params string[] values)
+        {
+            return sheet._WriteColumn(x, (IEnumerable<string>)values);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="x"></param>
+        /// <param name="shiftRemainingColumns"></param>
+        static public void _RemoveColumn(this ISheet sheet, int x, bool shiftRemainingColumns)
+        {
+            if (shiftRemainingColumns)
+                sheet._GetRows(RowScope.NotNull).ForEach(a => a._RemoveCell(x));
+            else
+                sheet._GetRows(RowScope.NotNull).ForEach(a => a.GetCell(x - 1)?.SetBlank());
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="includeMerged"></param>
@@ -102,10 +182,10 @@ namespace Cliver
             return 0;
         }
 
-        static public void _ShiftColumnsRight(this ISheet sheet, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftColumnsRight(this ISheet sheet, int x, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
-            int lastColumnX = x1;
+            int lastColumnX = x;
             columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
             //var rows = Sheet._GetRowEnumerator();//!!!buggy: sometimes misses added rows
             //while (rows.MoveNext())
@@ -114,24 +194,24 @@ namespace Cliver
                 IRow row = sheet.GetRow(y0);
                 if (row == null)
                     continue;
-                int columnX = row._GetLastColumn(true);
+                int columnX = row._GetLastColumn(false);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)
                         columnXs2width[i + 1] = sheet.GetColumnWidth(i);
                     lastColumnX = columnX;
                 }
-                for (int i = columnX; i >= x1; i--)
+                for (int i = columnX; i >= x; i--)
                     sheet._MoveCell(row._Y(), i, row._Y(), i + shift, onFormulaCellMoved);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 sheet._SetColumnWidth(columnX + shift, columnXs2width[columnX]);
         }
 
-        static public void _ShiftColumnsLeft(this ISheet sheet, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftColumnsLeft(this ISheet sheet, int x, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
-            int lastColumnX = x1;
+            int lastColumnX = x;
             columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
             //var rows = Sheet._GetRowEnumerator();//!!!buggy: sometimes misses added rows
             //while (rows.MoveNext())
@@ -147,7 +227,7 @@ namespace Cliver
                         columnXs2width[i + 1] = sheet.GetColumnWidth(i);
                     lastColumnX = columnX;
                 }
-                for (int i = x1; i <= columnX; i++)
+                for (int i = x; i <= columnX; i++)
                     sheet._MoveCell(row._Y(), i, row._Y(), i - shift, onFormulaCellMoved);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
@@ -217,17 +297,17 @@ namespace Cliver
             return sheet._GetLastNotEmptyRowInColumnRange(includeMerged, 1, null);
         }
 
-        static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftColumnCellsUp(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftColumnCellsUp(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftColumnCells(this ISheet sheet, int x, int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftColumnCells(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetColumn(x)?.ShiftCells(y1, shift, onFormulaCellMoved);
         }

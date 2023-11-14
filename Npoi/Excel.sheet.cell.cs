@@ -12,32 +12,33 @@ namespace Cliver
     public partial class Excel
     {
         public static string LinkEmptyValueFiller = "           ";
-        public void SetLink(int y, int x, Uri uri)
+        public void SetLink(int y, int x, string link)
         {
-            Sheet._SetLink(y, x, uri);
+            Sheet._SetLink(y, x, link);
         }
 
-        public Uri GetLink(int y, int x)
+        public string GetLink(int y, int x)
         {
             return Sheet._GetLink(y, x);
         }
 
-        public void ShiftCellsRight(int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
+        public delegate void OnFormulaCellMoved(ICell fromCell, ICell toCell);
+        public void ShiftCellsRight(int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftCellsRight(x1, y1, y2, shift, onFormulaCellMoved);
         }
 
-        public void ShiftCellsLeft(int x1, int y1, int y2, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftCellsLeft(int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftCellsLeft(x1, y1, y2, shift, onFormulaCellMoved);
         }
 
-        public void ShiftCellsDown(int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftCellsDown(int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftCellsDown(y1, x1, x2, shift, onFormulaCellMoved);
         }
 
-        public void ShiftCellsUp(int y1, int x1, int x2, int shift, Action<ICell> onFormulaCellMoved = null)
+        public void ShiftCellsUp(int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._ShiftCellsUp(y1, x1, x2, shift, onFormulaCellMoved);
         }
@@ -62,7 +63,7 @@ namespace Cliver
             Sheet._SetValue(y, x, value);
         }
 
-        public void MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, Action<ICell> onFormulaCellMoved = null)
+        public void MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved);
         }

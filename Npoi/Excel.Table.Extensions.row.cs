@@ -7,18 +7,18 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
+using static Cliver.Excel;
 
 namespace Cliver
 {
     static public partial class ExcelTableExtensions
     {
-        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             row._ShiftCellsRight(c1.X, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             row._ShiftCellsLeft(c1.X, shift, onFormulaCellMoved);
         }
@@ -80,14 +80,14 @@ namespace Cliver
             return row._GetImages(c.X);
         }
 
-        static public Uri _GetLink(this IRow row, Excel.Table.Column c)
+        static public string _GetLink(this IRow row, Excel.Table.Column c)
         {
-            return row._GetLink(c.X);
+            return row?._GetLink(c.X);
         }
 
-        static public void _SetLink(this IRow row, Excel.Table.Column c, Uri uri)
+        static public void _SetLink(this IRow row, Excel.Table.Column c, string link)
         {
-            row._SetLink(c.X, uri);
+            row._SetLink(c.X, link);
         }
     }
 }

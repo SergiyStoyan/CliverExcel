@@ -321,9 +321,9 @@ namespace Cliver
                 return WriteRow(y, (IEnumerable<Cell>)cells);
             }
 
-            public IRow RemoveRow(int y, bool shiftRemainingRows)
+            public IRow RemoveRow(int y, bool shiftRowsBelow)
             {
-                return Sheet._RemoveRow(y, shiftRemainingRows);
+                return Sheet._RemoveRow(y, shiftRowsBelow);
             }
 
             public void MoveRow(int y1, int y2)

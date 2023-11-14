@@ -132,7 +132,7 @@ namespace Cliver
                 new Range(Sheet, 1, X, null, X).ClearMerging();
             }
 
-            public void ShiftCellsDown(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+            public void ShiftCellsDown(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
@@ -140,7 +140,7 @@ namespace Cliver
                     Sheet._MoveCell(y, X, y + shift, X, onFormulaCellMoved);
             }
 
-            public void ShiftCellsUp(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+            public void ShiftCellsUp(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
@@ -151,7 +151,7 @@ namespace Cliver
                     Sheet._MoveCell(y, X, y - shift, X, onFormulaCellMoved);
             }
 
-            public void ShiftCells(int y1, int shift, Action<ICell> onFormulaCellMoved = null)
+            public void ShiftCells(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
             {
                 if (shift >= 0)
                     ShiftCellsUp(y1, shift, onFormulaCellMoved);
@@ -178,7 +178,7 @@ namespace Cliver
             /// <param name="width">a character width</param>
             public void SetWidth(float width)
             {
-                SetWidth((int)(width * 255));
+                SetWidth((int)(width * 256));
             }
 
             public IEnumerable<ICell> GetCells(RowScope rowScope)
@@ -236,6 +236,22 @@ namespace Cliver
             public IEnumerable<Excel.Image> GetImages(int y)
             {
                 return Sheet._GetImages(y, X);
+            }
+
+            public void _Write<T>(IEnumerable<T> values)
+            {
+                int y = 1;
+                foreach (T v in values)
+                {
+                    if (v != null)
+                        Sheet._GetCell(y, X, true)._SetValue(v);
+                    y++;
+                }
+            }
+
+            public void _Write(params string[] values)
+            {
+                _Write((IEnumerable<string>)values);
             }
         }
     }

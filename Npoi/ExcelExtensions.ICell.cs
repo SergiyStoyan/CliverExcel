@@ -4,25 +4,42 @@
 //        http://www.cliversoft.com
 //********************************************************************************************
 using NPOI.HSSF.UserModel;
+using NPOI.OpenXml4Net.OPC;
+using NPOI.SS.Extractor;
 using NPOI.SS.Formula;
+using NPOI.SS.Formula.Functions;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.Extractor;
 using NPOI.XSSF.UserModel;
+using NPOI.XWPF.Extractor;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using static Cliver.Excel;
 
 namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _Move(this ICell fromCell, int toCellY, int toCellX, Action<ICell> onFormulaCellMoved = null, ISheet toSheet = null)
+        static public string _GetAddress(this ICell cell)
+        {
+            return cell?.Address.ToString();
+        }
+
+        static public void _Remove(this ICell cell)
+        {
+            cell.Row.RemoveCell(cell);
+        }
+
+        static public void _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
             ICell toCell = fromCell._Copy(toCellY, toCellX, toSheet);
             if (fromCell != null)
                 fromCell.Row.RemoveCell(fromCell);
             if (toCell?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(toCell);
+                onFormulaCellMoved?.Invoke(fromCell, toCell);
         }
 
         static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, ISheet toSheet = null)
@@ -58,6 +75,7 @@ namespace Cliver
             toCell.SetCellType(fromCell.CellType);
             toCell.CellStyle = fromCell.CellStyle;
             toCell.CellComment = fromCell.CellComment;
+            //toCell._SetLink(fromCell.Hyperlink?.Address);
             toCell.Hyperlink = fromCell.Hyperlink;
             switch (fromCell.CellType)
             {
@@ -164,8 +182,19 @@ namespace Cliver
         {
             if (value == null)
                 cell.SetBlank();
-            else if (value is double d)
-                cell.SetCellValue(d);
+            else if (value is sbyte
+                        || value is byte
+                        || value is short
+                        || value is ushort
+                        || value is int
+                        || value is uint
+                        || value is long
+                        || value is ulong
+                        || value is float
+                        || value is double
+                        || value is decimal
+                )
+                cell.SetCellValue((double)value);
             else if (value is bool b)
                 cell.SetCellValue(b);
             else if (value is DateTime dt)
@@ -174,30 +203,40 @@ namespace Cliver
                 cell.SetCellValue(value?.ToString());
         }
 
-        static public Uri _GetLink(this ICell cell)
+        static public string _GetLink(this ICell cell)
         {
-            if (cell == null)
-                return null;
-            if (cell.Hyperlink == null)
-                return null;
-            return new Uri(cell.Hyperlink.Address, UriKind.RelativeOrAbsolute);
+            return cell?.Hyperlink?.Address;
         }
 
-        static public void _SetLink(this ICell cell, Uri uri)
+        static public void _SetLink(this ICell cell, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
-            if (uri == null)
+            while (cell.Hyperlink != null)//it might be more than 1 link in the table
+                cell.RemoveHyperlink();//(!)seems to be necessary in any case to get rid of the old link. Otherwise sometimes the old link is not overriden by the new one.
+            if (link == null)
             {
                 //if (cell.GetValueAsString() == LinkEmptyValueFiller)
                 //    cell.SetCellValue("");
-                cell.Hyperlink = null;
                 return;
             }
             if (string.IsNullOrEmpty(cell._GetValueAsString()))
                 cell.SetCellValue(Excel.LinkEmptyValueFiller);
+
+            if (hyperlinkType == HyperlinkType.Unknown)
+            {
+                if (Regex.IsMatch(link, @"^\s*(https?|ftps?)\:", RegexOptions.IgnoreCase))
+                    hyperlinkType = HyperlinkType.Url;
+                else if (Regex.IsMatch(link, @"^\s*[a-z]\:", RegexOptions.IgnoreCase))
+                    hyperlinkType = HyperlinkType.File;
+                else if (Regex.IsMatch(link, @"\@", RegexOptions.IgnoreCase))
+                    hyperlinkType = HyperlinkType.Email;
+                else
+                    hyperlinkType = HyperlinkType.Document;
+            }
+
             if (cell.Sheet.Workbook is XSSFWorkbook)
-                cell.Hyperlink = new XSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
+                cell.Hyperlink = new XSSFHyperlink(hyperlinkType) { Address = link };
             else if (cell.Sheet.Workbook is HSSFWorkbook)
-                cell.Hyperlink = new HSSFHyperlink(HyperlinkType.Url) { Address = uri.ToString() };
+                cell.Hyperlink = new HSSFHyperlink(hyperlinkType) { Address = link };
             else
                 throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
         }
@@ -230,19 +269,31 @@ namespace Cliver
                 {
                     if (rpb.IsRowRelative)
                         rpb.Row = rpb.Row + rangeY1Shift;
+                    if (rpb.Row < 0)
+                        rpb.Row = 0;
                     if (rpb.IsColRelative)
                         rpb.Column = rpb.Column + rangeX1Shift;
+                    if (rpb.Column < 0)
+                        rpb.Column = 0;
                 }
                 else if (ptg is AreaPtgBase apb)
                 {
                     if (apb.IsFirstRowRelative)
                         apb.FirstRow += rangeY1Shift;
+                    if (apb.FirstRow < 0)
+                        apb.FirstRow = 0;
                     if (apb.IsLastRowRelative)
                         apb.LastRow += rangeY2Shift.Value;
+                    if (apb.LastRow < 0)
+                        apb.LastRow = 0;
                     if (apb.IsFirstColRelative)
                         apb.FirstColumn += rangeX1Shift;
+                    if (apb.FirstColumn < 0)
+                        apb.FirstColumn = 0;
                     if (apb.IsLastColRelative)
                         apb.LastColumn += rangeX2Shift.Value;
+                    if (apb.LastColumn < 0)
+                        apb.LastColumn = 0;
                 }
                 //else
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());

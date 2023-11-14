@@ -19,8 +19,8 @@ namespace Cliver
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="includeEmptyCellRows">might considerably slow down if TRUE</param>
-        /// <param name="shiftRemainingRows">the remaining rows are shifted if TRUE</param>
-        public static void _RemoveEmptyRows(this ISheet sheet, bool includeEmptyCellRows, bool shiftRemainingRows)
+        /// <param name="shiftRowsBelow">the remaining rows are shifted if TRUE</param>
+        public static void _RemoveEmptyRows(this ISheet sheet, bool includeEmptyCellRows, bool shiftRowsBelow)
         {
             int removedRowsCount = 0;
             for (int i = sheet.LastRowNum; i >= 0; i--)
@@ -42,7 +42,7 @@ namespace Cliver
                     }
                     sheet.RemoveRow(r);
                 }
-                if (shiftRemainingRows)
+                if (shiftRowsBelow)
                     removedRowsCount++;
             }
             if (removedRowsCount > 0
@@ -161,17 +161,38 @@ namespace Cliver
             }
         }
 
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sheet"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
         static public IRow _AppendRow<T>(this ISheet sheet, IEnumerable<T> values)
         {
             int lastRowY = sheet._GetLastRow(LastRowCondition.HasCells, false);
             return sheet._WriteRow(lastRowY + 1, values);
         }
 
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
         static public IRow _AppendRow(this ISheet sheet, params string[] values)
         {
             return sheet._AppendRow(values);
         }
 
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
         static public IRow _InsertRow<T>(this ISheet sheet, int y, IEnumerable<T> values = null)
         {
             int lastRowY = sheet._GetLastRow(LastRowCondition.HasCells, false);
@@ -180,6 +201,13 @@ namespace Cliver
             return sheet._WriteRow(y, values);
         }
 
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
         static public IRow _InsertRow(this ISheet sheet, int y, params string[] values)
         {
             return sheet._InsertRow(y, (IEnumerable<string>)values);
@@ -197,12 +225,12 @@ namespace Cliver
             return sheet._WriteRow(y, (IEnumerable<string>)values);
         }
 
-        static public IRow _RemoveRow(this ISheet sheet, int y, bool shiftRemainingRows)
+        static public IRow _RemoveRow(this ISheet sheet, int y, bool shiftRowsBelow)
         {
             IRow r = sheet.GetRow(y - 1);
             if (r != null)
                 sheet.RemoveRow(r);
-            if (shiftRemainingRows)
+            if (shiftRowsBelow)
                 sheet.ShiftRows(r.RowNum + 1, sheet.LastRowNum, -1);
             return r;
         }
@@ -224,17 +252,17 @@ namespace Cliver
             }
         }
 
-        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             sheet._GetRow(y, false)?._ShiftCells(x1, shift, onFormulaCellMoved);
         }

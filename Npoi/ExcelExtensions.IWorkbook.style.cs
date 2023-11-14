@@ -104,10 +104,7 @@ namespace Cliver
                     cs.FillPattern = FillPattern.NoFill;
                     return;
                 }
-                HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
-                HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
-                if (hssfColor == null)
-                    hssfColor = getRegisteredHSSFColor((HSSFWorkbook)workbook, color);
+                HSSFColor hssfColor = getRegisteredHSSFColor((HSSFWorkbook)workbook, color);
                 cs.FillForegroundColor = hssfColor.Indexed;
                 cs.FillPattern = fillPattern;
                 return;

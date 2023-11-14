@@ -7,11 +7,26 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Cliver.Excel;
 
 namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _RemoveCell(this IRow row, int x)
+        {
+            var c = row.GetCell(x - 1);
+            if (c != null)
+                row.RemoveCell(c);
+        }
+
+        static public void _MoveCell(this IRow row, int x1, int x2)
+        {
+            var c = row.GetCell(x1 - 1);
+            if (c != null)
+                row.MoveCell(c, x2 - 1);
+        }
+
         static public void _SetStyle(this IRow row, ICellStyle style, Excel.RowStyleMode rowStyleMode)
         {
             switch (rowStyleMode)
@@ -33,7 +48,7 @@ namespace Cliver
             }
         }
 
-        static public void _ShiftCellsRight(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
@@ -41,7 +56,7 @@ namespace Cliver
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
@@ -52,7 +67,7 @@ namespace Cliver
                 row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved);
         }
 
-        static public void _ShiftCells(this IRow row, int x1, int shift, Action<ICell> onFormulaCellMoved = null)
+        static public void _ShiftCells(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             if (shift >= 0)
                 _ShiftCellsRight(row, x1, shift, onFormulaCellMoved);
@@ -232,14 +247,14 @@ namespace Cliver
             return row.Sheet._GetImages(row._Y(), x);
         }
 
-        static public Uri _GetLink(this IRow row, int x)
+        static public string _GetLink(this IRow row, int x)
         {
-            return row._GetCell(x, false)?._GetLink();
+            return row?._GetCell(x, false)?._GetLink();
         }
 
-        static public void _SetLink(this IRow row, int x, Uri uri)
+        static public void _SetLink(this IRow row, int x, string link)
         {
-            row._GetCell(x, true)._SetLink(uri);
+            row._GetCell(x, true)._SetLink(link);
         }
     }
 }
