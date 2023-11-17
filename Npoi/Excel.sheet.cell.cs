@@ -43,9 +43,9 @@ namespace Cliver
             Sheet._ShiftCellsUp(y1, x1, x2, shift, onFormulaCellMoved);
         }
 
-        public void CopyCell(int fromCellY, int fromCellX, int toCellY, int toCellX)
+        public ICell CopyCell(int fromCellY, int fromCellX, int toCellY, int toCellX)
         {
-            Sheet._CopyCell(fromCellY, fromCellX, toCellY, toCellX);
+            return Sheet._CopyCell(fromCellY, fromCellX, toCellY, toCellX);
         }
 
         public string GetValueAsString(int y, int x, bool allowNull = false)
@@ -63,9 +63,9 @@ namespace Cliver
             Sheet._SetValue(y, x, value);
         }
 
-        public void MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
+        public ICell MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
         {
-            Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved);
+            return Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved);
         }
 
         public ICell GetCell(int y, int x, bool createCell)

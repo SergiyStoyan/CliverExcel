@@ -93,11 +93,11 @@ namespace Cliver
         {
             get
             {
-                return Sheet._GetValueAsString(y, x, false);
+                return GetValueAsString(y, x, false);
             }
             set
             {
-                Sheet._SetValue(y, x, value);
+                GetCell(y, x, true).SetCellValue(value);
             }
         }
 

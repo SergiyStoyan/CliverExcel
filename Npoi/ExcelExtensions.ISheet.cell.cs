@@ -54,10 +54,10 @@ namespace Cliver
                 sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
         }
 
-        static public void _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX)
+        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX)
         {
             ICell sourceCell = sheet._GetCell(fromCellY, fromCellX, false);
-            sourceCell._Copy(toCellY, toCellX);
+            return sourceCell._Copy(toCellY, toCellX);
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -94,10 +94,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public void _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            fromCell._Move(toCellY, toCellX, onFormulaCellMoved);
+            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)

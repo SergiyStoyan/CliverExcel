@@ -33,16 +33,17 @@ namespace Cliver
             cell.Row.RemoveCell(cell);
         }
 
-        static public void _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
-            ICell toCell = fromCell._Copy(toCellY, toCellX, toSheet);
+            ICell toCell = fromCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet);
             if (fromCell != null)
                 fromCell.Row.RemoveCell(fromCell);
-            if (toCell?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(fromCell, toCell);
+            //if (toCell?.CellType == CellType.Formula)
+            //    onFormulaCellMoved?.Invoke(fromCell, toCell);
+            return toCell;
         }
 
-        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, ISheet toSheet = null)
+        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
             if (toSheet == null)
             {
@@ -64,12 +65,12 @@ namespace Cliver
             else
             {
                 ICell toCell = toSheet._GetCell(toCellY, toCellX, true);
-                _Copy(fromCell, toCell);
+                _Copy(fromCell, toCell, onFormulaCellMoved);
                 return toCell;
             }
         }
 
-        static public void _Copy(this ICell fromCell, ICell toCell)
+        static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             toCell.SetBlank();
             toCell.SetCellType(fromCell.CellType);
@@ -100,6 +101,8 @@ namespace Cliver
                 default:
                     throw new Exception("Unknown cell type: " + fromCell.CellType);
             }
+            if (toCell?.CellType == CellType.Formula)
+                onFormulaCellMoved?.Invoke(fromCell, toCell);
         }
 
         static public string _GetValueAsString(this ICell cell, bool allowNull = false)

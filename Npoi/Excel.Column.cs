@@ -203,15 +203,15 @@ namespace Cliver
                     SetWidth(Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
             }
 
-            public void Copy(ISheet toSheet, string toColumnName = null)
+            public void Copy(ISheet toSheet, string toColumnName = null, OnFormulaCellMoved onFormulaCellMoved = null)
             {
                 int toX = toColumnName == null ? X : CellReference.ConvertColStringToIndex(toColumnName);
-                Copy(toSheet, toX);
+                Copy(toSheet, toX, onFormulaCellMoved);
             }
 
-            public void Copy(ISheet toSheet, int toX)
+            public void Copy(ISheet toSheet, int toX, OnFormulaCellMoved onFormulaCellMoved = null)
             {
-                new Range(Sheet, 1, X, null, X).Copy(1, toX, toSheet);
+                new Range(Sheet, 1, X, null, X).Copy(1, toX, onFormulaCellMoved, toSheet);
             }
 
             public object GetValue(int y)

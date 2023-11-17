@@ -81,7 +81,7 @@ namespace Cliver
             //}
 
             public void ClearMerging()
-            {                
+            {
                 CellRangeAddress cra = GetCellRangeAddress();
                 for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
                     if (Sheet.MergedRegions[i].Intersects(cra))
@@ -177,14 +177,14 @@ namespace Cliver
                 return copyCutRange(true);
             }
 
-            public void Move(int toY, int toX, ISheet toSheet = null)
+            public void Move(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
             {
-                PasteRange(Cut(), toY, toX, toSheet);
+                PasteRange(Cut(), toY, toX, onFormulaCellMoved, toSheet);
             }
 
-            public void Copy(int toY, int toX, ISheet toSheet = null)
+            public void Copy(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
             {
-                PasteRange(Copy(), toY, toX, toSheet);
+                PasteRange(Copy(), toY, toX, onFormulaCellMoved, toSheet);
             }
         }
     }
