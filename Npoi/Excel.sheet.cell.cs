@@ -11,6 +11,16 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public void SetComment(int y, int x, string comment, string author = null, IClientAnchor anchor = null)
+        {
+            Sheet._SetComment(y, x, comment, author, anchor);
+        }
+
+        public void _AppendOrSetComment(int y, int x, string comment, string author = null, string separator = "\r\n\r\n", IClientAnchor anchor = null)
+        {
+            Sheet._AppendOrSetComment(y, x, comment, author, separator, anchor);
+        }
+
         public static string LinkEmptyValueFiller = "           ";
         public void SetLink(int y, int x, string link)
         {
@@ -63,9 +73,9 @@ namespace Cliver
             Sheet._SetValue(y, x, value);
         }
 
-        public ICell MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
+        public ICell MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
-            return Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved);
+            return Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved, toSheet);
         }
 
         public ICell GetCell(int y, int x, bool createCell)

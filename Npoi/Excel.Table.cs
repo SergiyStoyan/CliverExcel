@@ -363,7 +363,7 @@ namespace Cliver
                 SetStyles(row, styles.ToArray());
             }
 
-            public void Save(string file = null)
+            virtual public void Save(string file = null)
             {
                 Excel.Save(file);
             }

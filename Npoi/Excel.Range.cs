@@ -186,6 +186,53 @@ namespace Cliver
             {
                 PasteRange(Copy(), toY, toX, onFormulaCellMoved, toSheet);
             }
+
+            public void SetComment(string comment, string author = null)
+            {
+                throw new System.Exception("TBD");
+                //if (comment == null)
+                //{
+                //    int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                //    for (int y = Y1; y <= maxY; y++)
+                //    {
+                //        IRow row = Sheet._GetRow(y, false);
+                //        if (row == null)
+                //            continue;
+                //        int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                //        for (int x = X1; x <= maxX; x++)
+                //            row._GetCell(x, false)?.RemoveCellComment();
+                //    }
+                //}
+                //else
+                //{
+                //    var creationHelper = Sheet.Workbook.GetCreationHelper();
+                //    var richTextString = creationHelper.CreateRichTextString(comment);
+                //    var clientAnchor = creationHelper.CreateClientAnchor();
+                //    //clientAnchor.Col1 = cell.ColumnIndex + 1;
+                //    //clientAnchor.Col2 = cell.ColumnIndex + 3;
+                //    //clientAnchor.Row1 = cell.RowIndex + 1;
+                //    //clientAnchor.Row2 = cell.RowIndex + 5;
+                //    var drawingPatriarch = Sheet.CreateDrawingPatriarch();
+
+                //    int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                //    for (int y = Y1; y <= maxY; y++)
+                //    {
+                //        IRow row = Sheet._GetRow(y, false);
+                //        if (row == null)
+                //            continue;
+                //        int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                //        for (int x = X1; x <= maxX; x++)
+                //        {
+                //            ICell cell = row._GetCell(x, true);
+                //            IComment iComment = drawingPatriarch.CreateCellComment(clientAnchor);
+                //            iComment.String = richTextString;
+                //            if (!string.IsNullOrWhiteSpace(author))
+                //                iComment.Author = author;
+                //            cell.CellComment = iComment;
+                //        }
+                //    }
+                //}
+            }
         }
     }
 }

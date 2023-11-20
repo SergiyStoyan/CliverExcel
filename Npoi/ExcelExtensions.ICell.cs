@@ -16,6 +16,7 @@ using NPOI.XSSF.UserModel;
 using NPOI.XWPF.Extractor;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using static Cliver.Excel;
 
@@ -23,11 +24,75 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public IClientAnchor _SetComment(this ICell cell, string comment, string author = null, IClientAnchor anchor = null)
+        {
+            cell.RemoveCellComment();//!!!adding multiple comments brings to error
+            if (string.IsNullOrWhiteSpace(comment))
+                return null;
+
+            //if (anchor == null)
+            //{
+            //    anchor = creationHelper.CreateClientAnchor();
+            //    anchor.Col1 = cell.ColumnIndex;
+            //    anchor.Col2 = cell.ColumnIndex + 3;
+            //    anchor.Row1 = cell.RowIndex;
+            //    anchor.Row2 = cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3;
+            //}
+            var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
+            if (anchor == null)
+                anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0, cell.ColumnIndex, cell.RowIndex, cell.ColumnIndex + 3, cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3);
+            IComment iComment = null;
+            //try
+            //{
+            iComment = drawingPatriarch.CreateCellComment(anchor);
+            //}
+            //catch (Exception e)//!!!sometimes occured for unknown reason
+            //{
+            //    //var cs = cell.Sheet.GetCellComments(); //!!!this throws an exception too
+            //}
+            if (author != null)
+                iComment.Author = author;
+            comment = addCommentAuthor(comment, author);
+            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(comment);
+            cell.CellComment = iComment;
+
+            return cell.CellComment.ClientAnchor;
+        }
+        static string addCommentAuthor(string comment, string author)
+        {
+            if (!string.IsNullOrWhiteSpace(author))
+                comment = "[" + author + "]:\r\n" + comment;
+            return comment;
+        }
+
+        static public IClientAnchor _AppendOrSetComment(this ICell cell, string comment, string author = null, string delimiter = "\r\n\r\n", IClientAnchor anchor = null)
+        {
+            if (string.IsNullOrWhiteSpace(comment))
+                return cell?.CellComment?.ClientAnchor;
+
+            if (string.IsNullOrEmpty(cell?.CellComment?.String?.String))
+                return cell._SetComment(comment, author, anchor);
+
+            IComment iComment = cell.CellComment;
+            comment = delimiter + addCommentAuthor(comment, author);
+            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(iComment.String.String + comment);
+            int r2 = iComment.ClientAnchor.Row2;
+            iComment.ClientAnchor.Row2 += Regex.Matches(comment, @"^", RegexOptions.Multiline).Count - 1;
+            if (iComment.ClientAnchor.Row2 <= r2)
+            {//!!!sometimes happens for unknown reason
+                //throw new Exception("Could not increase ClientAnchor");
+                return cell._SetComment(iComment.String.String);
+            }
+            cell.CellComment = iComment;
+            return cell.CellComment.ClientAnchor;
+        }
+
         static public string _GetAddress(this ICell cell)
         {
             return cell?.Address.ToString();
         }
 
+        /// Remove the cell from its row.
         static public void _Remove(this ICell cell)
         {
             cell.Row.RemoveCell(cell);
@@ -35,32 +100,26 @@ namespace Cliver
 
         static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
-            ICell toCell = fromCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet);
-            if (fromCell != null)
-                fromCell.Row.RemoveCell(fromCell);
-            //if (toCell?.CellType == CellType.Formula)
-            //    onFormulaCellMoved?.Invoke(fromCell, toCell);
+            ICell toCell = _Copy(fromCell, toCellY, toCellX, onFormulaCellMoved, toSheet);
+            fromCell?._Remove();
             return toCell;
+        }
+
+        static public void _Move(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
+        {
+            _Copy(fromCell, toCell, onFormulaCellMoved);
+            fromCell?._Remove();
         }
 
         static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
             if (toSheet == null)
-            {
-                if (fromCell == null)
-                    return null;
                 toSheet = fromCell.Sheet;
-            }
             if (fromCell == null)
             {
-                IRow toRow = toSheet._GetRow(toCellY, false);
-                if (toRow == null)
-                    return null;
-                ICell toCell = toRow._GetCell(toCellX, false);
-                if (toCell == null)
-                    return toCell;
-                toRow.RemoveCell(toCell);
-                return toCell;
+                ICell toCell = toSheet._GetCell(toCellY, toCellX, false);
+                toCell?._Remove();
+                return null;
             }
             else
             {
@@ -72,9 +131,16 @@ namespace Cliver
 
         static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
         {
+            if (fromCell == null)
+            {
+                toCell?._Remove();
+                return;
+            }
+
             toCell.SetBlank();
             toCell.SetCellType(fromCell.CellType);
             toCell.CellStyle = fromCell.CellStyle;
+            toCell.RemoveCellComment();
             toCell.CellComment = fromCell.CellComment;
             //toCell._SetLink(fromCell.Hyperlink?.Address);
             toCell.Hyperlink = fromCell.Hyperlink;
@@ -105,6 +171,12 @@ namespace Cliver
                 onFormulaCellMoved?.Invoke(fromCell, toCell);
         }
 
+        /// <summary>
+        /// NULL- and type-safe.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="allowNull"></param>
+        /// <returns></returns>
         static public string _GetValueAsString(this ICell cell, bool allowNull = false)
         {
             object o = cell?._GetValue();

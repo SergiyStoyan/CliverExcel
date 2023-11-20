@@ -24,9 +24,10 @@ namespace Cliver
         /// (!)The name will be corrected to remove unacceptable symbols.
         /// </summary>
         /// <param name="name"></param>
-        public void OpenSheet(string name)
+        /// <param name="createSheet"></param>
+        public void OpenSheet(string name, bool createSheet = true)
         {
-            Sheet = Workbook._OpenSheet(name);
+            Sheet = Workbook._OpenSheet(name, createSheet);
         }
 
         /// <summary>
@@ -75,6 +76,18 @@ namespace Cliver
             set
             {
                 Workbook._SetHyperlinkBase(value);
+            }
+        }
+
+        public string Author
+        {
+            get
+            {
+                return Workbook._GetAuthor();
+            }
+            set
+            {
+                Workbook._SetAuthor(value);
             }
         }
 

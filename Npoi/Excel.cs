@@ -22,6 +22,11 @@ namespace Cliver
         {
         }
 
+        /// <summary>
+        /// (!)No sheet auto-created. If the given sheetIndex does not exist, Sheet will be NULL.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="sheetIndex"></param>
         public Excel(string file, int sheetIndex = 1)
         {
             File = file;
@@ -29,11 +34,17 @@ namespace Cliver
             OpenSheet(sheetIndex);
         }
 
-        public Excel(string file, string sheetName)
+        /// <summary>
+        /// Use it when you need the sheet auto-created. If the given sheetName does not exist and createSheet=TRUE, the sheet will be created.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="createSheet"></param>
+        public Excel(string file, string sheetName, bool createSheet = true)
         {
             File = file;
             init();
-            OpenSheet(sheetName);
+            OpenSheet(sheetName, createSheet);
         }
 
         void init()
@@ -54,8 +65,10 @@ namespace Cliver
                 }
             else
             {
-                //System.IO.File.Create(File).Dispose();
-                Workbook = new XSSFWorkbook();
+                if (PathRoutines.GetFileExtension(File).ToLower() != "xls")
+                    Workbook = new XSSFWorkbook();
+                else
+                    Workbook = new HSSFWorkbook();
             }
         }
 
@@ -83,7 +96,8 @@ namespace Cliver
 
         public bool Disposed { get { return Workbook == null; } }
 
-        /// <summary>
+        /// <summary>         
+        /// NULL- and type-safe.
         /// (!)Never returns NULL.
         /// </summary>
         /// <param name="y"></param>
@@ -102,6 +116,7 @@ namespace Cliver
         }
 
         /// <summary>
+        /// NULL- and type-safe.
         /// (!)Never returns NULL.
         /// </summary>
         public string this[string cellAddress]
@@ -126,6 +141,13 @@ namespace Cliver
         //    get
         //    {
         //        return Sheet._GetRow(y, true);
+        //    }
+        //}
+        //public Column this[string columnName]//!!!do not do it: it is used for Sheet
+        //{
+        //    get
+        //    {
+        //        return Sheet._GetColumn(columnName);
         //    }
         //}
 

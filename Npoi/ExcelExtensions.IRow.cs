@@ -13,6 +13,25 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        /// <summary>
+        /// Remove the row from its sheet.
+        /// </summary>
+        /// <param name="row"></param>
+        static public void _Remove(this IRow row)
+        {
+            row.Sheet.RemoveRow(row);
+        }
+
+        public static int _LastCellY(this IRow row)
+        {
+            return row.LastCellNum + 1;
+        }
+
+        static public void _Move(this IRow row, int y2)
+        {
+            row.Sheet._MoveRow(row._Y(), y2);
+        }
+
         static public void _RemoveCell(this IRow row, int x)
         {
             var c = row.GetCell(x - 1);
@@ -53,7 +72,7 @@ namespace Cliver
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
             for (int x = row._GetLastColumn(true); x >= x1; x--)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved, row.Sheet);
         }
 
         static public void _ShiftCellsLeft(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
@@ -62,9 +81,9 @@ namespace Cliver
                 throw new Exception("Shift cannot be < 0: " + shift);
             if (shift >= x1)
                 throw new Exception("Shifting left before the first column: shift=" + shift + ", x1=" + x1);
-            int x2 = row._GetLastColumn(true);
+            int x2 = row._GetLastColumn(true) + 1;
             for (int x = x1; x <= x2; x++)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved, row.Sheet);
         }
 
         static public void _ShiftCells(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)

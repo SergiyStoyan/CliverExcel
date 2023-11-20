@@ -3,6 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
@@ -99,7 +100,6 @@ namespace Cliver
                         {
                             List<Column> cs = columns.ToList();
                             List<Column> c0s = Columns.ToList();
-                            int lastX = c0s[c0s.Count - 1].X;
                             for (int i = cs.Count - 1; i >= 0; i--)
                             {
                                 Column c = cs[i];
@@ -121,7 +121,7 @@ namespace Cliver
                                     }
                                 }
                             }
-                            cs = cs.Select((a, i) => (column: a, x: c0s.Count + i))
+                            cs = cs.Select((a, i) => (column: a, x: c0s.Count + i + 1))
                                 .Where(a =>
                                 {
                                     if (a.column == null)
@@ -223,11 +223,42 @@ namespace Cliver
 
                 WriteRow(1, Columns.Select(a => new Cell(a, a.Header)));
 
-                var r2 = Sheet._GetRow(2, false);
-                if (r2 != null)
                 {
-                    Columns.Where(a => a.DataStyle == null).ForEach(a => a.SetDataStyle(r2._GetCell(a.X, false)?.CellStyle, false));
-                    Columns.Where(a => a.DataType == null).ForEach(a => a.SetDataType(r2._GetCell(a.X, false)?.CellType, false));
+                    var r2 = Sheet._GetRow(2, false);
+                    bool r2created = false;
+                    if (r2 == null)
+                    {
+                        r2 = Sheet._GetRow(2, true);
+                        r2created = true;
+                    }
+                    Columns.Where(a => a.DataStyle == null).ForEach(a =>
+                    {
+                        ICell c = r2._GetCell(a.X, false);
+                        bool ccreated = false;
+                        if (c == null)
+                        {
+                            c = r2._GetCell(a.X, true);
+                            ccreated = true;
+                        }
+                        a.DataStyle = c.CellStyle;
+                        if (ccreated)
+                            c._Remove();
+                    });
+                    Columns.Where(a => a.DataType == null).ForEach(a =>
+                    {
+                        ICell c = r2._GetCell(a.X, false);
+                        bool ccreated = false;
+                        if (c == null)
+                        {
+                            c = r2._GetCell(a.X, true);
+                            ccreated = true;
+                        }
+                        a.DataType = c.CellType;
+                        if (ccreated)
+                            c._Remove();
+                    });
+                    if (r2created)
+                        r2._Remove();
                 }
             }
 
@@ -302,22 +333,37 @@ namespace Cliver
                 public readonly string Header;
                 public int X { get; internal set; } = -1;
 
-                public ICellStyle DataStyle { get; private set; } = null;
-                public void SetDataStyle(ICellStyle style, bool updateExistingCells)
+                public ICellStyle DataStyle
                 {
-                    DataStyle = style;
-                    if (updateExistingCells)
-                        foreach (ICell c in GetDataCells(RowScope.WithCells))
-                            c.CellStyle = DataStyle;
+                    get
+                    {
+                        return dataStyle;
+                    }
+                    set
+                    {
+                        if (value == null)
+                            return;
+                        dataStyle = value;
+                        //Table?.Sheet.SetDefaultColumnStyle(X - 1, dataStyle);
+                    }
+                }
+                ICellStyle dataStyle = null;
+                public void ApplyDataStyle(ICellStyle style = null)
+                {
+                    if (style != null)
+                        DataStyle = style;
+                    foreach (ICell c in GetDataCells(RowScope.WithCells))
+                        c.CellStyle = DataStyle;
                 }
 
-                public CellType? DataType { get; private set; } = null;
-                public void SetDataType(CellType? dataType, bool updateExistingCells)
+                public CellType? DataType { get; set; } = null;
+                public void ApplyDataType(CellType? dataType = null)
                 {
-                    DataType = dataType;
-                    if (updateExistingCells && dataType != null)
+                    if (dataType != null)
+                        DataType = dataType.Value;
+                    if (DataType != null)
                         foreach (ICell c in GetDataCells(RowScope.WithCells))
-                            c.SetCellType(dataType.Value);
+                            c.SetCellType(DataType.Value);
                 }
 
                 public Table Table { get; internal set; } = null;
@@ -332,8 +378,8 @@ namespace Cliver
                     if (string.IsNullOrWhiteSpace(header))
                         throw new Exception("Header cannot be empty or space.");
                     Header = header;
-                    SetDataStyle(dataStyle, false);
-                    SetDataType(dataType, false);
+                    DataStyle = dataStyle;
+                    DataType = dataType;
                 }
 
                 public ICell GetCell(int y, bool create)

@@ -14,6 +14,16 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _RemoveRow(this ISheet sheet, int y)
+        {
+            sheet._GetRow(y, false)?._Remove();
+        }
+
+        public static int _LastRowY(this ISheet sheet)
+        {
+            return sheet.LastRowNum + 1;
+        }
+
         /// <summary>
         /// Removes empty rows.
         /// </summary>
@@ -239,15 +249,17 @@ namespace Cliver
         {
             if (y1 == y2)
                 return;
-            sheet.ShiftRows(y2 - 1, sheet.LastRowNum, 1);
             if (y1 > y2)
             {
+                sheet.ShiftRows(y2 - 1, sheet.LastRowNum, 1);
                 sheet.ShiftRows(y1, y1, y2 - y1 - 1);
                 sheet.ShiftRows(y1 + 1, sheet.LastRowNum, -1);
             }
             else
             {
-                sheet.ShiftRows(y1 - 1, y1 - 1, y2 - y1);
+                if (y2 - 1 < sheet.LastRowNum)
+                    sheet.ShiftRows(y2, sheet.LastRowNum, 1);
+                sheet.ShiftRows(y1 - 1, y1 - 1, y2 - y1 + 1);
                 sheet.ShiftRows(y1, sheet.LastRowNum, -1);
             }
         }

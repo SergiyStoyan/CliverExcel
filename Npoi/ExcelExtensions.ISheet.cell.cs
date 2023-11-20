@@ -20,6 +20,16 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _SetComment(this ISheet sheet, int y, int x, string comment, string author = null, IClientAnchor anchor = null)
+        {
+            sheet._GetCell(y, x, true)._SetComment(comment, author, anchor);
+        }
+
+        static public void _AppendOrSetComment(this ISheet sheet, int y, int x, string comment, string author = null, string separator = "\r\n\r\n", IClientAnchor anchor = null)
+        {
+            sheet._GetCell(y, x, true)._AppendOrSetComment(comment, author, separator, anchor);
+        }
+
         static public void _SetLink(this ISheet sheet, int y, int x, string link)
         {
             sheet._GetCell(y, x, true)._SetLink(link);
@@ -94,10 +104,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved);
+            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)

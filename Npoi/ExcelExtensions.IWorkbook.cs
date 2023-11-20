@@ -15,6 +15,26 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        public static void _SetAuthor(this IWorkbook workbook, string author)
+        {
+            if (workbook is XSSFWorkbook xSSFWorkbook)
+                xSSFWorkbook.GetProperties().CoreProperties.Creator = author;
+            else if (workbook is HSSFWorkbook hSSFWorkbook)
+                hSSFWorkbook.SummaryInformation.Author = author;
+            else
+                throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        }
+
+        public static string _GetAuthor(this IWorkbook workbook)
+        {
+            if (workbook is XSSFWorkbook xSSFWorkbook)
+                return xSSFWorkbook.GetProperties().CoreProperties.Creator;
+            else if (workbook is HSSFWorkbook hSSFWorkbook)
+                return hSSFWorkbook.SummaryInformation.Author;
+            else
+                throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        }
+
         public static IEnumerable<ISheet> _GetSheets(this IWorkbook workbook)
         {
             for (int i = 0; i < workbook.ActiveSheetIndex; i++)
@@ -24,16 +44,16 @@ namespace Cliver
         }
 
         /// <summary>
-        /// If no sheet with such name exists, a new sheet is created. 
         /// (!)The name will be corrected to remove unacceptable symbols.
         /// </summary>
         /// <param name="workbook"></param>
         /// <param name="name"></param>
+        /// <param name="createSheet"></param>
         /// <returns></returns>
-        static public ISheet _OpenSheet(this IWorkbook workbook, string name)
+        static public ISheet _OpenSheet(this IWorkbook workbook, string name, bool createSheet = true)
         {
             ISheet sheet = workbook.GetSheet(name);
-            if (sheet == null)
+            if (sheet == null && createSheet)
                 sheet = workbook.CreateSheet(Excel.GetSafeSheetName(name));
             return sheet;
         }

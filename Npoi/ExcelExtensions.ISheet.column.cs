@@ -202,7 +202,7 @@ namespace Cliver
                     lastColumnX = columnX;
                 }
                 for (int i = columnX; i >= x; i--)
-                    sheet._MoveCell(row._Y(), i, row._Y(), i + shift, onFormulaCellMoved);
+                    sheet._MoveCell(row._Y(), i, row._Y(), i + shift, onFormulaCellMoved, sheet);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 sheet._SetColumnWidth(columnX + shift, columnXs2width[columnX]);
@@ -228,7 +228,7 @@ namespace Cliver
                     lastColumnX = columnX;
                 }
                 for (int i = x; i <= columnX; i++)
-                    sheet._MoveCell(row._Y(), i, row._Y(), i - shift, onFormulaCellMoved);
+                    sheet._MoveCell(row._Y(), i, row._Y(), i - shift, onFormulaCellMoved, sheet);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 sheet._SetColumnWidth(columnX - shift, columnXs2width[columnX]);
