@@ -253,6 +253,11 @@ namespace Cliver
             }
         }
 
+        /// <summary>
+        /// NULL- and type-safe.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="value"></param>
         static public void _SetValue(this ICell cell, object value)
         {
             if (value == null)

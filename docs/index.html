@@ -93,12 +93,12 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 	xls.Save();
 }
 ...
-
+//it updates cell formulas if any
 void onFormulaCellMoved_shiftSpan(ICell fromCell, ICell toCell)
 {
 	int shiftX = toCell._X() - fromCell._X();
 	int shiftY = toCell._Y() - fromCell._Y();
-	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);
+	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//for ordinary formulas
 }</script>
 
 

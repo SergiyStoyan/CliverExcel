@@ -172,7 +172,7 @@ namespace Cliver
             public readonly byte R;
             public readonly byte G;
             public readonly byte B;
-            readonly public byte[] RGB = new byte[3];
+            public byte[] RGB { get { return new byte[] { R, G, B }; } }
 
             public Color(byte r, byte g, byte b)
             {
