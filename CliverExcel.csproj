@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>5.11.0</Version>
+	  <Version>6.2.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,21 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v5.7 =&gt; v5.8
+	  <PackageReleaseNotes>v5.8 =&gt; v6.0
+Minor API changes, including the following:
+- LastRowY(), GetLastNotEmptyRow() added;
+- _LastCellY(), _Move() added;
+- SetColumns() fixed;
+- _MoveRow() fixed;
+- _SetComment() added;
+- _OpenSheet() updated;
+- IWorkbook.Author added;
+- SetDataStyle() =&gt; ApplyDataStyle();
+- SetDataType() =&gt; ApplyDataType();
+- ShiftCells*() fixed;
+- _MoveCell() fixed;
+
+v5.7 =&gt; v5.8
 - SetRowStyleMode changed to RowStyleMode;
 - ShiftCells*() fixed;
 - ShiftCells() added;

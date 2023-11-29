@@ -46,7 +46,7 @@ namespace Cliver
         static public bool AreColorsEqual(IColor c1, IColor c2)
         {
             if (c1?.RGB == null)
-                return c2 == null;
+                return c2?.RGB == null;
             if (c2?.RGB == null)
                 return false;
             return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
@@ -54,20 +54,20 @@ namespace Cliver
 
         static public bool AreColorsEqual(Color c1, IColor c2)
         {
-            if (c1?.RGB == null)
-                return c2 == null;
+            if (c1 == null)
+                return c2?.RGB == null;
             if (c2?.RGB == null)
                 return false;
-            return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
+            return c1.R == c2.RGB[0] && c1.G == c2.RGB[1] && c1.B == c2.RGB[2];
         }
 
         static public bool AreColorsEqual(Color c1, Color c2)
         {
-            if (c1?.RGB == null)
+            if (c1 == null)
                 return c2 == null;
-            if (c2?.RGB == null)
+            if (c2 == null)
                 return false;
-            return c1.RGB[0] == c2.RGB[0] && c1.RGB[1] == c2.RGB[1] && c1.RGB[2] == c2.RGB[2];
+            return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
         static public void PasteRange(ICell[][] rangeCells, int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)

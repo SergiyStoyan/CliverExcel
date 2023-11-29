@@ -11,7 +11,7 @@
 <body>
 <script src="prism.js"></script>
 <div class='header'>
-<div class='mainHeader'>Cliver Excel 5.*</div>
+<div class='mainHeader'>Cliver Excel 6.*</div>
 </div>
 
 <div class='content'>
@@ -69,7 +69,7 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 
 
 
-<h1>API</h1>
+<h1>Routines</h1>
 
 <p>All the methods are plainly accessible through the class <code>Cliver.Excel</code>. In this class their scope is defaulted to the opened workbook and currently picked worksheet. 
 
@@ -79,8 +79,51 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 <span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the methods you are using. In the CliverExcel methods' arguments, column and row indexes are always represented by 'x' and 'y' respectively. 
 
 
-<h2>Excel.Column</h2>
-The class <code>Excel.Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is native to CliverExcel as has no underlying NPOI type.
+
+<h2>Shifting cells</h2>
+
+It is possible to move a range of cells down, up, left and right:
+
+<script type="text/plain" class="language-csharp">...
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	int y = xls.GetLastNotEmptyRowInColumnRange(false, x1, x2);
+    xls.ShiftCellsUp(y, x1, x2, shift, onFormulaCellMoved_shiftSpan);
+	
+	xls.Save();
+}
+...
+//it updates cell formulas if any
+void onFormulaCellMoved_shiftSpan(ICell fromCell, ICell toCell)
+{
+	int shiftX = toCell._X() - fromCell._X();
+	int shiftY = toCell._Y() - fromCell._Y();
+	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//for ordinary formulas
+}</script>
+
+
+<h2>Sizing columns</h2>
+
+<script type="text/plain" class="language-csharp">...
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	xls.AutosizeColumnsInRange(3, 7, 1.8f);
+	
+	xls.Save();
+}</script>
+
+
+<h2>Commenting</h2>
+
+<script type="text/plain" class="language-csharp">...
+using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+    xls._GetCell(1, 1, true)._AppendOrSetComment("Comment", "Author", "\r\n");
+	
+	xls.Save();
+}</script>
+
+
 
 
 
@@ -163,11 +206,36 @@ It is always commendable when styles are managed in a way that they are not dupl
 }</script>
       
 
-<h2>Fonts</h2> 
+<h2>Fonts</h2>  
+    
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	ICell cell = xls.GetCell(1, 1, true);
+	var f = cell.CellStyle.GetFont(Excel.Workbook);
+	f.IsBold = true;
+	cell.CellStyle.SetFont(f);
+	
+	xls.Save();
+}</script>  
+
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
 {
 	var font = xls.GetRegisteredFont(true, NPOI.SS.UserModel.IndexedColors.Automatic.Index, 10, "Arial");
 	xls.GetCell(1, 1, true).CellStyle.SetFont(font);
+	
+	xls.Save();
+}</script>  
+    
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	ICell cell = xls.GetCell(1, 1, true);
+	NPOI.SS.UserModel.ICellStyle style = xls.CloneUnregisteredStyle(cell.CellStyle);
+	var f = Excel.CloneUnregisteredFont(style.GetFont(Excel.Workbook));
+	f.IsBold = false;
+	style.SetFont(Excel.GetRegisteredFont(f));
+	style = Excel.GetRegisteredStyle(style);
+	...
+	cell.CellStyle = style;
 	
 	xls.Save();
 }</script>            
@@ -257,6 +325,43 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 }</script>
 
                
+<h1>Excel.Range</h1>
+
+The class <code>Excel.Range</code> exposes methods on ranges. It is native to CliverExcel as has no underlying NPOI type.
+
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+{
+	Excel.Range range = xls.NewRange(headersY, poX0, headersY + 2, poX0 + 3);
+	range.ClearMerging();
+	range.SetStyle(styles.PoHeader(poHeader), true);
+
+	range = xls.NewRange(headersY, poX0, headersY + 1, poX0 + 3);
+	range.Merge(false);
+
+	var cell = xls.GetCell(headersY, poX0, true);
+	cell.SetCellValue(poHeader.Header);
+
+	cell = xls.GetCell(headersY + 2, poX0, true);
+	cell.SetCellValue(poIdHeader);
+
+	cell = xls.GetCell(headersY + 2, poX0 + 1, true);
+	cell.SetCellValue("P.O. COST");
+
+	cell = xls.GetCell(headersY + 2, poX0 + 2, true);
+	cell.SetCellValue("INV. #");
+
+	cell = xls.GetCell(headersY + 2, poX0 + 3, true);
+	cell.SetCellValue("INV. COST");
+	
+	xls.Save();
+}</script>
+
+
+<h1>Excel.Column</h1>
+The class <code>Excel.Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is native to CliverExcel as has no underlying NPOI type.
+
+           
+
 
 
 
@@ -265,7 +370,7 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 
 <div class='footer'>
         <script src='copyright.js'></script>
-        &nbsp;&nbsp;by&nbsp;<a href="javascript:window.location.href = '&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#101;&#114;&#103;&#101;&#121;&#46;&#115;&#116;&#111;&#121;&#97;&#110;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;'" target="_top">Sergey Stoyan</a>
+        &nbsp;&nbsp;by&nbsp;<a href="javascript:window.location.href = '&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#101;&#114;&#103;&#101;&#121;&#46;&#115;&#116;&#111;&#121;&#97;&#110;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;'" target="_top">Sergiy Stoyan</a>
 </script>
         
 </div>

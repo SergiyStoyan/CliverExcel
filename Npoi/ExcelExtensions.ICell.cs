@@ -253,6 +253,11 @@ namespace Cliver
             }
         }
 
+        /// <summary>
+        /// NULL- and type-safe.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="value"></param>
         static public void _SetValue(this ICell cell, object value)
         {
             if (value == null)
@@ -316,6 +321,17 @@ namespace Cliver
                 throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
         }
 
+        /// <summary>
+        /// It automatically updates the ranges in the cell formula.
+        /// It is expected to work properly for trivial formulas. 
+        /// (!)You have to check if it works as you need. 
+        /// </summary>
+        /// <param name="formulaCell"></param>
+        /// <param name="rangeY1Shift"></param>
+        /// <param name="rangeX1Shift"></param>
+        /// <param name="rangeY2Shift"></param>
+        /// <param name="rangeX2Shift"></param>
+        /// <exception cref="Exception"></exception>
         static public void _UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
         {
             if (formulaCell?.CellType != CellType.Formula)
