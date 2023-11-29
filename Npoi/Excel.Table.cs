@@ -8,6 +8,7 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -140,19 +141,37 @@ namespace Cliver
                 public Column Column { get; internal set; }
                 public object Value { get; internal set; }
                 public int X { get { return Column.X; } }
+                public ICellStyle Style { get; internal set; } = null;
+                public CellType? Type { get; internal set; } = null;
+                //public DataType? DataType { get; internal set; } = null;
 
                 /// <summary>
+                /// (!)Unregistered style will be registered.
                 /// (!)Column must be listed in Table.Columns
                 /// </summary>
                 /// <param name="column"></param>
                 /// <param name="value"></param>
+                /// <param name="style"></param>
                 /// <exception cref="Exception"></exception>
-                public Cell(Column column, object value)
+                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null/*, DataType? dataType = null*/)
                 {
                     if (column.Table == null)
                         throw new Exception("Column is not initialized: Table is not set.");
                     Column = column;
                     Value = value;
+                    if (style?.Index < 0)
+                        style = column.Table.Excel.GetRegisteredStyle(style);
+                    if (style == null)
+                        style = column.DataStyle;
+                    Style = style;
+                    if (type == null)
+                        type = column.DataType;
+                    Type = type;
+                    //DataType = dataType;
+                }
+
+                public Cell(Style style, object value, CellType? type = null/*, DataType? dataType = null*/) : this(style.Column, value, style.Value, type)
+                {
                 }
 
                 //public NamedValue(Table table, string header, object value, Func<ICell, bool> isValueMatch = null)
@@ -227,19 +246,6 @@ namespace Cliver
             //    return r;
             //}
 
-            void setColumnStyles(IRow row)
-            {
-                foreach (Column c in Columns)
-                    row._GetCell(c.X, true).CellStyle = c.DataStyle;
-            }
-
-            void setColumnTypes(IRow row)
-            {
-                foreach (Column c in Columns)
-                    if (c.DataType != null)
-                        row._GetCell(c.X, true).SetCellType(c.DataType.Value);
-            }
-
             //public IRow AppendRow(params string[] values)
             //{
             //    return AppendRow((IEnumerable<string>)values);
@@ -301,17 +307,17 @@ namespace Cliver
             {
                 IRow r = Sheet.GetRow(y - 1);
                 if (r == null)
-                {
                     r = Sheet.CreateRow(y - 1);
-                    setColumnStyles(r);
-                    setColumnTypes(r);
-                }
                 foreach (var cell in cells)
                 {
                     //if (r.Sheet != cell.Column.Table.Sheet)
                     //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
                     var c = r._GetCell(cell.X, true);
+                    if (cell.Type != null)
+                        c.SetCellType(cell.Type.Value);
                     c._SetValue(cell.Value);
+                    if (cell.Style != null)
+                        c.CellStyle = cell.Style;
                 }
                 return r;
             }
@@ -351,16 +357,6 @@ namespace Cliver
             public ICell GetCell(int y, Column column, bool create)
             {
                 return Sheet._GetCell(y, column.X, create);
-            }
-
-            public void SetStyles(IRow row, params ICellStyle[] styles)
-            {
-                row._SetStyles(1, styles);
-            }
-
-            public void SetStyles(IRow row, IEnumerable<ICellStyle> styles)
-            {
-                SetStyles(row, styles.ToArray());
             }
 
             virtual public void Save(string file = null)

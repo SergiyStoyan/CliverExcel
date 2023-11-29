@@ -37,30 +37,13 @@ namespace Cliver
 
         /// <summary>
         /// Intended for either adding or removing backgound color.
-        /// The style can be unregistered but on HSSFWorkbook the color will be added to the palette.
+        /// The style can be unregistered but on HSSFWorkbook the color will be added to the workbook's palette.
         /// </summary>
         /// <param name="workbook"></param>
         /// <param name="style"></param>
         /// <param name="color"></param>
         /// <param name="fillPattern"></param>
-        /// <returns></returns>
         static public void _Highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
-        {
-            workbook._highlight(style, color, fillPattern);
-        }
-
-        //public enum HighlightOption
-        //{
-        //    GetRegisteredUniqueStyle,
-        //    GetRegisteredStyle,
-        //    GetUnregisteredStyle
-        //}
-
-        /// <summary>
-        /// Intended for either adding or removing backgound color.
-        /// The style can be unregistered but on HSSFWorkbook the color will be added to the palette.
-        /// </summary>
-        static internal void _highlight(this IWorkbook workbook, ICellStyle style, Excel.Color color, FillPattern fillPattern = FillPattern.SolidForeground)
         {
             if (style == null)
                 return;

@@ -89,5 +89,16 @@ namespace Cliver
         {
             row._SetLink(c.X, link);
         }
+
+        static public void _SetStyles(this IRow row, IEnumerable<Excel.Table.Style> styles)
+        {
+            foreach (Excel.Table.Style s in styles.Where(a => a.Value != null))
+                row._GetCell(s.Column.X, true).CellStyle = s.Value;
+        }
+
+        static public void _SetStyles(this IRow row, params Excel.Table.Style[] styles)
+        {
+            _SetStyles(row, (IEnumerable<Excel.Table.Style>)styles);
+        }
     }
 }

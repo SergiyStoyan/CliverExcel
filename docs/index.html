@@ -238,7 +238,52 @@ It is always commendable when styles are managed in a way that they are not dupl
 	cell.CellStyle = style;
 	
 	xls.Save();
-}</script>            
+}</script>   
+
+
+
+
+
+
+<h2>Excel.StyleCache</h2>
+
+
+<p><code>StyleCache</code> helps when you need to alter certain style parameters in some cells, e.g. set a new color or font but you do not know in advance which styles you will alter.
+<br>It takes care about registering and caching all the styles needed in the workbook during editing.
+<p>It allows:
+<br>- not to trouble about duplicating styles in the workbook;
+<br>- to increase performance by avoiding matching styles in the workbook;
+	
+<script type="text/plain" class="language-csharp">void Test()
+{
+	using (Excel xls = new Excel(xlsFile, "sheet1"))
+	{
+		styleCache = new StyleCache(xls);
+
+		highlight(xls.GetCell(1, 1, true), new Excel.Color(System.Drawing.Color.FromArgb(255, 150, 150)));
+		highlight(xls.GetCell(1, 2, true), new Excel.Color(System.Drawing.Color.FromArgb(0, 200, 0))); 
+		
+		xls.Save();
+	}
+}
+StyleCache styleCache;
+
+void highlight(ICell cell, Excel.Color color)
+{
+	long getAlterationKey()
+	{
+		if (color == null)
+			return -1;
+		return (color.R << 16) + (color.G << 8) + color.B;
+	}
+	void alterStyle(ICellStyle s)
+	{
+		Excel.Highlight(s, color);
+	}
+	cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, getAlterationKey, alterStyle);
+}</script>
+
+         
 
 <h1>Excel.Table</h1>
 

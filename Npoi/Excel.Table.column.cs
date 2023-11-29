@@ -333,6 +333,9 @@ namespace Cliver
                 public readonly string Header;
                 public int X { get; internal set; } = -1;
 
+                /// <summary>
+                /// (!)Unregistered style will be registered when setting.
+                /// </summary>
                 public ICellStyle DataStyle
                 {
                     get
@@ -343,6 +346,8 @@ namespace Cliver
                     {
                         if (value == null)
                             return;
+                        if (value.Index < 0)
+                            value = Table.Excel.GetRegisteredStyle(value);
                         dataStyle = value;
                         //Table?.Sheet.SetDefaultColumnStyle(X - 1, dataStyle);
                     }
@@ -369,7 +374,7 @@ namespace Cliver
                 public Table Table { get; internal set; } = null;
 
                 /// <summary>
-                /// (!)Until a new column is registered in Excel.Table.Columns, it is not initialized and cannot be used in most methods.
+                /// (!)Until a created column is registered in Excel.Table.Columns, it is not initialized and cannot be used in most methods.
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
@@ -390,6 +395,28 @@ namespace Cliver
                 public IEnumerable<ICell> GetDataCells(RowScope rowScope)
                 {
                     return Table.Sheet._GetRowsInRange(rowScope, 2).Select(a => a?.GetCell(X));
+                }
+
+                /// <summary>
+                /// (!)Unregistered style will be registered.
+                /// </summary>
+                /// <param name="value"></param>
+                /// <param name="style"></param>
+                /// <param name="type"></param>
+                /// <returns></returns>
+                public Cell NewCell(object value, ICellStyle style = null, CellType? type = null)
+                {
+                    return new Cell(this, value, style, type);
+                }
+
+                /// <summary>
+                /// (!)Unregistered style will be registered.
+                /// </summary>
+                /// <param name="style"></param>
+                /// <returns></returns>
+                public Style NewStyle(ICellStyle style)
+                {
+                    return new Style(this, style);
                 }
             }
         }
