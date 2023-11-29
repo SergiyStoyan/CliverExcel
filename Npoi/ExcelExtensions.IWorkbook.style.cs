@@ -147,9 +147,6 @@ namespace Cliver
         /// <returns></returns>
         static public ICellStyle _GetRegisteredStyle(this IWorkbook workbook, ICellStyle unregisteredStyle, IWorkbook unregisteredStyleWorkbook = null)
         {
-            if (unregisteredStyleWorkbook != null && unregisteredStyleWorkbook.GetType() != workbook.GetType())
-                throw new Exception("Registering a style in a different type workbook is not supported: " + workbook.GetType().FullName);
-
             ICellStyle style = workbook._FindEqualStyles(unregisteredStyle, unregisteredStyleWorkbook).FirstOrDefault();
             if (style != null)
                 return style;
@@ -496,6 +493,22 @@ namespace Cliver
             return toStyle;
         }
 
+        //static public bool _IsUnregistered(this IWorkbook workbook, ICellStyle style)
+        //{
+        //    return style.Index == -1;
+        //}
+
+        //static public bool _IsUnregistered(this IWorkbook workbook, IFont font)
+        //{
+        //    return font.Index == -1;
+        //}
+
+        /// <summary>
+        /// Unregistered style's index = -1
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         static public ICellStyle _CreateUnregisteredStyle(this IWorkbook workbook)
         {
             IFont f = workbook.NumberOfFonts > 0 ? workbook.GetFontAt(0) : workbook.CreateFont();
@@ -504,19 +517,24 @@ namespace Cliver
             {
                 XSSFWorkbook w = new XSSFWorkbook();
                 ICellStyle s = new XSSFCellStyle(w.GetStylesSource());
+                if (iCellStyleIndexFI == null)
+                    iCellStyleIndexFI = s.GetType().GetField("_cellXfId", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                iCellStyleIndexFI.SetValue(s, -1);
                 s.SetFont(f);//otherwise it throws an exception on accessing font
                 return s;
             }
             if (workbook is HSSFWorkbook)
             {
                 HSSFWorkbook w = new HSSFWorkbook();
-                ICellStyle s = new HSSFCellStyle(0, new NPOI.HSSF.Record.ExtendedFormatRecord(), w);
+                ICellStyle s = new HSSFCellStyle(-1, new NPOI.HSSF.Record.ExtendedFormatRecord(), w);
                 s.SetFont(f);//set default font
                 return s;
             }
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
         }
+        static System.Reflection.FieldInfo iCellStyleIndexFI = null;
 
+        /// Unregistered font's index = -1
         static public IFont _CreateUnregisteredFont(this IWorkbook workbook)
         {
             if (workbook is XSSFWorkbook)
