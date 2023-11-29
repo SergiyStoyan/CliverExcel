@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>6.2.0</Version>
+	  <Version>6.2.1</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,14 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v5.8 =&gt; v6.0
+	  <PackageReleaseNotes>v6.0 =&gt; v6.2
+- unregistered Style and Font.Index=-1;
+- AreColorsEqual() fixed;
+- _AreStylesEqual() added;
+- _FindEqualStyles() fixed;
+- _GetFont() added;
+
+v5.8 =&gt; v6.0
 Minor API changes, including the following:
 - LastRowY(), GetLastNotEmptyRow() added;
 - _LastCellY(), _Move() added;
