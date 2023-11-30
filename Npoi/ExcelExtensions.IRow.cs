@@ -17,9 +17,12 @@ namespace Cliver
         /// Remove the row from its sheet.
         /// </summary>
         /// <param name="row"></param>
-        static public void _Remove(this IRow row)
+        /// <param name="shiftRowsBelow"></param>
+        static public void _Remove(this IRow row, bool shiftRowsBelow)
         {
             row.Sheet.RemoveRow(row);
+            if (shiftRowsBelow)
+                row.Sheet.ShiftRows(row.RowNum + 1, row.Sheet.LastRowNum, -1);
         }
 
         public static int _LastCellY(this IRow row)

@@ -29,8 +29,7 @@ namespace Cliver
         /// <param name="sheetIndex"></param>
         public Excel(string file, int sheetIndex = 1)
         {
-            File = file;
-            init();
+            init(file);
             OpenSheet(sheetIndex);
         }
 
@@ -42,13 +41,15 @@ namespace Cliver
         /// <param name="createSheet"></param>
         public Excel(string file, string sheetName, bool createSheet = true)
         {
-            File = file;
-            init();
+            init(file);
             OpenSheet(sheetName, createSheet);
         }
 
-        void init()
+        void init(string file)
         {
+            File = file;
+            styleCache = new StyleCache(this);
+
             if (System.IO.File.Exists(File))
                 using (FileStream fs = new FileStream(File, FileMode.Open, FileAccess.Read))
                 {

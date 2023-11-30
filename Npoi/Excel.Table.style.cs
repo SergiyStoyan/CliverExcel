@@ -64,37 +64,12 @@ namespace Cliver
             /// Based on Excel.StyleCache.
             /// </summary>
             /// <param name="row"></param>
-            /// <param name="getAlterationKey">provides a key for the given style alteration, e.g. changing to a font. (!)It must be unique for all the planned alterations.</param>
+            /// <param name="alterationKey">a key for the given style alteration, e.g. changing to a font. (!)It must be unique for all the planned alterations.</param>
             /// <param name="updateStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
-            public void SetStyles(IRow row, Func<long> getAlterationKey, Action<ICellStyle> alterStyle)
+            public void SetStyles(IRow row, int alterationKey, Action<ICellStyle> alterStyle)
             {
-                if (styleCache == null)
-                    styleCache = new StyleCache(Excel);
                 foreach (Column column in Columns)
-                {
-                    ICell cell = row._GetCell(column, true);
-                    cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, getAlterationKey, alterStyle);
-                }
-            }
-            StyleCache styleCache = null;
-
-            /// <summary>
-            /// Sets the row with styles that are obtained by altering the row's existing styles.
-            /// This function takes care about caching and registering all the styles needed.
-            /// Based on Excel.StyleCache.
-            /// </summary>
-            /// <param name="row"></param>
-            /// <param name="getAlterationKey">provides a key for the given style alteration, e.g. changing to a font. (!)It must be unique for all the planned alterations.</param>
-            /// <param name="updateStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
-            public void SetStyles(IRow row, Func<string> getAlterationKey, Action<ICellStyle> alterStyle)
-            {
-                if (styleCache == null) 
-                    styleCache = new StyleCache(Excel);
-                foreach (Column column in Columns)
-                {
-                    ICell cell = row._GetCell(column, true);
-                    cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, getAlterationKey, alterStyle);
-                }
+                    Excel.SetStyle(row._GetCell(column, true), alterationKey, alterStyle);
             }
         }
     }

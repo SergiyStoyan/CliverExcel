@@ -14,11 +14,6 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _RemoveRow(this ISheet sheet, int y)
-        {
-            sheet._GetRow(y, false)?._Remove();
-        }
-
         public static int _LastRowY(this ISheet sheet)
         {
             return sheet.LastRowNum + 1;
@@ -239,9 +234,7 @@ namespace Cliver
         {
             IRow r = sheet.GetRow(y - 1);
             if (r != null)
-                sheet.RemoveRow(r);
-            if (shiftRowsBelow)
-                sheet.ShiftRows(r.RowNum + 1, sheet.LastRowNum, -1);
+                r._Remove(shiftRowsBelow);
             return r;
         }
 
