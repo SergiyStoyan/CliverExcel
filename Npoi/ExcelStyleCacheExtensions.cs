@@ -16,13 +16,13 @@ namespace Cliver
 {
     public static class ExcelStyleCacheExtensions
     {
-        static public void _SetStyles(this IRow row, Excel.StyleCache styleCache, int alterationKey, Action<ICellStyle> alterStyle)
+        static public void _SetStyles(this IRow row, Excel.StyleCache styleCache, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
         {
             foreach (ICell cell in row.Cells)
                 cell._SetStyle(styleCache, alterationKey, alterStyle);
         }
 
-        static public void _SetStyle(this ICell cell, Excel.StyleCache styleCache, int alterationKey, Action<ICellStyle> alterStyle)
+        static public void _SetStyle(this ICell cell, Excel.StyleCache styleCache, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
         {
             cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle);
         }

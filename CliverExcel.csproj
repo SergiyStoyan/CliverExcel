@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>6.4.1</Version>
+	  <Version>6.5.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,15 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v6.0 =&gt; v6.2
+	  <PackageReleaseNotes>v6.2 =&gt; v6.5
+- Table.WriteRow() changed;
+- Table.SetStyles() changed;
+- Table.Cell enhanced;
+- Table.Style added;
+- StyleCache added;
+- IRow._Remove() changed;
+
+v6.0 =&gt; v6.2
 - unregistered Style and Font.Index=-1;
 - AreColorsEqual() fixed;
 - _AreStylesEqual() added;

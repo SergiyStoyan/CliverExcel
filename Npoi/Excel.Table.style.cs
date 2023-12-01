@@ -66,7 +66,7 @@ namespace Cliver
             /// <param name="row"></param>
             /// <param name="alterationKey">a key for the given style alteration, e.g. changing to a font. (!)It must be unique for all the planned alterations.</param>
             /// <param name="updateStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
-            public void SetStyles(IRow row, int alterationKey, Action<ICellStyle> alterStyle)
+            public void SetStyles(IRow row, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
             {
                 foreach (Column column in Columns)
                     Excel.SetStyle(row._GetCell(column, true), alterationKey, alterStyle);

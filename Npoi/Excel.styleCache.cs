@@ -43,10 +43,10 @@ namespace Cliver
             /// <param name="alterationKey"></param>
             /// <param name="alterStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
             /// <returns></returns>
-            public ICellStyle GetAlteredStyle(ICellStyle style, int alterationKey, Action<ICellStyle> alterStyle)
+            public ICellStyle GetAlteredStyle(ICellStyle style, IKey alterationKey, Action<ICellStyle> alterStyle)
             {
                 //var alteration_styleKey = (alterationKey, style.Index);
-                var alteration_styleKey = (alterationKey << 16) + style.Index;
+                var alteration_styleKey = (alterationKey.Get() << 16) + style.Index;
 
                 if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
                 {
@@ -58,7 +58,15 @@ namespace Cliver
                 return s2;
             }
 
-            public class KeyBuilder
+            public interface IKey
+            {
+                int Get();
+            }
+
+            /// <summary>
+            /// Deafault implementation of IKey
+            /// </summary>
+            public class Key : IKey
             {
                 public void Add(params byte[] subkeys)
                 {
@@ -109,12 +117,12 @@ namespace Cliver
 
         protected StyleCache styleCache = null;
 
-        public void SetStyles(IRow row, int alterationKey, Action<ICellStyle> alterStyle)
+        public void SetStyles(IRow row, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
         {
             row._SetStyles(styleCache, alterationKey, alterStyle);
         }
 
-        public void SetStyle(ICell cell, int alterationKey, Action<ICellStyle> alterStyle)
+        public void SetStyle(ICell cell, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
         {
             cell._SetStyle(styleCache, alterationKey, alterStyle);
         }
