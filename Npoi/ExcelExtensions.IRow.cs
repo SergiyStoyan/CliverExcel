@@ -3,7 +3,9 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,26 +15,77 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _Move(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        {
+            row._Copy(y2, onFormulaCellMoved, toSheet);
+            row._Remove();
+        }
+
+        static public void _Copy(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        {
+            if (toSheet == null)
+                toSheet = row.Sheet;
+            if (row == null)
+            {
+                toSheet._RemoveRow(y2);
+                return;
+            }
+            if (row._Y() == y2 && toSheet == row.Sheet)
+                return;
+            toSheet._RemoveRow(y2);
+            foreach (ICell c1 in row)
+                c1._Copy(y2, c1._X(), onFormulaCellMoved, toSheet, toStyleCache);
+        }
+
+        static public void _Move2(this IRow row, int y2)
+        {
+            row.Sheet._MoveRow2(row._Y(), y2);
+        }
+
+        static public void _Copy2(this IRow row, int y2)
+        {
+            row.Sheet._CopyRow2(row._Y(), y2);
+        }
+
+        static public void _Move3(this IRow row, int y2)
+        {
+            row.Sheet._MoveRow3(row._Y(), y2);
+        }
+
         /// <summary>
         /// Remove the row from its sheet.
         /// </summary>
         /// <param name="row"></param>
         /// <param name="shiftRowsBelow"></param>
-        static public void _Remove(this IRow row, bool shiftRowsBelow)
+        static public void _Remove(this IRow row, RemoveRowMode removeRowMode = 0)
         {
-            row.Sheet.RemoveRow(row);
-            if (shiftRowsBelow)
-                row.Sheet.ShiftRows(row.RowNum + 1, row.Sheet.LastRowNum, -1);
-        }
+            SortedDictionary<int, ICell> cells = null;
+            if (removeRowMode.HasFlag(RemoveRowMode.PreserveCells))
+            {
+                if (row is XSSFRow xSSFRow)//in HSSFRow Cells remain after removing the row
+                {
+                    cells = new SortedDictionary<int, ICell>();
+                    row.Cells.Select((a, i) => (a, i)).ForEach(a => cells.Add(a.i, a.a));
+                    if (XSSFRow_cells_FI == null)
+                        XSSFRow_cells_FI = xSSFRow.GetType().GetField("_cells", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    //cells = (SortedDictionary<int, ICell>)XSSFRow_cells_FI.GetValue(xSSFRow);
+                }
+            }
 
-        public static int _LastCellY(this IRow row)
+            row.Sheet.RemoveRow(row);
+
+            if (cells != null)
+                XSSFRow_cells_FI.SetValue(row, cells);
+            if (removeRowMode.HasFlag(RemoveRowMode.ShiftRowsBelow))
+                row.Sheet.ShiftRows(row.RowNum + 1, row.Sheet.LastRowNum, -1);
+            if (removeRowMode.HasFlag(RemoveRowMode.ClearMerging))
+                row.Sheet._ClearMergingInRow(row._Y());
+        }
+        static System.Reflection.FieldInfo XSSFRow_cells_FI = null;
+
+        public static int _LastCellX(this IRow row)
         {
             return row.LastCellNum + 1;
-        }
-
-        static public void _Move(this IRow row, int y2)
-        {
-            row.Sheet._MoveRow(row._Y(), y2);
         }
 
         static public void _RemoveCell(this IRow row, int x)

@@ -109,14 +109,25 @@ namespace Cliver
             return Sheet._WriteRow(y, values);
         }
 
-        public IRow RemoveRow(int y, bool shiftRowsBelow)
+        public enum RemoveRowMode
         {
-            return Sheet._RemoveRow(y, shiftRowsBelow);
+            ShiftRowsBelow = 1,
+            ClearMerging = 2,
+            PreserveCells = 4,
+        }
+        public IRow RemoveRow(int y, RemoveRowMode removeRowMode = 0)
+        {
+            return Sheet._RemoveRow(y, removeRowMode);
         }
 
-        public void MoveRow(int y1, int y2)
+        public void MoveRow(int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
         {
-            Sheet._MoveRow(y1, y2);
+            Sheet._MoveRow(y1, y2, onFormulaCellMoved, toSheet);
+        }
+
+        public void CopyRow(int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        {
+            Sheet._CopyRow(y1, y2, onFormulaCellMoved, toSheet);
         }
 
         public void ShiftRowCellsRight(int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
@@ -157,11 +168,6 @@ namespace Cliver
         public void AutosizeRows()
         {
             Sheet._AutosizeRows();
-        }
-
-        public void ClearRow(int y, bool clearMerging)
-        {
-            Sheet._ClearRow(y, clearMerging);
         }
 
         public void ClearMergingInRow(int y)

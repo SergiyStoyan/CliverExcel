@@ -70,7 +70,7 @@ namespace Cliver
             return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
         {
             for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
             {
@@ -79,7 +79,7 @@ namespace Cliver
                 {
                     var c = rowCells[xi];
                     if (c != null)
-                        c._Copy(toY + yi, toX + xi, onFormulaCellMoved, toSheet);
+                        c._Copy(toY + yi, toX + xi, onFormulaCellMoved, toSheet, toStyleCache);
                     else
                         toSheet._RemoveCell(toY + yi, toX + xi);
                 }

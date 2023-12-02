@@ -500,9 +500,9 @@ namespace Cliver
             {
                 XSSFWorkbook w = new XSSFWorkbook();
                 ICellStyle s = new XSSFCellStyle(w.GetStylesSource());
-                if (iCellStyleIndexFI == null)
-                    iCellStyleIndexFI = s.GetType().GetField("_cellXfId", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                iCellStyleIndexFI.SetValue(s, -1);
+                if (XSSFCellStyle_cellXfId_FI == null)
+                    XSSFCellStyle_cellXfId_FI = s.GetType().GetField("_cellXfId", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                XSSFCellStyle_cellXfId_FI.SetValue(s, -1);
                 s.SetFont(f);//otherwise it throws an exception on accessing font
                 return s;
             }
@@ -515,7 +515,7 @@ namespace Cliver
             }
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
         }
-        static System.Reflection.FieldInfo iCellStyleIndexFI = null;
+        static System.Reflection.FieldInfo XSSFCellStyle_cellXfId_FI = null;
 
         /// Unregistered font's index = -1
         static public IFont _CreateUnregisteredFont(this IWorkbook workbook)
@@ -533,10 +533,12 @@ namespace Cliver
         /// <param name="fromStyle"></param>
         /// <param name="cloneStyleWorkbook"></param>
         /// <returns></returns>
-        static public ICellStyle _CloneUnregisteredStyle(this IWorkbook workbook, ICellStyle fromStyle, IWorkbook cloneStyleWorkbook = null)
+        static public ICellStyle _CloneUnregisteredStyle(this IWorkbook workbook, ICellStyle fromStyle, IWorkbook toStyleWorkbook = null)
         {
-            ICellStyle toStyle = workbook._CreateUnregisteredStyle();
-            return workbook._CopyStyle(fromStyle, toStyle, cloneStyleWorkbook);
+            if (toStyleWorkbook == null)
+                toStyleWorkbook = workbook;
+            ICellStyle toStyle = toStyleWorkbook._CreateUnregisteredStyle();
+            return workbook._CopyStyle(fromStyle, toStyle, toStyleWorkbook);
         }
 
         /// <summary>

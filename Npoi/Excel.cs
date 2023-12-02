@@ -48,7 +48,6 @@ namespace Cliver
         void init(string file)
         {
             File = file;
-            styleCache = new StyleCache(this);
 
             if (System.IO.File.Exists(File))
                 using (FileStream fs = new FileStream(File, FileMode.Open, FileAccess.Read))
@@ -71,6 +70,8 @@ namespace Cliver
                 else
                     Workbook = new HSSFWorkbook();
             }
+
+            styleCache = new StyleCache(Workbook);
         }
 
         public IWorkbook Workbook { get; private set; }

@@ -26,14 +26,17 @@ namespace Cliver
         /// </summary>
         public class StyleCache
         {
-            public StyleCache(Excel excel)
+            public StyleCache(IWorkbook workbook1, IWorkbook workbook2 = null)
             {
-                Excel = excel;
+                if (workbook2 == null)
+                    workbook2 = workbook1;
+                Workbook1 = workbook1;
+                Workbook2 = workbook2;
             }
 
-            public Excel Excel { get; private set; }
+            readonly public IWorkbook Workbook1;
+            readonly public IWorkbook Workbook2;
 
-            //Dictionary<(long, short), ICellStyle> alternation_style1Keys2style2 = new Dictionary<(long, short), ICellStyle>();
             Dictionary<long, ICellStyle> alternation_style1Keys2style2 = new Dictionary<long, ICellStyle>();
 
             /// <summary>
@@ -45,14 +48,31 @@ namespace Cliver
             /// <returns></returns>
             public ICellStyle GetAlteredStyle(ICellStyle style, IKey alterationKey, Action<ICellStyle> alterStyle)
             {
-                //var alteration_styleKey = (alterationKey, style.Index);
-                var alteration_styleKey = (alterationKey.Get() << 16) + style.Index;
+                long alteration_styleKey = (((long)alterationKey.Get()) << 16) + style.Index;
 
                 if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
                 {
-                    s2 = Excel.CloneUnregisteredStyle(style);
+                    s2 = Workbook1._CloneUnregisteredStyle(style, Workbook2);
                     alterStyle(s2);
-                    s2 = Excel.GetRegisteredStyle(s2);
+                    s2 = Workbook1._GetRegisteredStyle(s2, Workbook2);
+                    alternation_style1Keys2style2[alteration_styleKey] = s2;
+                }
+                return s2;
+            }
+
+            /// <summary>
+            /// Used for mappping styles between workbooks
+            /// </summary>
+            /// <param name="style"></param>
+            /// <returns></returns>
+            public ICellStyle GetMappedStyle(ICellStyle style)
+            {
+                long alteration_styleKey = ((long)style.Index) << 48;
+
+                if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
+                {
+                    s2 = Workbook1._CloneUnregisteredStyle(style, Workbook2);
+                    s2 = Workbook1._GetRegisteredStyle(s2, Workbook2);
                     alternation_style1Keys2style2[alteration_styleKey] = s2;
                 }
                 return s2;
@@ -64,7 +84,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// Deafault implementation of IKey
+            /// Deafault implementation of IKey intended for altering styles in cells within one workbook.
             /// </summary>
             public class Key : IKey
             {
@@ -78,18 +98,15 @@ namespace Cliver
                     subkeys.ForEach(a => this.subkeys.AddRange(System.Text.Encoding.ASCII.GetBytes(a)));
                 }
 
-                internal List<byte> subkeys = new List<byte>();
+                protected List<byte> subkeys = new List<byte>();
 
-                //public long Get()
-                //{
-                //    return get64BitHash(subkeys);
-                //}
-                public int Get()
+                virtual public int Get()
                 {
+                    //return get64BitHash(subkeys);
                     return get32BitHash(subkeys);
                 }
 
-                int get32BitHash(List<byte> bytes)
+                protected int get32BitHash(List<byte> bytes)
                 {
                     unchecked
                     {
@@ -101,7 +118,7 @@ namespace Cliver
                     }
                 }
 
-                long get64BitHash(List<byte> bytes)
+                protected long get64BitHash(List<byte> bytes)
                 {
                     unchecked
                     {

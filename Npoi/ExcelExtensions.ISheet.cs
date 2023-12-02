@@ -17,6 +17,16 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _Rename(this ISheet sheet, string name2)
+        {
+            sheet.Workbook.SetSheetName(sheet._GetIndex() - 1, name2);
+        }
+
+        static public int _GetIndex(this ISheet sheet)
+        {
+            return sheet.Workbook.GetSheetIndex(sheet.SheetName) + 1;
+        }
+
         static public void _ReplaceStyle(this ISheet sheet, ICellStyle style1, ICellStyle style2)
         {
             new Range(sheet).ReplaceStyle(style1, style2);

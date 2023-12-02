@@ -71,6 +71,11 @@ namespace Cliver
                 foreach (Column column in Columns)
                     Excel.SetStyle(row._GetCell(column, true), alterationKey, alterStyle);
             }
+
+            public void SetStyle(IRow row, Column column, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
+            {
+                Excel.SetStyle(row._GetCell(column, true), alterationKey, alterStyle);
+            }
         }
     }
 }

@@ -64,10 +64,10 @@ namespace Cliver
                 sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
         }
 
-        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX)
+        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
         {
             ICell sourceCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return sourceCell._Copy(toCellY, toCellX);
+            return sourceCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -104,10 +104,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet);
+            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)

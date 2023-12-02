@@ -258,7 +258,7 @@ namespace Cliver
                             c._Remove();
                     });
                     if (r2created)
-                        r2._Remove(false);
+                        r2._Remove();
                 }
             }
 

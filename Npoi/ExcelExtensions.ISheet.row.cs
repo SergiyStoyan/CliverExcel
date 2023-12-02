@@ -230,15 +230,71 @@ namespace Cliver
             return sheet._WriteRow(y, (IEnumerable<string>)values);
         }
 
-        static public IRow _RemoveRow(this ISheet sheet, int y, bool shiftRowsBelow)
+        static public IRow _RemoveRow(this ISheet sheet, int y, RemoveRowMode removeRowMode = 0)
         {
             IRow r = sheet.GetRow(y - 1);
             if (r != null)
-                r._Remove(shiftRowsBelow);
+                r._Remove(removeRowMode);
             return r;
         }
 
-        static public void _MoveRow(this ISheet sheet, int y1, int y2)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _MoveRow(this ISheet sheet, int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        {
+            var r1 = sheet._GetRow(y1, false);
+            r1._Move(y2, onFormulaCellMoved, toSheet);
+        }
+
+        static public void _CopyRow(this ISheet sheet, int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        {
+            var r1 = sheet._GetRow(y1, false);
+            r1._Copy(y2, onFormulaCellMoved, toSheet);
+        }
+
+        /// <summary>
+        /// Based on ISheet.CopyRow()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _CopyRow2(this ISheet sheet, int y1, int y2)
+        {
+            if (y1 == y2)
+                return;
+            var r1 = sheet._GetRow(y1, false);
+            if (r1 == null)
+            {
+                sheet._RemoveRow(y2);
+                return;
+            }
+            sheet.CopyRow(y1 - 1, y2 - 1);
+            sheet._RemoveRow(y2);
+        }
+
+        /// <summary>
+        /// Based on ISheet.CopyRow()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _MoveRow2(this ISheet sheet, int y1, int y2)
+        {
+            sheet._CopyRow2(y1, y2);
+            sheet._RemoveRow(y1);
+        }
+
+        /// <summary>
+        /// Based on ISheet.ShiftRows()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _MoveRow3(this ISheet sheet, int y1, int y2)
         {
             if (y1 == y2)
                 return;
@@ -300,15 +356,6 @@ namespace Cliver
         static public void _AutosizeRows(this ISheet sheet)
         {
             sheet._AutosizeRowsInRange();
-        }
-
-        static public void _ClearRow(this ISheet sheet, int y, bool clearMerging)
-        {
-            if (clearMerging)
-                sheet._ClearMergingInRow(y);
-            var r = sheet._GetRow(y, false);
-            if (r != null)
-                sheet.RemoveRow(r);
         }
 
         static public void _ClearMergingInRow(this ISheet sheet, int y)

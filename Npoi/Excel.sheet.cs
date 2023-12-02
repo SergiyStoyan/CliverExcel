@@ -11,6 +11,13 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public void RenameSheet(string name2, ISheet sheet = null)
+        {
+            if (sheet == null)
+                sheet = Sheet;
+            sheet._Rename(name2);
+        }
+
         public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
         {
             Sheet._ReplaceStyle(style1, style2);

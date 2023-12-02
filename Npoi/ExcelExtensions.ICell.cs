@@ -98,20 +98,20 @@ namespace Cliver
             cell.Row.RemoveCell(cell);
         }
 
-        static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
         {
-            ICell toCell = _Copy(fromCell, toCellY, toCellX, onFormulaCellMoved, toSheet);
+            ICell toCell = _Copy(fromCell, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
             fromCell?._Remove();
             return toCell;
         }
 
-        static public void _Move(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _Move(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null, StyleCache toStyleCache = null)
         {
             _Copy(fromCell, toCell, onFormulaCellMoved);
             fromCell?._Remove();
         }
 
-        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
         {
             if (toSheet == null)
                 toSheet = fromCell.Sheet;
@@ -129,7 +129,7 @@ namespace Cliver
             }
         }
 
-        static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null, StyleCache toStyleCache = null)
         {
             if (fromCell == null)
             {
@@ -139,6 +139,8 @@ namespace Cliver
 
             toCell.SetBlank();
             toCell.SetCellType(fromCell.CellType);
+            if (fromCell.Sheet.Workbook != toCell.Sheet.Workbook)
+                toStyleCache.GetMappedStyle(fromCell.CellStyle);
             toCell.CellStyle = fromCell.CellStyle;
             toCell.RemoveCellComment();
             toCell.CellComment = fromCell.CellComment;
