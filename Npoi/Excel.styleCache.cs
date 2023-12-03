@@ -17,12 +17,12 @@ namespace Cliver
     partial class Excel
     {
         /// <summary>
-        /// Collection of styles that are automaticlly created by altering existing styles.
-        /// It helps when you need to alter certain style parameters in some cells, e.g. set a new color but you do not know in advance which styles you will alter.
+        /// Collection of styles that are automaticlly created by altering existing styles or copying styles to another workbook.
+        /// It helps when you need to alter certain style parameters in some cells, e.g. set a new color but you do not know in advance which styles you will alter/copy.
         /// It takes care about registering and caching all the styles needed in the workbook during editing.
         /// Used for:
         /// - not to trouble about duplicating styles in the workbook;
-        /// - to increase performance by avoiding matching styles in the workbook;
+        /// - to eliminate need for matching styles in the workbook;
         /// </summary>
         public class StyleCache
         {
@@ -67,7 +67,8 @@ namespace Cliver
             /// <returns></returns>
             public ICellStyle GetMappedStyle(ICellStyle style)
             {
-                long alteration_styleKey = ((long)style.Index) << 48;
+                const long d = 1 << 48 - 1;
+                long alteration_styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
 
                 if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
                 {
