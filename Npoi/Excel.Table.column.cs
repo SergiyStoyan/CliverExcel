@@ -22,15 +22,16 @@ namespace Cliver
             /// </summary>
             public ReadOnlyCollection<Column> Columns { get; private set; }
 
-            //public void SetColumns(SetColumnMode setColumnMode, params string[] headers)
-            //{
-            //    SetColumns(setColumnMode, (IEnumerable<string>)headers);
-            //}
-
-            //public void SetColumns(SetColumnMode setColumnMode, IEnumerable<string> headers)
-            //{
-            //    SetColumns(setColumnMode, headers.Select(a => new Column(a)));
-            //}
+            void loadColumns()
+            {
+                IRow headersRow = Sheet._GetRow(1, true);
+                IEnumerable<Column> columns = headersRow._GetCells(true).Select(a =>
+                {
+                    string h = a._GetValueAsString();
+                    return string.IsNullOrWhiteSpace(h) ? null : new Column(h) { X = a._X() };
+                });
+                setColumns(columns, false);
+            }
 
             /// <summary>
             /// Registers/initializes the listed columns. It is a necessary call in the beginning of using Excel.Table.
@@ -53,14 +54,22 @@ namespace Cliver
                 /// The listed columns, that are not found in the header row in any order, are added to the right.
                 /// </summary>
                 FindOrAppend,
+                ///// <summary>
+                ///// The listed columns, that are not found in the header row in any order, are inserted after the found predecessor.
+                ///// </summary>
+                //FindOrInsert,!!!auto-inserting/removing is not appreciated because of possibly damaging formulas and mergings
                 /// <summary>
-                /// The listed columns must exist in the header row in any order.
+                /// The listed columns must exist in the header row in any order. The absent columns are added to the right of the table.
                 /// </summary>
                 Find,
                 /// <summary>
                 /// The listed columns must exist in the header row in the listed order.
                 /// </summary>
                 FindOrdered,
+                ///// <summary>
+                ///// The listed columns must exist in the header row in the listed order. The absent columns are created in their listed position.
+                ///// </summary>
+                //FindOrderedOrInsert,!!!auto-inserting/removing is not appreciated because of possibly damaging formulas and mergings
                 /// <summary>
                 /// The listed columns must exist in the header row in any order, or the header row must be empty in which case the listed columns are created.
                 /// </summary>
@@ -83,112 +92,113 @@ namespace Cliver
                 switch (setColumnMode)
                 {
                     case SetColumnMode.Override:
-                        columns = columns
-                            .Select((a, i) => (column: a, x: i + 1))
-                            .Where(a =>
-                            {
-                                if (a.column == null)
-                                    return false;
-                                a.column.X = a.x;
-                                return true;
-                            })
-                            .Select(a => a.column);
-                        Columns = new ReadOnlyCollection<Column>(columns.ToList());
+                        setColumns(columns, true);
                         break;
 
                     case SetColumnMode.FindOrAppend:
                         {
                             List<Column> cs = columns.ToList();
                             List<Column> c0s = Columns.ToList();
+                            {//restore NULLs
+                                for (int i = c0s.Count - 2; i >= 0; i--)
+                                {
+                                    Column c0 = c0s[i];
+                                    for (int null0Count = c0s[i + 1].X - c0.X - 1; null0Count > 0; null0Count--)
+                                        c0s.Insert(i + 1, null);
+                                }
+                            }
+                            int lastMatchI = -1;
                             for (int i = cs.Count - 1; i >= 0; i--)
                             {
                                 Column c = cs[i];
                                 if (c == null)
                                 {
-                                    cs.RemoveAt(i);
+                                    if (lastMatchI >= 0)
+                                        cs.RemoveAt(i);
                                     continue;
                                 }
                                 for (int j = c0s.Count - 1; j >= 0; j--)
                                 {
                                     Column c0 = c0s[j];
+                                    if (c0 == null)
+                                        continue;
                                     if (c.Header == c0.Header)
                                     {
-                                        c.X = c0.X;
                                         c0s.RemoveAt(j);
                                         c0s.Insert(j, c);
                                         cs.RemoveAt(i);
+                                        if (lastMatchI < 0)
+                                            lastMatchI = i;
                                         break;
                                     }
                                 }
                             }
-                            cs = cs.Select((a, i) => (column: a, x: c0s.Count + i + 1))
-                                .Where(a =>
-                                {
-                                    if (a.column == null)
-                                        return false;
-                                    a.column.X = a.x;
-                                    return true;
-                                })
-                                .Select(a => a.column)
-                                .ToList();
-                            Columns = new ReadOnlyCollection<Column>(c0s.Concat(cs).ToList());
+
+                            setColumns(c0s.Concat(cs), true);
                         }
                         break;
 
                     case SetColumnMode.Find:
                         {
-                            List<Column> cs = columns.Where(a => a != null).ToList();
-                            if (cs.Count > Columns.Count)
-                                throw new Exception("The number of existing columns " + Columns.Count + " < the number of new columns " + cs.Count);
+                            List<Column> cs = columns.ToList();
                             List<Column> c0s = Columns.ToList();
-                            for (int i = cs.Count - 1; i >= 0; i--)
+                            int null0Count = 0;
+                            for (int i0 = 0; i0 < c0s.Count; i0++)
+                            {
+                                Column c0 = c0s[i0];
+                                int x01 = i0 - 1 < 0 ? 0 : c0s[i0 - 1].X;
+                                null0Count += c0.X - x01 - 1;
+                            }
+                            for (int i = 0; i < cs.Count; i++)
                             {
                                 Column c = cs[i];
-                                int j = c0s.Count - 1;
-                                for (; j >= 0; j--)
+                                if (c == null)
                                 {
-                                    Column c0 = c0s[j];
-                                    if (c.Header == c0.Header)
-                                    {
-                                        c.X = c0.X;
-                                        c0s.RemoveAt(j);
-                                        c0s.Insert(j, c);
-                                        break;
-                                    }
+                                    null0Count--;
+                                    if (null0Count < 0)
+                                        throw new Exception("NULL column[X=" + (i + 1) + "] has no match in the table.");
+                                    continue;
                                 }
-                                if (j < 0)
-                                    throw new Exception("Column '" + c.Header + "' does not exist in the table.");
-                            }
-                            Columns = new ReadOnlyCollection<Column>(c0s);
+                                Column c0 = c0s.FirstOrDefault(b => b.Header == c.Header);
+                                if (c0 == null)
+                                    throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
+                                c0s.Remove(c0);
+                            };
                         }
                         break;
 
                     case SetColumnMode.FindOrdered:
                         {
                             List<Column> cs = columns.ToList();
-                            int notEmptyCount = cs.Where(a => a != null).Count();
-                            if (notEmptyCount > Columns.Count)
-                                throw new Exception("The number of existing columns " + Columns.Count + " < the number of new columns " + notEmptyCount);
                             List<Column> c0s = Columns.ToList();
-                            int emptyCount = 0;
+                            int i0 = 0;
                             for (int i = 0; i < cs.Count; i++)
                             {
                                 Column c = cs[i];
                                 if (c == null)
                                 {
-                                    emptyCount++;
-                                    if (c0s[i].X < i + emptyCount)
-                                        throw new Exception("NULL column[position=" + i + "] does not exist in the table.");
-                                    continue;
+                                    for (; i0 < c0s.Count; i0++)
+                                    {
+                                        Column c0 = c0s[i0];
+                                        int x01 = i0 - 1 < 0 ? 0 : c0s[i0 - 1].X;
+                                        if (x01 + 1 < c0.X)
+                                            break;
+                                    }
+                                    if (i0 >= c0s.Count)
+                                        throw new Exception("NULL column[X=" + (i + 1) + "] has no match in the table.");
                                 }
-                                Column c0 = c0s[i + emptyCount];
-                                if (c.Header != c0.Header)
-                                    throw new Exception("Existing column[x=" + c0.X + "] '" + c0.Header + "' differs from the new one '" + c.Header + "'");
-                                c.X = c0.X;
-                                c0s.RemoveAt(i);
-                                c0s.Insert(i, c);
+                                else
+                                {
+                                    for (; i0 < c0s.Count; i0++)
+                                    {
+                                        Column c0 = c0s[i0];
+                                        if (c.Header == c0.Header)
+                                            break;
+                                    }
+                                    if (i0 >= c0s.Count)
+                                        throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
+                                }
                             }
-                            Columns = new ReadOnlyCollection<Column>(c0s);
                         }
                         break;
 
@@ -205,25 +215,62 @@ namespace Cliver
                     default:
                         throw new Exception("Unknown case: " + setColumnMode);
                 }
+            }
 
+            /// <summary>
+            /// (!)Input columns must contain NULLs if any!
+            /// NULL and empty-header columns are passed through.
+            /// </summary>
+            /// <param name="columns"></param>
+            /// <param name="write"></param>
+            /// <exception cref="Exception"></exception>
+            void setColumns(IEnumerable<Column> columns, bool write)
+            {
+                columns = columns
+                    .Select((a, i) => (column: a, x: i + 1))
+                    .Where(a =>
+                    {
+                        if (a.column == null)
+                            return false;
+                        a.column.X = a.x;
+                        return true;
+                    })
+                    .Select(a => a.column);
+
+                Columns = new ReadOnlyCollection<Column>(columns.OrderBy(a => a.X).ToList());
                 Columns.ForEach(a => { a.Table = this; });
 
+                int x0 = 0;
                 for (int i = 0; i < Columns.Count; i++)
                 {
                     Column c = Columns[i];
+                    if (c.X <= x0)
+                        throw new Exception("Column[X=" + c.X + "] '" + c.Header + "' must have X>" + x0);
+                    x0 = c.X;
                     for (int j = i + 1; j < Columns.Count; j++)
                     {
                         Column cj = Columns[j];
                         if (cj.X == c.X)
-                            throw new Exception("Columns have the same X: '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
+                            throw new Exception("Columns have the same X: '" + c.Header + "'[X=" + c.X + "] == '" + cj.Header + "'[X=" + cj.X + "]");
                         if (cj.Header == c.Header)
-                            throw new Exception("Columns are equal by headers: '" + c.Header + "'[x=" + c.X + "] == '" + cj.Header + "'[x=" + cj.X + "]");
+                            throw new Exception("Columns are equal by headers: '" + c.Header + "'[X=" + c.X + "] == '" + cj.Header + "'[X=" + cj.X + "]");
                     }
                 }
 
-                WriteRow(1, Columns.Select(a => new Cell(a, a.Header)));
+                if (Columns.Count < 1)
+                    return;
 
+                if (write)
                 {
+                    IRow r = Sheet._GetRow(1, true);
+                    foreach (var column in Columns)
+                    {
+                        var c = r._GetCell(column.X, true);
+                        c._SetValue(column.Header);
+                    }
+                }
+
+                {//set data styles and types
                     var r2 = Sheet._GetRow(2, false);
                     bool r2created = false;
                     if (r2 == null)
@@ -306,25 +353,27 @@ namespace Cliver
                 return c;
             }
 
-            public void InsertColumn(int x, Column column)
+            public void InsertColumn(int x, Column column, OnFormulaCellMoved onFormulaCellMoved = null)
             {
-                Sheet._ShiftColumnsRight(x, 1);
+                Sheet._ShiftColumnsRight(x, 1, onFormulaCellMoved);
                 if (column == null)
                     return;
                 column.X = x;
                 Sheet._GetCell(1, x, true)._SetValue(column.Header);
                 var cs = Columns.ToList();
                 cs.Insert(column.X - 1, column);
+                loadColumns();
                 SetColumns(SetColumnMode.FindOrdered, cs);
             }
 
-            public void RemoveColumn(Column column)
+            public void RemoveColumn(Column column, OnFormulaCellMoved onFormulaCellMoved = null)
             {
                 if (column.Table == null)
                     throw new Exception("Column is not initialized: Table is not set.");
-                Sheet._ShiftColumnsLeft(column.X, 1);
+                Sheet._ShiftColumnsLeft(column.X, 1, onFormulaCellMoved);
                 var cs = Columns.ToList();
                 cs.RemoveAt(column.X - 1);
+                loadColumns();
                 SetColumns(SetColumnMode.FindOrdered, cs);
             }
 

@@ -17,6 +17,11 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _Remove(this ISheet sheet)
+        {
+            sheet.Workbook.RemoveSheetAt(sheet._GetIndex() - 1);
+        }
+
         static public void _Rename(this ISheet sheet, string name2)
         {
             sheet.Workbook.SetSheetName(sheet._GetIndex() - 1, name2);

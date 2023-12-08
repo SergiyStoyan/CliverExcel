@@ -98,79 +98,88 @@ namespace Cliver
             cell.Row.RemoveCell(cell);
         }
 
-        static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            ICell toCell = _Copy(fromCell, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
-            fromCell?._Remove();
-            return toCell;
+            ICell cell2 = _Copy(cell1, cell2Y, cell2X, onFormulaCellMoved, sheet2, styleMap);
+            cell1?._Remove();
+            return cell2;
         }
 
-        static public void _Move(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null, StyleCache toStyleCache = null)
+        static public void _Move(this ICell cell1, ICell cell2, OnFormulaCellMoved onFormulaCellMoved = null, StyleMap styleMap = null)
         {
-            _Copy(fromCell, toCell, onFormulaCellMoved);
-            fromCell?._Remove();
+            _Copy(cell1, cell2, onFormulaCellMoved, styleMap);
+            cell1?._Remove();
         }
 
-        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            if (toSheet == null)
-                toSheet = fromCell.Sheet;
-            if (fromCell == null)
+            if (sheet2 == null)
+                sheet2 = cell1.Sheet;
+            if (cell1 == null)
             {
-                ICell toCell = toSheet._GetCell(toCellY, toCellX, false);
-                toCell?._Remove();
+                ICell cell2 = sheet2._GetCell(cell2Y, cell2X, false);
+                cell2?._Remove();
                 return null;
             }
             else
             {
-                ICell toCell = toSheet._GetCell(toCellY, toCellX, true);
-                _Copy(fromCell, toCell, onFormulaCellMoved);
-                return toCell;
+                ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
+                _Copy(cell1, cell2, onFormulaCellMoved, styleMap);
+                return cell2;
             }
         }
 
-        static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null, StyleCache toStyleCache = null)
+        static public void _Copy(this ICell cell1, ICell cell2, OnFormulaCellMoved onFormulaCellMoved = null, StyleMap styleMap = null)
         {
-            if (fromCell == null)
+            if (cell1 == null)
             {
-                toCell?._Remove();
+                cell2?._Remove();
                 return;
             }
 
-            toCell.SetBlank();
-            toCell.SetCellType(fromCell.CellType);
-            if (fromCell.Sheet.Workbook != toCell.Sheet.Workbook)
-                toStyleCache.GetMappedStyle(fromCell.CellStyle);
-            toCell.CellStyle = fromCell.CellStyle;
-            toCell.RemoveCellComment();
-            toCell.CellComment = fromCell.CellComment;
-            //toCell._SetLink(fromCell.Hyperlink?.Address);
-            toCell.Hyperlink = fromCell.Hyperlink;
-            switch (fromCell.CellType)
+            cell2.SetBlank();
+            cell2.SetCellType(cell1.CellType);
+
+            if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
+            {
+                if (styleMap == null)
+                    throw new Exception("styleMap must be specified when copying cell to another workbook.");
+                if (cell2.Sheet.Workbook != styleMap.ToWorkbook)
+                    throw new Exception("cell2 does not belong to styleMap's workbook.");
+                cell2.CellStyle = styleMap.GetMappedStyle(cell1.CellStyle);
+            }
+            else
+                cell2.CellStyle = cell1.CellStyle;
+
+            cell2.RemoveCellComment();
+            cell2.CellComment = cell1.CellComment;
+            //cell2._SetLink(cell1.Hyperlink?.Address);
+            cell2.Hyperlink = cell1.Hyperlink;
+            switch (cell1.CellType)
             {
                 case CellType.Formula:
-                    toCell.CellFormula = fromCell.CellFormula;
+                    cell2.CellFormula = cell1.CellFormula;
                     break;
                 case CellType.Numeric:
-                    toCell.SetCellValue(fromCell.NumericCellValue);
+                    cell2.SetCellValue(cell1.NumericCellValue);
                     break;
                 case CellType.String:
-                    toCell.SetCellValue(fromCell.StringCellValue);
+                    cell2.SetCellValue(cell1.StringCellValue);
                     break;
                 case CellType.Boolean:
-                    toCell.SetCellValue(fromCell.BooleanCellValue);
+                    cell2.SetCellValue(cell1.BooleanCellValue);
                     break;
                 case CellType.Error:
-                    toCell.SetCellErrorValue(fromCell.ErrorCellValue);
+                    cell2.SetCellErrorValue(cell1.ErrorCellValue);
                     break;
                 case CellType.Blank:
-                    toCell.SetBlank();
+                    cell2.SetBlank();
                     break;
                 default:
-                    throw new Exception("Unknown cell type: " + fromCell.CellType);
+                    throw new Exception("Unknown cell type: " + cell1.CellType);
             }
-            if (toCell?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(fromCell, toCell);
+            if (cell2?.CellType == CellType.Formula)
+                onFormulaCellMoved?.Invoke(cell1, cell2);
         }
 
         /// <summary>
@@ -276,7 +285,7 @@ namespace Cliver
                         || value is double
                         || value is decimal
                 )
-                cell.SetCellValue((double)value);
+                cell.SetCellValue(Convert.ToDouble(value));
             else if (value is bool b)
                 cell.SetCellValue(b);
             else if (value is DateTime dt)

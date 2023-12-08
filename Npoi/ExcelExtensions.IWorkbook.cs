@@ -15,6 +15,21 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        public static void _RemoveSheet(this IWorkbook workbook, ISheet sheet)
+        {
+            workbook.RemoveSheetAt(workbook.GetSheetIndex(sheet));
+        }
+
+        public static void _RemoveSheet(this IWorkbook workbook, string sheetName)
+        {
+            workbook.RemoveSheetAt(workbook.GetSheetIndex(sheetName));
+        }
+
+        public static void _RemoveSheet(this IWorkbook workbook, int sheetIndex)
+        {
+            workbook.RemoveSheetAt(sheetIndex - 1);
+        }
+
         public static void _SetAuthor(this IWorkbook workbook, string author)
         {
             if (workbook is XSSFWorkbook xSSFWorkbook)
@@ -37,10 +52,8 @@ namespace Cliver
 
         public static IEnumerable<ISheet> _GetSheets(this IWorkbook workbook)
         {
-            for (int i = 0; i < workbook.ActiveSheetIndex; i++)
-            {
+            for (int i = workbook.NumberOfSheets - 1; i >= 0; i--)
                 yield return workbook.GetSheetAt(i);
-            }
         }
 
         /// <summary>
@@ -55,6 +68,7 @@ namespace Cliver
             ISheet sheet = workbook.GetSheet(name);
             if (sheet == null && createSheet)
                 sheet = workbook.CreateSheet(Excel.GetSafeSheetName(name));
+            workbook.SetActiveSheet(sheet._GetIndex() - 1);
             return sheet;
         }
 
@@ -66,11 +80,10 @@ namespace Cliver
         /// <returns></returns>
         static public ISheet _OpenSheet(this IWorkbook workbook, int index)
         {
-            if (workbook.NumberOfSheets > 0 && workbook.NumberOfSheets >= index)
-            {
-                return workbook.GetSheetAt(index - 1);
-            }
-            return null;
+            if (workbook.NumberOfSheets < 1 || workbook.NumberOfSheets < index)
+                return null;
+            workbook.SetActiveSheet(index - 1);
+            return workbook.GetSheetAt(index - 1);
         }
 
         static public void _Save(this IWorkbook workbook, string file)

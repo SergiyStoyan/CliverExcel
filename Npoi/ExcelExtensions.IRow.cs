@@ -15,26 +15,26 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _Move(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public void _Move(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null)
         {
-            row._Copy(y2, onFormulaCellMoved, toSheet);
+            row._Copy(y2, onFormulaCellMoved, sheet2);
             row._Remove();
         }
 
-        static public void _Copy(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        static public void _Copy(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            if (toSheet == null)
-                toSheet = row.Sheet;
+            if (sheet2 == null)
+                sheet2 = row.Sheet;
             if (row == null)
             {
-                toSheet._RemoveRow(y2);
+                sheet2._RemoveRow(y2);
                 return;
             }
-            if (row._Y() == y2 && toSheet == row.Sheet)
+            if (row._Y() == y2 && sheet2 == row.Sheet)
                 return;
-            toSheet._RemoveRow(y2);
-            foreach (ICell c1 in row)
-                c1._Copy(y2, c1._X(), onFormulaCellMoved, toSheet, toStyleCache);
+            sheet2._RemoveRow(y2);
+            foreach (ICell c1 in row.Cells)
+                c1._Copy(y2, c1._X(), onFormulaCellMoved, sheet2, styleMap);
         }
 
         static public void _Move2(this IRow row, int y2)
@@ -59,23 +59,23 @@ namespace Cliver
         /// <param name="shiftRowsBelow"></param>
         static public void _Remove(this IRow row, RemoveRowMode removeRowMode = 0)
         {
-            SortedDictionary<int, ICell> cells = null;
-            if (removeRowMode.HasFlag(RemoveRowMode.PreserveCells))
+            if (removeRowMode.HasFlag(RemoveRowMode.PreserveCells)
+                && row is XSSFRow xSSFRow//in HSSFRow Cells remain after removing the row
+                )
             {
-                if (row is XSSFRow xSSFRow)//in HSSFRow Cells remain after removing the row
-                {
-                    cells = new SortedDictionary<int, ICell>();
-                    row.Cells.Select((a, i) => (a, i)).ForEach(a => cells.Add(a.i, a.a));
-                    if (XSSFRow_cells_FI == null)
-                        XSSFRow_cells_FI = xSSFRow.GetType().GetField("_cells", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    //cells = (SortedDictionary<int, ICell>)XSSFRow_cells_FI.GetValue(xSSFRow);
-                }
-            }
+                SortedDictionary<int, ICell> cells = new SortedDictionary<int, ICell>();
+                row.Cells.Select((a, i) => (a, i)).ForEach(a => cells.Add(a.i, a.a));
+                if (XSSFRow_cells_FI == null)
+                    XSSFRow_cells_FI = xSSFRow.GetType().GetField("_cells", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                //cells = (SortedDictionary<int, ICell>)XSSFRow_cells_FI.GetValue(xSSFRow);!!!will be NULLed when removing
 
-            row.Sheet.RemoveRow(row);
+                row.Sheet.RemoveRow(row);
 
-            if (cells != null)
                 XSSFRow_cells_FI.SetValue(row, cells);
+            }
+            else
+                row.Sheet.RemoveRow(row);
+
             if (removeRowMode.HasFlag(RemoveRowMode.ShiftRowsBelow))
                 row.Sheet.ShiftRows(row.RowNum + 1, row.Sheet.LastRowNum, -1);
             if (removeRowMode.HasFlag(RemoveRowMode.ClearMerging))
@@ -102,25 +102,16 @@ namespace Cliver
                 row.MoveCell(c, x2 - 1);
         }
 
-        static public void _SetStyle(this IRow row, ICellStyle style, Excel.RowStyleMode rowStyleMode)
+        static public void _SetStyle(this IRow row, ICellStyle style, RowStyleMode rowStyleMode)
         {
-            switch (rowStyleMode)
-            {
-                case Excel.RowStyleMode.RowOnly:
-                    row.RowStyle = style;
-                    break;
-                case Excel.RowStyleMode.RowAndCells:
-                    row.RowStyle = style;
-                    foreach (ICell c in row.Cells)
-                        c.CellStyle = style;
-                    break;
-                case Excel.RowStyleMode.CellsOnly:
-                    foreach (ICell c in row.Cells)
-                        c.CellStyle = style;
-                    break;
-                default:
-                    throw new Exception("Unknown option: " + rowStyleMode);
-            }
+            if (rowStyleMode.HasFlag(RowStyleMode.Row))
+                row.RowStyle = style;
+            if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
+                foreach (ICell c in row.Cells)
+                    c.CellStyle = style;
+            else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
+                for (int x = row.LastCellNum; x > 0; x--)
+                    row._GetCell(x, true).CellStyle = style;
         }
 
         static public void _ShiftCellsRight(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)

@@ -118,19 +118,23 @@ namespace Cliver
             return Workbook._GetStyles();
         }
 
+        /// <summary>
+        /// Finds styles in the workbook that are not used and hence can be used as new.
+        /// </summary>
+        /// <param name="ignoredStyleIds"></param>
+        /// <returns></returns>
         public IEnumerable<ICellStyle> GetUnusedStyles(params short[] ignoredStyleIds)
         {
             return Workbook._GetUnusedStyles(ignoredStyleIds);
         }
 
         /// <summary>
-        /// Makes all the duplicated styles unused. Call GetUnusedStyles() after this method to re-use styles.
-        /// (!)Tends to be slow on big sheets.
+        /// Makes all the duplicated styles unused so they can be used as new.
+        /// (!)Tends to be slow on large sheets.
         /// </summary>
-        /// <exception cref="Exception"></exception>
-        public void OptimiseStyles()
+        public void OptimizeStyles(out List<ICellStyle> unusedStyles)
         {
-            Workbook._OptimiseStyles();
+            Workbook._OptimizeStyles(out unusedStyles);
         }
     }
 }

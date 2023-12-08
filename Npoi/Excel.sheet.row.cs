@@ -113,6 +113,10 @@ namespace Cliver
         {
             ShiftRowsBelow = 1,
             ClearMerging = 2,
+            /// <summary>
+            /// (!)Done in a hacky way through Reflection so might change with POI update.
+            /// (!)GetCell() might work incorrectly on such rows.
+            /// </summary>
             PreserveCells = 4,
         }
         public IRow RemoveRow(int y, RemoveRowMode removeRowMode = 0)
@@ -219,15 +223,15 @@ namespace Cliver
             /// <summary>
             /// Set the row default style.
             /// </summary>
-            RowOnly,
+            Row = 1,
             /// <summary>
-            /// Set style of the existing cells.
+            /// Set style to the existing cells.
             /// </summary>
-            CellsOnly,
+            ExistingCells = 2,
             /// <summary>
-            /// Set both the row default style and style of the existing cells.
+            /// Set style to all the cells with no gaps. When need, blank cells are created.
             /// </summary>
-            RowAndCells
+            NoGapCells = 4,
         }
         public void SetStyle(int y, ICellStyle style, RowStyleMode rowStyleMode)
         {

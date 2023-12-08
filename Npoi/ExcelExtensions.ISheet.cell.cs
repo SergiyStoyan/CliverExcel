@@ -64,10 +64,10 @@ namespace Cliver
                 sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
         }
 
-        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
         {
             ICell sourceCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return sourceCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
+            return sourceCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -104,10 +104,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
+            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)
@@ -158,8 +158,6 @@ namespace Cliver
             IClientAnchor a = d.CreateAnchor(0, 0, 0, 0, image.X - 1, image.Y - 1, image.X - 1, image.Y - 1);
             a.AnchorType = AnchorType.MoveDontResize;
             IPicture p = d.CreatePicture(a, imageId);
-            //if (p is XSSFPicture xSSFPicture)
-            //    xSSFPicture.IsNoFill = true;
             p.Resize(1);
             //p.Resize(1, 1);
         }

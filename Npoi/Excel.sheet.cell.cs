@@ -53,14 +53,14 @@ namespace Cliver
             Sheet._ShiftCellsUp(y1, x1, x2, shift, onFormulaCellMoved);
         }
 
-        public ICell CopyCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        public ICell CopyCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
         {
-            return Sheet._CopyCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
+            return Sheet._CopyCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
         }
 
-        public ICell MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleCache toStyleCache = null)
+        public ICell MoveCell(int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
         {
-            return Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleCache);
+            return Sheet._MoveCell(fromCellY, fromCellX, toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
         }
 
         public string GetValueAsString(int y, int x, bool allowNull = false)

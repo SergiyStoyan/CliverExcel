@@ -185,9 +185,9 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public IRow _AppendRow(this ISheet sheet, params string[] values)
+        static public IRow _AppendRow<T>(this ISheet sheet, params T[] values)
         {
-            return sheet._AppendRow(values);
+            return sheet._AppendRow((IEnumerable<T>)values);
         }
 
         /// <summary>
@@ -213,9 +213,27 @@ namespace Cliver
         /// <param name="y"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public IRow _InsertRow(this ISheet sheet, int y, params string[] values)
+        static public IRow _InsertRow<T>(this ISheet sheet, int y, params T[] values)
         {
-            return sheet._InsertRow(y, (IEnumerable<string>)values);
+            return sheet._InsertRow(y, (IEnumerable<T>)values);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        static public IRow _AddRow<T>(this ISheet sheet, int? y, IEnumerable<T> values)
+        {
+            return y == null ? sheet._AppendRow(values) : sheet._InsertRow(y.Value, values);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        static public IRow _AddRow<T>(this ISheet sheet, int? y, params T[] values)
+        {
+            return sheet._AddRow(y, (IEnumerable<T>)values);
         }
 
         static public IRow _WriteRow<T>(this ISheet sheet, int y, IEnumerable<T> values)
@@ -258,6 +276,7 @@ namespace Cliver
 
         /// <summary>
         /// Based on ISheet.CopyRow()
+        /// (!)It seems to be slower than _CopyRow()
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
@@ -278,6 +297,7 @@ namespace Cliver
 
         /// <summary>
         /// Based on ISheet.CopyRow()
+        /// (!)It seems to be slower than _MoveRow()
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
@@ -289,7 +309,8 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Based on ISheet.ShiftRows()
+        /// Based on ISheet.ShiftRows(). 
+        /// (!)On big sheets it is slower than _MoveRow()
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
@@ -310,6 +331,24 @@ namespace Cliver
                     sheet.ShiftRows(y2, sheet.LastRowNum, 1);
                 sheet.ShiftRows(y1 - 1, y1 - 1, y2 - y1 + 1);
                 sheet.ShiftRows(y1, sheet.LastRowNum, -1);
+            }
+        }
+
+        static public void _ShiftRowsDown(this ISheet sheet, int y, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        {
+            for (int y0 = sheet.LastRowNum; y0 >= y; y0--)
+            {
+                IRow row = sheet.GetRow(y0);
+                row._Move(y0 + shift, onFormulaCellMoved);
+            }
+        }
+
+        static public void _ShiftRowsUp(this ISheet sheet, int y, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        {
+            for (int y0 = y; y0 <= sheet.LastRowNum; y0++)
+            {
+                IRow row = sheet.GetRow(y0);
+                row._Move(y0 - shift, onFormulaCellMoved);
             }
         }
 

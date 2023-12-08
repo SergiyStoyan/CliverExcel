@@ -26,55 +26,45 @@ namespace Cliver
         /// </summary>
         public class StyleCache
         {
-            public StyleCache(IWorkbook workbook1, IWorkbook workbook2 = null)
+            public StyleCache(IWorkbook fromWorkbook, IWorkbook toWorkbook = null)
             {
-                if (workbook2 == null)
-                    workbook2 = workbook1;
-                Workbook1 = workbook1;
-                Workbook2 = workbook2;
+                if (toWorkbook == null)
+                    toWorkbook = fromWorkbook;
+                FromWorkbook = fromWorkbook;
+                ToWorkbook = toWorkbook;
             }
 
-            readonly public IWorkbook Workbook1;
-            readonly public IWorkbook Workbook2;
+            readonly public IWorkbook FromWorkbook;
+            readonly public IWorkbook ToWorkbook;
 
-            Dictionary<long, ICellStyle> alternation_style1Keys2style2 = new Dictionary<long, ICellStyle>();
+            protected Dictionary<long, ICellStyle> style1Keys2style2 = new Dictionary<long, ICellStyle>();
+
+            /// <summary>
+            /// Performs style alteration.
+            /// (!)Style is unregistered and must remain so.
+            /// </summary>
+            /// <typeparam name="T"></typeparam>
+            /// <param name="style"></param>
+            /// <param name="alterationKey"></param>
+            public delegate void AlterStyle<T>(ICellStyle style, T alterationKey) where T : Excel.StyleCache.IKey;
 
             /// <summary>
             /// Get a resgistered and cached style that is obtained by altering the input style.
             /// </summary>
             /// <param name="style">the style to be altered</param>
             /// <param name="alterationKey"></param>
-            /// <param name="alterStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
-            /// <returns></returns>
-            public ICellStyle GetAlteredStyle(ICellStyle style, IKey alterationKey, Action<ICellStyle> alterStyle)
+            /// <param name="alterStyle">performs style alteration. (!)Style is unregistered and must remain so.</param>
+            /// <returns></returns>T
+            public ICellStyle GetAlteredStyle<T>(ICellStyle style, T alterationKey, AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
             {
                 long alteration_styleKey = (((long)alterationKey.Get()) << 16) + style.Index;
 
-                if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
+                if (!style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
                 {
-                    s2 = Workbook1._CloneUnregisteredStyle(style, Workbook2);
-                    alterStyle(s2);
-                    s2 = Workbook1._GetRegisteredStyle(s2, Workbook2);
-                    alternation_style1Keys2style2[alteration_styleKey] = s2;
-                }
-                return s2;
-            }
-
-            /// <summary>
-            /// Used for mappping styles between workbooks
-            /// </summary>
-            /// <param name="style"></param>
-            /// <returns></returns>
-            public ICellStyle GetMappedStyle(ICellStyle style)
-            {
-                const long d = 1 << 48 - 1;
-                long alteration_styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
-
-                if (!alternation_style1Keys2style2.TryGetValue(alteration_styleKey, out ICellStyle s2))
-                {
-                    s2 = Workbook1._CloneUnregisteredStyle(style, Workbook2);
-                    s2 = Workbook1._GetRegisteredStyle(s2, Workbook2);
-                    alternation_style1Keys2style2[alteration_styleKey] = s2;
+                    s2 = FromWorkbook._CloneUnregisteredStyle(style, ToWorkbook);
+                    alterStyle(s2, alterationKey);
+                    s2 = FromWorkbook._GetRegisteredStyle(s2, ToWorkbook);
+                    style1Keys2style2[alteration_styleKey] = s2;
                 }
                 return s2;
             }
@@ -133,16 +123,81 @@ namespace Cliver
             }
         }
 
-        protected StyleCache styleCache = null;
-
-        public void SetStyles(IRow row, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
+        /// <summary>
+        /// Used to map styles between 2 workbooks with optional style altering.
+        /// </summary>
+        public class StyleMap : StyleCache
         {
-            row._SetStyles(styleCache, alterationKey, alterStyle);
+            public StyleMap(IWorkbook fromWorkbook, IWorkbook toWorkbook) : base(fromWorkbook, toWorkbook)
+            {
+                if (fromWorkbook == toWorkbook)
+                    throw new Exception("This class is intended for working with 2 different workbooks.");
+            }
+
+            /// <summary>
+            /// Used for mappping styles between 2 workbooks
+            /// </summary>
+            /// <param name="style"></param>
+            /// <returns></returns>
+            public ICellStyle GetMappedStyle(ICellStyle style)
+            {
+                const long d = 1 << 48 - 1;
+                long styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
+
+                if (!style1Keys2style2.TryGetValue(styleKey, out ICellStyle s2))
+                {
+                    s2 = FromWorkbook._GetRegisteredStyle(s2, ToWorkbook);
+                    style1Keys2style2[styleKey] = s2;
+                }
+                return s2;
+            }
         }
 
-        public void SetStyle(ICell cell, Excel.StyleCache.IKey alterationKey, Action<ICellStyle> alterStyle)
+        ///// <summary>
+        ///// Used only to cache styles within 1 workbook with optional style altering.
+        ///// </summary>
+        //public class StyleCache : StyleCacheBase
+        //{
+        //    public StyleCache(IWorkbook workbook) : base(workbook)
+        //    { }
+
+        //    ///// <summary>
+        //    ///// Should be used only to cache styles within the same workbook (FromWorkbook=ToWorkbook2). 
+        //    ///// Its goal is to increase performance by avoiding of calling _GetRegisteredStyle() each time.
+        //    ///// (!)Input style with index>=0 is considered as registered in the actual workbook.
+        //    ///// </summary>
+        //    ///// <param name="style"></param>
+        //    ///// <returns></returns>
+        //    //public ICellStyle GetCachedStyle(ICellStyle style)
+        //    //{
+        //    //    if (style == null)
+        //    //        return style;
+
+        //    //    if (style.Index < 0)
+        //    //        style = FromWorkbook._GetRegisteredStyle(style);
+
+        //    //    const long d = 1 << 48 - 1;
+        //    //    long styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
+
+        //    //    if (!style1Keys2style2.TryGetValue(styleKey, out ICellStyle s2))
+        //    //    {
+        //    //        s2 = FromWorkbook._GetRegisteredStyle(s2);
+        //    //        style1Keys2style2[styleKey] = s2;
+        //    //    }
+        //    //    return s2;
+        //    //}
+        //}
+
+        protected StyleCache styleCache = null;
+
+        public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
         {
-            cell._SetStyle(styleCache, alterationKey, alterStyle);
+            row._SetAlteredStyles(styleCache, alterationKey, alterStyle);
+        }
+
+        public void SetAlteredStyle<T>(ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+        {
+            cell._SetAlteredStyle(styleCache, alterationKey, alterStyle);
         }
     }
 }
