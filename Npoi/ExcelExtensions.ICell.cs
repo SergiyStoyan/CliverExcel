@@ -11,6 +11,7 @@ using NPOI.SS.Formula.Functions;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.Util;
 using NPOI.XSSF.Extractor;
 using NPOI.XSSF.UserModel;
 using NPOI.XWPF.Extractor;
@@ -30,14 +31,6 @@ namespace Cliver
             if (string.IsNullOrWhiteSpace(comment))
                 return null;
 
-            //if (anchor == null)
-            //{
-            //    anchor = creationHelper.CreateClientAnchor();
-            //    anchor.Col1 = cell.ColumnIndex;
-            //    anchor.Col2 = cell.ColumnIndex + 3;
-            //    anchor.Row1 = cell.RowIndex;
-            //    anchor.Row2 = cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3;
-            //}
             var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
             if (anchor == null)
                 anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0, cell.ColumnIndex, cell.RowIndex, cell.ColumnIndex + 3, cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3);
@@ -85,6 +78,23 @@ namespace Cliver
             }
             cell.CellComment = iComment;
             return cell.CellComment.ClientAnchor;
+        }
+        public static IComment _CopyComment(this ICell cell, int y2, int x2)
+        {
+            IComment comment = cell.CellComment;
+            var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
+            (int Y, int X) shift = (y2 - cell._Y(), x2 - cell._X());
+            IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(0, 0, 0, 0
+                , comment.ClientAnchor.Col1 + shift.X
+                , comment.ClientAnchor.Row1 + shift.Y
+                , comment.ClientAnchor.Col2 + shift.X
+                , comment.ClientAnchor.Row2 + shift.Y
+                );
+            IComment comment2 = drawingPatriarch.CreateCellComment(anchor2);
+            if (comment.Author != null)
+                comment2.Author = comment.Author;
+            comment2.String = comment.String.Copy();
+            return comment2;
         }
 
         static public string _GetAddress(this ICell cell)
@@ -152,7 +162,7 @@ namespace Cliver
                 cell2.CellStyle = cell1.CellStyle;
 
             cell2.RemoveCellComment();
-            cell2.CellComment = cell1.CellComment;
+            cell2.CellComment = cell1._CopyComment(cell2._Y(), cell2._X());
             //cell2._SetLink(cell1.Hyperlink?.Address);
             cell2.Hyperlink = cell1.Hyperlink;
             switch (cell1.CellType)

@@ -30,6 +30,40 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
+            /// <summary>         
+            /// NULL- and type-safe.
+            /// (!)Never returns NULL.
+            /// </summary>
+            /// <param name="y"></param>
+            /// <returns></returns>
+            public string this[int y]
+            {
+                get
+                {
+                    return GetValueAsString(y, false);
+                }
+                set
+                {
+                    GetCell(y, true).SetCellValue(value);
+                }
+            }
+
+            /// <summary>
+            /// NULL- and type-safe.
+            /// (!)Never returns NULL.
+            /// </summary>
+            public string this[string columnName]
+            {
+                get
+                {
+                    return this[GetX(columnName)];
+                }
+                set
+                {
+                    this[GetX(columnName)] = value;
+                }
+            }
+
             public int GetLastRow(LastRowCondition lastRowCondition, bool includeMerged)
             {
                 IRow row = null;
