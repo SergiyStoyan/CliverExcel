@@ -62,15 +62,23 @@ namespace Cliver
         /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
-        /// <param name="style">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
+        /// <param name="unregisteredStyle">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
+        /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
         /// <param name="unregisteredStyleWorkbook"></param>
         /// <returns></returns>
-        static public ICellStyle _GetRegisteredStyle(this IWorkbook workbook, ICellStyle unregisteredStyle, IWorkbook unregisteredStyleWorkbook = null)
+        static public ICellStyle _GetRegisteredStyle(this IWorkbook workbook, ICellStyle unregisteredStyle, bool reuseUnusedStyle = false, IWorkbook unregisteredStyleWorkbook = null)
         {
             ICellStyle style = workbook._FindEqualStyles(unregisteredStyle, unregisteredStyleWorkbook).FirstOrDefault();
             if (style != null)
                 return style;
-            style = workbook.CreateCellStyle();
+            if (reuseUnusedStyle)
+            {
+                style = workbook._GetUnusedStyles().FirstOrDefault();
+                if (style == null)
+                    style = workbook.CreateCellStyle();
+            }
+            else
+                style = workbook.CreateCellStyle();
             return workbook._CopyStyle(unregisteredStyle, style);
         }
 
@@ -496,30 +504,32 @@ namespace Cliver
         /// <returns></returns>
         static public IEnumerable<ICellStyle> _GetUnusedStyles(this IWorkbook workbook, params short[] ignoredStyleIds)
         {
-            bool isUsed(ICellStyle style, ISheet sheet)
+            bool isUsed(ICellStyle style)
             {
-                int maxY = sheet.LastRowNum + 1;
-                for (int y = 1; y <= maxY; y++)
+                foreach (var sheet in workbook._GetSheets())
                 {
-                    IRow row = sheet._GetRow(y, false);
-                    if (row == null)
-                        continue;
-                    if (row.RowStyle?.Index == style.Index)
-                        return true;
-                    int maxX = row.LastCellNum;
-                    for (int x = 1; x <= maxX; x++)
+                    int maxY = sheet.LastRowNum + 1;
+                    for (int y = 1; y <= maxY; y++)
                     {
-                        ICell c = row._GetCell(x, false);
-                        if (c?.CellStyle.Index == style.Index)
+                        IRow row = sheet._GetRow(y, false);
+                        if (row == null)
+                            continue;
+                        if (row.RowStyle?.Index == style.Index)
                             return true;
+                        int maxX = row.LastCellNum;
+                        for (int x = 1; x <= maxX; x++)
+                        {
+                            ICell c = row._GetCell(x, false);
+                            if (c?.CellStyle.Index == style.Index)
+                                return true;
+                        }
                     }
                 }
                 return false;
             }
             foreach (var style in workbook._GetStyles().Where(a => !ignoredStyleIds.Contains(a.Index)).OrderByDescending(a => a.Index))
-                foreach (var sheet in workbook._GetSheets())
-                    if (isUsed(style, sheet))
-                        yield return style;
+                if (!isUsed(style))
+                    yield return style;
         }
 
         /// <summary>

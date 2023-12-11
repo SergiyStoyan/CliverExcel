@@ -16,6 +16,9 @@ namespace Cliver
 {
     public partial class Excel
     {
+        public static string CommentDefaultFontName = "Tahoma";
+        public static int CommentDefaultFontSize = 9;
+
         static public string GetSafeSheetName(string name)
         {
             name = Regex.Replace(name, @"\:", "-");//npoi does not accept :

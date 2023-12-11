@@ -29,11 +29,12 @@ namespace Cliver
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
         /// <param name="style">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
+        /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
         /// <param name="unregisteredStyleWorkbook"></param>
         /// <returns></returns>
-        public ICellStyle GetRegisteredStyle(ICellStyle unregisteredStyle, IWorkbook unregisteredStyleWorkbook = null)
+        public ICellStyle GetRegisteredStyle(ICellStyle unregisteredStyle, bool reuseUnusedStyle = false, IWorkbook unregisteredStyleWorkbook = null)
         {
-            return Workbook._GetRegisteredStyle(unregisteredStyle, unregisteredStyleWorkbook);
+            return Workbook._GetRegisteredStyle(unregisteredStyle, reuseUnusedStyle, unregisteredStyleWorkbook);
         }
 
         public IEnumerable<ICellStyle> FindEqualStyles(ICellStyle style, IWorkbook styleWorkbook = null)

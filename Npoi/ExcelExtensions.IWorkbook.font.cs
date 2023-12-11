@@ -16,6 +16,81 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        //    static public void _SetCommentDefaultFont(this IWorkbook workbook, IFont font)
+        //    {
+        //        workbooks2CommentDefaultFont[workbook] = new CommentFonts { Workbook = workbook, Font = workbook._GetRegisteredFont(font) };
+        //    }
+        //    public class CommentFonts
+        //    {
+        //        public IFont Font { get; internal set; }
+        //        public IFont BoldFont
+        //        {
+        //            get
+        //            {
+        //                if (boldFont == null)
+        //                {
+        //                    boldFont = Workbook._CloneUnregisteredFont(Font);
+        //                    boldFont.IsBold = true;
+        //                    boldFont = Workbook._GetRegisteredFont(boldFont);
+        //                }
+        //                return boldFont;
+        //            }
+        //        }
+        //        IFont boldFont = null;
+        //        public IWorkbook Workbook { get; internal set; }
+        //    }
+        //    public class CommentFonts1
+        //    {
+        //                    public IFont DefaultFont { get; internal set; }
+
+        //        Dictionary<IFont, IFont> fonts2BoldFont = new Dictionary<IFont, IFont>();
+        //        public IFont GetBoldFont(IFont font)
+        //        {
+        //            if(!fonts2BoldFont.TryGetValue(font, out IFont boldFont))
+        //            {
+        //                boldFont = Workbook._CloneUnregisteredFont(font);
+        //                boldFont.IsBold = true;
+        //                boldFont = Workbook._GetRegisteredFont(boldFont);
+        //                fonts2BoldFont[font] = boldFont;
+        //            }
+        //            return boldFont;
+        //        }
+        //        public IWorkbook Workbook { get; internal set; }
+        //    }
+        //    static Dictionary<IWorkbook, CommentFonts> workbooks2CommentDefaultFont = new Dictionary<IWorkbook, CommentFonts>();
+
+        //    static public CommentFonts _GetCommentDefaultFonts(this IWorkbook workbook)//getting the default Font for comments
+        //    {
+        //        if (!workbooks2CommentDefaultFont.TryGetValue(workbook, out CommentFonts cfs))
+        //        {
+        //            IFont f = workbook._CreateUnregisteredFont();
+        //            f.FontName = Excel.CommentDefaultFontName;
+        //            f.FontHeight = Excel.CommentDefaultFontSize * 20;
+        //            cfs = new CommentFonts { Workbook = workbook, Font = workbook._GetRegisteredFont(f) };
+        //            workbooks2CommentDefaultFont[workbook] = cfs;
+        //        }
+        //        return cfs;
+        //    }
+
+        static public void _SetCommentDefaultFont(this IWorkbook workbook, IFont font)
+        {
+            workbooks2CommentDefaultFont[workbook] = workbook._GetRegisteredFont(font);
+        }
+        static Dictionary<IWorkbook, IFont> workbooks2CommentDefaultFont = new Dictionary<IWorkbook, IFont>();
+
+        static public IFont _GetCommentDefaultFont(this IWorkbook workbook)//getting the default Font for comments
+        {
+            if (!workbooks2CommentDefaultFont.TryGetValue(workbook, out IFont f))
+            {
+                f = workbook._CreateUnregisteredFont();
+                f.FontName = Excel.CommentDefaultFontName;
+                f.FontHeight = Excel.CommentDefaultFontSize * 20;
+                f = workbook._GetRegisteredFont(f);
+                workbooks2CommentDefaultFont[workbook] = f;
+            }
+            return f;
+        }
+
         /// <summary>
         /// Creates an unregistered copy of a font.
         /// </summary>
@@ -42,12 +117,19 @@ namespace Cliver
         /// <param name="workbook"></param>
         /// <param name="font"></param>
         /// <returns></returns>
-        static public IFont _GetRegisteredFont(this IWorkbook workbook, IFont font)
+        static public IFont _GetRegisteredFont(this IWorkbook workbook, IFont font, bool reuseUnusedFont = false)
         {
             IFont f = workbook.FindFont(font.IsBold, font.Color, (short)font.FontHeight, font.FontName, font.IsItalic, font.IsStrikeout, font.TypeOffset, font.Underline);
             if (f == null)
             {
-                f = workbook.CreateFont();
+                if (reuseUnusedFont)
+                {
+                    f = workbook._GetUnusedFonts().FirstOrDefault();
+                    if (f == null)
+                        f = workbook.CreateFont();
+                }
+                else
+                    f = workbook.CreateFont();
                 f.IsBold = font.IsBold;
                 f.Color = font.Color;
                 f.FontHeight = font.FontHeight;

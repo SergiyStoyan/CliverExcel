@@ -20,14 +20,14 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetComment(this ISheet sheet, int y, int x, string comment, string author = null, IClientAnchor anchor = null)
+        static public void _SetComment(this ISheet sheet, int y, int x, string comment, string author = null, int paddingHeight = 2, int width = 3)
         {
-            sheet._GetCell(y, x, true)._SetComment(comment, author, anchor);
+            sheet._GetCell(y, x, true)._SetComment(comment, author, paddingHeight, width);
         }
 
-        static public void _AppendOrSetComment(this ISheet sheet, int y, int x, string comment, string author = null, string separator = "\r\n\r\n", IClientAnchor anchor = null)
+        static public void _AppendOrSetComment(this ISheet sheet, int y, int x, string comment, string author = null, int paddingHeight = 0, int width = 3, string delimiter = "\r\n")
         {
-            sheet._GetCell(y, x, true)._AppendOrSetComment(comment, author, separator, anchor);
+            sheet._GetCell(y, x, true)._AppendOrSetComment(comment, author, paddingHeight, width, delimiter);
         }
 
         static public void _SetLink(this ISheet sheet, int y, int x, string link)
@@ -154,10 +154,10 @@ namespace Cliver
         static public void _AddImage(this ISheet sheet, Image image)
         {
             int imageId = sheet.Workbook.AddPicture(image.Data, image.Type);
-            IDrawing d = sheet.CreateDrawingPatriarch();
-            IClientAnchor a = d.CreateAnchor(0, 0, 0, 0, image.X - 1, image.Y - 1, image.X - 1, image.Y - 1);
+            var drawingPatriarch = /*sheet.DrawingPatriarch != null ? sheet.DrawingPatriarch :*/ sheet.CreateDrawingPatriarch();
+            IClientAnchor a = drawingPatriarch.CreateAnchor(0, 0, 0, 0, image.X - 1, image.Y - 1, image.X - 1, image.Y - 1);
             a.AnchorType = AnchorType.MoveDontResize;
-            IPicture p = d.CreatePicture(a, imageId);
+            IPicture p = drawingPatriarch.CreatePicture(a, imageId);
             p.Resize(1);
             //p.Resize(1, 1);
         }

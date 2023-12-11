@@ -50,14 +50,19 @@ namespace Cliver
             return Sheet._AppendColumn(values);
         }
 
-        public Column InsertColumn<T>(int x, IEnumerable<T> values = null)
+        public Column InsertColumn<T>(int x, IEnumerable<T> values = null, OnFormulaCellMoved onFormulaCellMoved = null)
         {
-          return  Sheet._InsertColumn(x, values);
+            return Sheet._InsertColumn(x, values, onFormulaCellMoved);
         }
 
-        public void RemoveColumn(int x, bool shiftRemainingColumns)
+        public void RemoveColumn(int x, bool shiftRemainingColumns, OnFormulaCellMoved onFormulaCellMoved = null)
         {
-            Sheet._RemoveColumn(x, shiftRemainingColumns);
+            Sheet._RemoveColumn(x, shiftRemainingColumns, onFormulaCellMoved);
+        }
+
+        public void _RemoveColumnRange(int x1, int x2, bool shiftRemainingColumns, OnFormulaCellMoved onFormulaCellMoved = null)
+        {
+            Sheet._RemoveColumnRange(x1, x2, shiftRemainingColumns, onFormulaCellMoved);
         }
 
         /// <summary>

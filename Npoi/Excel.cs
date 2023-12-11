@@ -202,5 +202,18 @@ namespace Cliver
             {
             }
         }
+
+        public class RichTextStringFormattingRun
+        {
+            public int Start;
+            public int ExcludedEnd;
+            public IFont Font;
+            public RichTextStringFormattingRun(int start, int excludedEnd, IFont font)
+            {
+                Start = start;
+                ExcludedEnd = excludedEnd;
+                Font = font;
+            }
+        }
     }
 }

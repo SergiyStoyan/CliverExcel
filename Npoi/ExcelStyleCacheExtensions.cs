@@ -16,17 +16,17 @@ namespace Cliver
 {
     public static class ExcelStyleCacheExtensions
     {
-        static public void _SetAlteredStyles<T>(this IRow row, Excel.StyleCache styleCache, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+        static public void _SetAlteredStyles<T>(this IRow row, Excel.StyleCache styleCache, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
             foreach (ICell cell in row.Cells)
-                cell._SetAlteredStyle(styleCache, alterationKey, alterStyle);
+                cell._SetAlteredStyle(styleCache, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
-        static public void _SetAlteredStyle<T>(this ICell cell, Excel.StyleCache styleCache, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+        static public void _SetAlteredStyle<T>(this ICell cell, Excel.StyleCache styleCache, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
             if (cell.Sheet.Workbook != styleCache.ToWorkbook)
                 throw new Exception("Cell does not belong to styleCache's workbook.");
-            cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle);
+            cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
     }
 }

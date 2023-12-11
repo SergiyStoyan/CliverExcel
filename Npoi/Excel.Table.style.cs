@@ -76,20 +76,20 @@ namespace Cliver
             /// <param name="row"></param>
             /// <param name="alterationKey">a key for the given style alteration, e.g. changing to a font. (!)It must be unique for all the planned alterations.</param>
             /// <param name="updateStyle">performs style alteration. (!)The passed in style is unregistered and must remain so.</param>
-            public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
                 foreach (Column column in Columns)
-                    Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle);
+                    Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle, reuseUnusedStyle);
             }
 
-            public void SetAlteredStyles<T>(int y, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyles<T>(int y, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
-                SetAlteredStyles(Sheet._GetRow(y, true), alterationKey, alterStyle);
+                SetAlteredStyles(Sheet._GetRow(y, true), alterationKey, alterStyle, reuseUnusedStyle);
             }
 
-            public void SetAlteredStyle<T>(IRow row, Column column, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyle<T>(IRow row, Column column, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
-                Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle);
+                Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle, reuseUnusedStyle);
             }
 
             public void SetAlteredStyle<T>(int y, Column column, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey

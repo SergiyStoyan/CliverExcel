@@ -10,6 +10,7 @@ using NPOI.XSSF.UserModel;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Linq;
 
 namespace Cliver
 {
@@ -139,6 +140,54 @@ namespace Cliver
             }
             else
                 throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+        }
+
+        public static IEnumerable<Excel.RichTextStringFormattingRun> _GetRichTextStringFormattingRuns(this IWorkbook workbook, IRichTextString text)
+        {
+            int nfrsCount = text.NumFormattingRuns;
+            List<int> nfrs = new List<int>();
+            for (int i = 0; i < nfrsCount; i++)
+                nfrs.Add(text.GetIndexOfFormattingRun(i));
+            nfrs.Add(text.Length);
+            if (text is HSSFRichTextString hText)
+            {
+                for (int i = 0; i < nfrsCount; i++)
+                {
+                    var f = workbook.GetFontAt(hText.GetFontOfFormattingRun(i));
+                    if (f != null)
+                        yield return new Excel.RichTextStringFormattingRun(nfrs[i], nfrs[i + 1], f);
+                }
+            }
+            else if (text is XSSFRichTextString xText)
+            {
+                //if (nfrsCount < 1)//(!)it can have no FormattingRun
+                //{
+                //    xText.Append("");// makes NumFormattingRuns > 0
+                //    for (int i = 0; i < nfrsCount; i++)
+                //        nfrs.Add(text.GetIndexOfFormattingRun(i));
+                //    nfrs.Add(text.Length);
+                //}
+                for (int i = 0; i < nfrsCount; i++)
+                {
+                    var f = xText.GetFontOfFormattingRun(i);
+                    if (f != null)
+                        yield return new Excel.RichTextStringFormattingRun(nfrs[i], nfrs[i + 1], f);
+                }
+            }
+            else
+                throw new Exception("Unsupported type of IRichTextString: " + text.GetType());
+        }
+
+        public static IRichTextString _GetRichTextString(this IWorkbook workbook, string @string, List<Excel.RichTextStringFormattingRun> richTextStringFormattingRuns)
+        {
+            IRichTextString text = workbook.GetCreationHelper().CreateRichTextString(@string);
+            richTextStringFormattingRuns?.Where(a => a?.Font != null).ForEach(a => text.ApplyFont(a.Start, a.ExcludedEnd, a.Font));
+            //else if(workbook is XSSFWorkbook) // sets NumFormattingRuns==0
+            //{
+            //    XSSFRichTextString t = new XSSFRichTextString((workbook.GetSheetAt(0));
+            //    ((XSSFRichTextString)text).Append("");//(!)makes NumFormattingRuns > 0; it seems to be a bug that FormattingRun can have Font=NULL
+            //}
+            return text;
         }
     }
 }

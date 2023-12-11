@@ -11,14 +11,14 @@ namespace Cliver
 {
     public partial class Excel
     {
-        public void SetComment(int y, int x, string comment, string author = null, IClientAnchor anchor = null)
+        public void SetComment(int y, int x, string comment, string author = null, int paddingHeight = 2, int width = 3)
         {
-            Sheet._SetComment(y, x, comment, author, anchor);
+            Sheet._SetComment(y, x, comment, author, paddingHeight, width);
         }
 
-        public void _AppendOrSetComment(int y, int x, string comment, string author = null, string separator = "\r\n\r\n", IClientAnchor anchor = null)
+        public void AppendOrSetComment(int y, int x, string comment, string author = null, int paddingHeight = 0, int width = 3, string delimiter = "\r\n\r\n")
         {
-            Sheet._AppendOrSetComment(y, x, comment, author, separator, anchor);
+            Sheet._AppendOrSetComment(y, x, comment, author, paddingHeight, width, delimiter);
         }
 
         public static string LinkEmptyValueFiller = "           ";

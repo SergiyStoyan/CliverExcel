@@ -23,9 +23,9 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public Column _AppendColumn(this ISheet sheet, params string[] values)
+        static public Column _AppendColumn<T>(this ISheet sheet, params T[] values)
         {
-            return sheet._AppendColumn(values);
+            return sheet._AppendColumn((IEnumerable<T>)values);
         }
 
         /// <summary>
@@ -44,16 +44,16 @@ namespace Cliver
         }
 
         /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
+        /// 
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="sheet"></param>
         /// <param name="x"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public Column _InsertColumn<T>(this ISheet sheet, int x, IEnumerable<T> values = null)
+        static public Column _InsertColumn<T>(this ISheet sheet, int x, IEnumerable<T> values = null, OnFormulaCellMoved onFormulaCellMoved = null)
         {
-            sheet._ShiftColumnsRight(x, 1);
+            sheet._ShiftColumnsRight(x, 1, onFormulaCellMoved);
             Column c = new Column(sheet, x);
             c._Write(values);
             return c;
@@ -66,9 +66,9 @@ namespace Cliver
         /// <param name="x"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public Column _InsertColumn(this ISheet sheet, int x, params string[] values)
+        static public Column _InsertColumn<T>(this ISheet sheet, int x, params T[] values)
         {
-            return sheet._InsertColumn(x, (IEnumerable<string>)values);
+            return sheet._InsertColumn(x, (IEnumerable<T>)values);
         }
 
         static public Column _WriteColumn<T>(this ISheet sheet, int x, IEnumerable<T> values)
@@ -78,23 +78,34 @@ namespace Cliver
             return c;
         }
 
-        static public Column _WriteColumn(this ISheet sheet, int x, params string[] values)
+        static public Column _WriteColumn<T>(this ISheet sheet, int x, params T[] values)
         {
-            return sheet._WriteColumn(x, (IEnumerable<string>)values);
+            return sheet._WriteColumn(x, (IEnumerable<T>)values);
         }
 
         /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
+        /// 
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="x"></param>
         /// <param name="shiftRemainingColumns"></param>
-        static public void _RemoveColumn(this ISheet sheet, int x, bool shiftRemainingColumns)
+        static public void _RemoveColumn(this ISheet sheet, int x, bool shiftRemainingColumns, OnFormulaCellMoved onFormulaCellMoved = null)
+        {
+            sheet._RemoveColumnRange(x, x, shiftRemainingColumns, onFormulaCellMoved);
+        }
+
+        static public void _RemoveColumnRange(this ISheet sheet, int x1, int x2, bool shiftRemainingColumns, OnFormulaCellMoved onFormulaCellMoved = null)
         {
             if (shiftRemainingColumns)
-                sheet._GetRows(RowScope.NotNull).ForEach(a => a._RemoveCell(x));
+                //sheet._GetRows(RowScope.NotNull).ForEach(a => a._RemoveCell(x));
+                sheet._ShiftColumnsLeft(x2 + 1, x2 - x1 + 1, onFormulaCellMoved);
             else
-                sheet._GetRows(RowScope.NotNull).ForEach(a => a.GetCell(x - 1)?.SetBlank());
+                sheet._GetRows(RowScope.NotNull).ForEach(a =>
+                {
+                    for (int x = x1; x <= x2; x++)
+                        a.GetCell(x - 1)?.SetBlank();
+                }
+            );
         }
 
         /// <summary>
@@ -220,7 +231,7 @@ namespace Cliver
                 IRow row = sheet.GetRow(y0);
                 if (row == null)
                     continue;
-                int columnX = row._GetLastColumn(true);
+                int columnX = row._GetLastColumn(false);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)

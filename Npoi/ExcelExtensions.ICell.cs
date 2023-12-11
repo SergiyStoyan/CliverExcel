@@ -25,78 +25,6 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public IClientAnchor _SetComment(this ICell cell, string comment, string author = null, IClientAnchor anchor = null)
-        {
-            cell.RemoveCellComment();//!!!adding multiple comments brings to error
-            if (string.IsNullOrWhiteSpace(comment))
-                return null;
-
-            var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
-            if (anchor == null)
-                anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0, cell.ColumnIndex, cell.RowIndex, cell.ColumnIndex + 3, cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3);
-            IComment iComment = null;
-            //try
-            //{
-            iComment = drawingPatriarch.CreateCellComment(anchor);
-            //}
-            //catch (Exception e)//!!!sometimes occured for unknown reason
-            //{
-            //    //var cs = cell.Sheet.GetCellComments(); //!!!this throws an exception too
-            //}
-            if (author != null)
-                iComment.Author = author;
-            comment = addCommentAuthor(comment, author);
-            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(comment);
-            cell.CellComment = iComment;
-
-            return cell.CellComment.ClientAnchor;
-        }
-        static string addCommentAuthor(string comment, string author)
-        {
-            if (!string.IsNullOrWhiteSpace(author))
-                comment = "[" + author + "]:\r\n" + comment;
-            return comment;
-        }
-
-        static public IClientAnchor _AppendOrSetComment(this ICell cell, string comment, string author = null, string delimiter = "\r\n\r\n", IClientAnchor anchor = null)
-        {
-            if (string.IsNullOrWhiteSpace(comment))
-                return cell?.CellComment?.ClientAnchor;
-
-            if (string.IsNullOrEmpty(cell?.CellComment?.String?.String))
-                return cell._SetComment(comment, author, anchor);
-
-            IComment iComment = cell.CellComment;
-            comment = delimiter + addCommentAuthor(comment, author);
-            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(iComment.String.String + comment);
-            int r2 = iComment.ClientAnchor.Row2;
-            iComment.ClientAnchor.Row2 += Regex.Matches(comment, @"^", RegexOptions.Multiline).Count - 1;
-            if (iComment.ClientAnchor.Row2 <= r2)
-            {//!!!sometimes happens for unknown reason
-                //throw new Exception("Could not increase ClientAnchor");
-                return cell._SetComment(iComment.String.String);
-            }
-            cell.CellComment = iComment;
-            return cell.CellComment.ClientAnchor;
-        }
-        public static IComment _CopyComment(this ICell cell, int y2, int x2)
-        {
-            IComment comment = cell.CellComment;
-            var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
-            (int Y, int X) shift = (y2 - cell._Y(), x2 - cell._X());
-            IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(0, 0, 0, 0
-                , comment.ClientAnchor.Col1 + shift.X
-                , comment.ClientAnchor.Row1 + shift.Y
-                , comment.ClientAnchor.Col2 + shift.X
-                , comment.ClientAnchor.Row2 + shift.Y
-                );
-            IComment comment2 = drawingPatriarch.CreateCellComment(anchor2);
-            if (comment.Author != null)
-                comment2.Author = comment.Author;
-            comment2.String = comment.String.Copy();
-            return comment2;
-        }
-
         static public string _GetAddress(this ICell cell)
         {
             return cell?.Address.ToString();
@@ -105,6 +33,7 @@ namespace Cliver
         /// Remove the cell from its row.
         static public void _Remove(this ICell cell)
         {
+            cell.RemoveCellComment();
             cell.Row.RemoveCell(cell);
         }
 
@@ -162,8 +91,39 @@ namespace Cliver
                 cell2.CellStyle = cell1.CellStyle;
 
             cell2.RemoveCellComment();
-            cell2.CellComment = cell1._CopyComment(cell2._Y(), cell2._X());
-            //cell2._SetLink(cell1.Hyperlink?.Address);
+            if (cell1.CellComment != null)
+            {
+                var drawingPatriarch = /*cell1.Sheet.DrawingPatriarch != null ? cell1.Sheet.DrawingPatriarch :*/ cell1.Sheet.CreateDrawingPatriarch();
+                (int Y, int X) shift = (cell2._Y() - cell1._Y(), cell2._X() - cell1._X());
+                try
+                {
+                    IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(
+                        cell1.CellComment.ClientAnchor.Dx1,
+                        cell1.CellComment.ClientAnchor.Dy1,
+                        cell1.CellComment.ClientAnchor.Dx2,
+                        cell1.CellComment.ClientAnchor.Dy2,
+                        cell1.CellComment.ClientAnchor.Col1 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row1 + shift.Y,
+                        cell1.CellComment.ClientAnchor.Col2 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row2 + shift.Y
+                    );
+                    //IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(0, 0, 0, 0
+                    //    , x2
+                    //    , y2
+                    //    , x2 + comment.ClientAnchor.Col2 - comment.ClientAnchor.Col1
+                    //    , y2 + comment.ClientAnchor.Row2 - comment.ClientAnchor.Row1
+                    //    );
+                    IComment comment2 = drawingPatriarch.CreateCellComment(anchor2);
+                    if (cell1.CellComment.Author != null)
+                        comment2.Author = cell1.CellComment.Author;
+
+                    comment2.String = cell1.CellComment.String.Copy();
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+
             cell2.Hyperlink = cell1.Hyperlink;
             switch (cell1.CellType)
             {

@@ -54,8 +54,9 @@ namespace Cliver
             /// <param name="style">the style to be altered</param>
             /// <param name="alterationKey"></param>
             /// <param name="alterStyle">performs style alteration. (!)Style is unregistered and must remain so.</param>
+            /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
             /// <returns></returns>T
-            public ICellStyle GetAlteredStyle<T>(ICellStyle style, T alterationKey, AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+            public ICellStyle GetAlteredStyle<T>(ICellStyle style, T alterationKey, AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
                 long alteration_styleKey = (((long)alterationKey.Get()) << 16) + style.Index;
 
@@ -63,7 +64,7 @@ namespace Cliver
                 {
                     s2 = FromWorkbook._CloneUnregisteredStyle(style, ToWorkbook);
                     alterStyle(s2, alterationKey);
-                    s2 = FromWorkbook._GetRegisteredStyle(s2, ToWorkbook);
+                    s2 = FromWorkbook._GetRegisteredStyle(s2, reuseUnusedStyle, ToWorkbook);
                     style1Keys2style2[alteration_styleKey] = s2;
                 }
                 return s2;
@@ -138,15 +139,16 @@ namespace Cliver
             /// Used for mappping styles between 2 workbooks
             /// </summary>
             /// <param name="style"></param>
+            /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
             /// <returns></returns>
-            public ICellStyle GetMappedStyle(ICellStyle style)
+            public ICellStyle GetMappedStyle(ICellStyle style, bool reuseUnusedStyle = false)
             {
                 const long d = 1 << 48 - 1;
                 long styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
 
                 if (!style1Keys2style2.TryGetValue(styleKey, out ICellStyle s2))
                 {
-                    s2 = FromWorkbook._GetRegisteredStyle(s2, ToWorkbook);
+                    s2 = FromWorkbook._GetRegisteredStyle(s2, reuseUnusedStyle, ToWorkbook);
                     style1Keys2style2[styleKey] = s2;
                 }
                 return s2;
@@ -190,14 +192,14 @@ namespace Cliver
 
         protected StyleCache styleCache = null;
 
-        public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+        public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
-            row._SetAlteredStyles(styleCache, alterationKey, alterStyle);
+            row._SetAlteredStyles(styleCache, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
-        public void SetAlteredStyle<T>(ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey
+        public void SetAlteredStyle<T>(ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
-            cell._SetAlteredStyle(styleCache, alterationKey, alterStyle);
+            cell._SetAlteredStyle(styleCache, alterationKey, alterStyle, reuseUnusedStyle);
         }
     }
 }
