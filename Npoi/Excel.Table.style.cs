@@ -38,7 +38,7 @@ namespace Cliver
                     if (style == null)
                         style = column.DataStyle;
                     if (style.Index < 0)
-                        style = column.Table.Excel.GetRegisteredStyle(style);
+                        style = column.Table.Excel.Workbook._GetRegisteredStyle(style);
                     Value = style;
                 }
 
@@ -79,7 +79,7 @@ namespace Cliver
             public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
                 foreach (Column column in Columns)
-                    Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle, reuseUnusedStyle);
+                    row._GetCell(column, true)._SetAlteredStyle(row.Sheet.Workbook._Excel().OneWorkbookStyleCache, alterationKey, alterStyle, reuseUnusedStyle);
             }
 
             public void SetAlteredStyles<T>(int y, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
@@ -89,7 +89,7 @@ namespace Cliver
 
             public void SetAlteredStyle<T>(IRow row, Column column, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
-                Excel.SetAlteredStyle(row._GetCell(column, true), alterationKey, alterStyle, reuseUnusedStyle);
+                row._GetCell(column, true)._SetAlteredStyle(row.Sheet.Workbook._Excel().OneWorkbookStyleCache, alterationKey, alterStyle, reuseUnusedStyle);
             }
 
             public void SetAlteredStyle<T>(int y, Column column, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle) where T : Excel.StyleCache.IKey

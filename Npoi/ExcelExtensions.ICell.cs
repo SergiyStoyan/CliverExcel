@@ -3,6 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using EnumsNET;
 using NPOI.HSSF.UserModel;
 using NPOI.OpenXml4Net.OPC;
 using NPOI.SS.Extractor;
@@ -37,38 +38,50 @@ namespace Cliver
             cell.Row.RemoveCell(cell);
         }
 
-        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null)
         {
-            ICell cell2 = _Copy(cell1, cell2Y, cell2X, onFormulaCellMoved, sheet2, styleMap);
-            cell1?._Remove();
+            ISheet sheet2 = copyCellMode?.ToSheet;
+            if (sheet2 == null)
+                sheet2 = cell1?.Sheet;
+            if (sheet2 == null)
+                return null;
+            ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
+            cell1._Move(cell2, copyCellMode);
             return cell2;
         }
 
-        static public void _Move(this ICell cell1, ICell cell2, OnFormulaCellMoved onFormulaCellMoved = null, StyleMap styleMap = null)
+        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null)
         {
-            _Copy(cell1, cell2, onFormulaCellMoved, styleMap);
+            CopyCellMode ccm;
+            if (copyCellMode != null)
+            {
+                ccm = copyCellMode.Clone();
+                ccm.CopyComment = false;
+            }
+            else
+                ccm = null;
+            _Copy(cell1, cell2, ccm);
+            if (copyCellMode?.CopyComment == true && cell2 != null)
+            {
+                cell2.RemoveCellComment();
+                cell2.CellComment = cell1?.CellComment;
+            }
             cell1?._Remove();
         }
 
-        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null)
         {
+            ISheet sheet2 = copyCellMode?.ToSheet;
             if (sheet2 == null)
-                sheet2 = cell1.Sheet;
-            if (cell1 == null)
-            {
-                ICell cell2 = sheet2._GetCell(cell2Y, cell2X, false);
-                cell2?._Remove();
+                sheet2 = cell1?.Sheet;
+            if (sheet2 == null)
                 return null;
-            }
-            else
-            {
-                ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-                _Copy(cell1, cell2, onFormulaCellMoved, styleMap);
-                return cell2;
-            }
+            ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
+            _Copy(cell1, cell2, copyCellMode);
+            return cell1 != null ? cell2 : null;
         }
 
-        static public void _Copy(this ICell cell1, ICell cell2, OnFormulaCellMoved onFormulaCellMoved = null, StyleMap styleMap = null)
+        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null)
         {
             if (cell1 == null)
             {
@@ -76,55 +89,23 @@ namespace Cliver
                 return;
             }
 
-            cell2.SetBlank();
-            cell2.SetCellType(cell1.CellType);
+            if (cell2.CellType != cell1.CellType)
+            {
+                cell2.SetBlank();//necessary if changing type
+                cell2.SetCellType(cell1.CellType);
+            }
 
             if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
             {
-                if (styleMap == null)
-                    throw new Exception("styleMap must be specified when copying cell to another workbook.");
-                if (cell2.Sheet.Workbook != styleMap.ToWorkbook)
-                    throw new Exception("cell2 does not belong to styleMap's workbook.");
-                cell2.CellStyle = styleMap.GetMappedStyle(cell1.CellStyle);
+                if (copyCellMode?.ToStyleMap == null)
+                    throw new Exception("StyleMap must be specified when copying cell to another workbook.");
+                if (cell2.Sheet.Workbook != copyCellMode.ToStyleMap.ToWorkbook)
+                    throw new Exception("cell2 does not belong to StyleMap's workbook.");
+                cell2.CellStyle = copyCellMode.ToStyleMap.GetMappedStyle(cell1.CellStyle);
             }
             else
                 cell2.CellStyle = cell1.CellStyle;
 
-            cell2.RemoveCellComment();
-            if (cell1.CellComment != null)
-            {
-                var drawingPatriarch = /*cell1.Sheet.DrawingPatriarch != null ? cell1.Sheet.DrawingPatriarch :*/ cell1.Sheet.CreateDrawingPatriarch();
-                (int Y, int X) shift = (cell2._Y() - cell1._Y(), cell2._X() - cell1._X());
-                try
-                {
-                    IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(
-                        cell1.CellComment.ClientAnchor.Dx1,
-                        cell1.CellComment.ClientAnchor.Dy1,
-                        cell1.CellComment.ClientAnchor.Dx2,
-                        cell1.CellComment.ClientAnchor.Dy2,
-                        cell1.CellComment.ClientAnchor.Col1 + shift.X,
-                        cell1.CellComment.ClientAnchor.Row1 + shift.Y,
-                        cell1.CellComment.ClientAnchor.Col2 + shift.X,
-                        cell1.CellComment.ClientAnchor.Row2 + shift.Y
-                    );
-                    //IClientAnchor anchor2 = drawingPatriarch.CreateAnchor(0, 0, 0, 0
-                    //    , x2
-                    //    , y2
-                    //    , x2 + comment.ClientAnchor.Col2 - comment.ClientAnchor.Col1
-                    //    , y2 + comment.ClientAnchor.Row2 - comment.ClientAnchor.Row1
-                    //    );
-                    IComment comment2 = drawingPatriarch.CreateCellComment(anchor2);
-                    if (cell1.CellComment.Author != null)
-                        comment2.Author = cell1.CellComment.Author;
-
-                    comment2.String = cell1.CellComment.String.Copy();
-                }
-                catch (Exception ex)
-                {
-                }
-            }
-
-            cell2.Hyperlink = cell1.Hyperlink;
             switch (cell1.CellType)
             {
                 case CellType.Formula:
@@ -148,8 +129,59 @@ namespace Cliver
                 default:
                     throw new Exception("Unknown cell type: " + cell1.CellType);
             }
+
+            if (copyCellMode?.CopyComment == true)
+            {
+                cell2.RemoveCellComment();
+                if (cell1.CellComment != null)
+                {
+                    //cell1.Sheet.CopyComment(cell1, cell2);!!!on HSSF it moves the comment, not copies; on XSSF it copies but does not preserve box size
+                    var drawingPatriarch2 = /*cell1.Sheet.DrawingPatriarch != null ? cell1.Sheet.DrawingPatriarch :*/ cell2.Sheet.CreateDrawingPatriarch();
+                    (int Y, int X) shift = (cell2._Y() - cell1._Y(), cell2._X() - cell1._X());
+                    IClientAnchor anchor2 = drawingPatriarch2.CreateAnchor(
+                        cell1.CellComment.ClientAnchor.Dx1,
+                        cell1.CellComment.ClientAnchor.Dy1,
+                        cell1.CellComment.ClientAnchor.Dx2,
+                        cell1.CellComment.ClientAnchor.Dy2,
+                        cell1.CellComment.ClientAnchor.Col1 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row1 + shift.Y,
+                        cell1.CellComment.ClientAnchor.Col2 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row2 + shift.Y
+                    );
+                    IComment comment2;
+                    try
+                    {
+                        comment2 = drawingPatriarch2.CreateCellComment(anchor2);
+                    }
+                    catch (Exception e)
+                    {
+                        //var qs = cell2.Sheet.GetCellComments();
+                        //var r = qs.First().Value.Address;
+                        //cell2.Sheet._GetCell(r, true).RemoveCellComment();
+                        //HSSFPatriarch p = (HSSFPatriarch)drawingPatriarch2;
+                        //var ss = p.GetShapes();
+                        //while (ss.Count > 0)
+                        //    p.RemoveShape(ss[0]);
+                        //{
+                        //    //HSSFComment shape = new HSSFComment(null, (HSSFAnchor)anchor2);
+                        //    drawingPatriarch2.CreateCellComment(anchor2);
+                        //}
+                        //var q = qs.Values.FirstOrDefault(a => a.ClientAnchor?.Row1 == anchor2.Row1 && a.ClientAnchor?.Col1 == anchor2.Col1);
+                        //var s2 = qs.Values.FirstOrDefault(a => a.Row == anchor2.Row1 && a.Column == anchor2.Col1);
+                        throw new Exception("A bug in HSSFPatriarch implementation: ShapeId duplication when creating a comment.", e);
+                    }
+                    if (cell1.CellComment.Author != null)
+                        comment2.Author = cell1.CellComment.Author;
+                    comment2.String = cell1.CellComment.String.Copy();
+                    cell2.CellComment = comment2;
+                }
+            }
+
+            if (!(copyCellMode?.CopyLink == false))
+                cell2.Hyperlink = cell1.Hyperlink;
+
             if (cell2?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(cell1, cell2);
+                copyCellMode?.OnFormulaCellMoved?.Invoke(cell1, cell2);
         }
 
         /// <summary>
@@ -280,7 +312,7 @@ namespace Cliver
                 return;
             }
             if (string.IsNullOrEmpty(cell._GetValueAsString()))
-                cell.SetCellValue(Excel.LinkEmptyValueFiller);
+                cell.SetCellValue(cell.Sheet.Workbook._Excel().LinkEmptyValueFiller);
 
             if (hyperlinkType == HyperlinkType.Unknown)
             {

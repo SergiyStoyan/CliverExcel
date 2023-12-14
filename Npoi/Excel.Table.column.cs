@@ -353,9 +353,9 @@ namespace Cliver
                 return c;
             }
 
-            public void InsertColumn(int x, Column column, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void InsertColumn(int x, Column column, MoveRegionMode moveRegionMode = null)
             {
-                Sheet._ShiftColumnsRight(x, 1, onFormulaCellMoved);
+                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
                 if (column == null)
                     return;
                 column.X = x;
@@ -366,11 +366,11 @@ namespace Cliver
                 SetColumns(SetColumnMode.FindOrdered, cs);
             }
 
-            public void RemoveColumn(Column column, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
             {
                 if (column.Table == null)
                     throw new Exception("Column is not initialized: Table is not set.");
-                Sheet._ShiftColumnsLeft(column.X, 1, onFormulaCellMoved);
+                Sheet._ShiftColumnsLeft(column.X, 1, moveRegionMode);
                 var cs = Columns.ToList();
                 cs.RemoveAt(column.X - 1);
                 loadColumns();
@@ -396,7 +396,7 @@ namespace Cliver
                         if (value == null)
                             return;
                         if (value.Index < 0)
-                            value = Table.Excel.GetRegisteredStyle(value);
+                            value = Table.Excel.Workbook._GetRegisteredStyle(value);
                         dataStyle = value;
                         //Table?.Sheet.SetDefaultColumnStyle(X - 1, dataStyle);
                     }

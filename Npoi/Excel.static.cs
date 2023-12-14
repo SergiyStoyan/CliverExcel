@@ -16,8 +16,36 @@ namespace Cliver
 {
     public partial class Excel
     {
-        public static string CommentDefaultFontName = "Tahoma";
-        public static int CommentDefaultFontSize = 9;
+        //static internal Excel Get(IWorkbook workbook)
+        //{
+        //    if (!workbooks2Excel.TryGetValue(workbook, out WeakReference<Excel> wre))
+        //    {
+        //        wre = new WeakReference<Excel>(new Excel(null));
+        //        workbooks2Excel[workbook] = wre;
+        //    }
+        //    wre.TryGetTarget(out Excel e);
+        //    return e;
+        //}
+
+        ///// <summary>
+        ///// Call if the cache needs freeing due to extra-extensive use.
+        ///// </summary>
+        //static public void ClearWorkbooksCache()
+        //{
+        //    workbooks2Excel.Clear();
+        //}
+
+        static internal Excel Get(IWorkbook workbook)
+        {
+            return workbooks2Excel.GetValue(workbook, (IWorkbook w) => { 
+                return new Excel(null); 
+            });
+        }
+
+        /// <summary>
+        /// Set it to make Excel keep links absolute
+        /// </summary>
+        public const string AbsoluteLinksHyperlinkBase = "x";
 
         static public string GetSafeSheetName(string name)
         {
@@ -76,8 +104,10 @@ namespace Cliver
             return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
+        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, CopyCellMode copyCellMode)
         {
+            if (copyCellMode?.ToSheet == null)
+                throw new Exception("CopyCellMode.ToSheet must not be NULL.");
             for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
             {
                 ICell[] rowCells = rangeCells[yi];
@@ -85,9 +115,9 @@ namespace Cliver
                 {
                     var c = rowCells[xi];
                     if (c != null)
-                        c._Copy(toY + yi, toX + xi, onFormulaCellMoved, toSheet, toStyleMap);
+                        c._Copy(toY + yi, toX + xi, copyCellMode);
                     else
-                        toSheet._RemoveCell(toY + yi, toX + xi);
+                        copyCellMode.ToSheet._RemoveCell(toY + yi, toX + xi);
                 }
             }
         }

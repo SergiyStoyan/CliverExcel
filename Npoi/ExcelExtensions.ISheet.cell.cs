@@ -20,14 +20,14 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetComment(this ISheet sheet, int y, int x, string comment, string author = null, int paddingHeight = 2, int width = 3)
+        static public void _SetComment(this ISheet sheet, int y, int x, string comment, Excel.CommentStyle commentStyle = null)
         {
-            sheet._GetCell(y, x, true)._SetComment(comment, author, paddingHeight, width);
+            sheet._GetCell(y, x, true)._SetComment(comment, commentStyle);
         }
 
-        static public void _AppendOrSetComment(this ISheet sheet, int y, int x, string comment, string author = null, int paddingHeight = 0, int width = 3, string delimiter = "\r\n")
+        static public void _AppendOrSetComment(this ISheet sheet, int y, int x, string comment, Excel.CommentStyle commentStyle = null)
         {
-            sheet._GetCell(y, x, true)._AppendOrSetComment(comment, author, paddingHeight, width, delimiter);
+            sheet._GetCell(y, x, true)._AppendOrSetComment(comment, commentStyle);
         }
 
         static public void _SetLink(this ISheet sheet, int y, int x, string link)
@@ -40,34 +40,34 @@ namespace Cliver
             return sheet?._GetCell(y, x, false)?._GetLink();
         }
 
-        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int y = y1; y <= y2; y++)
-                sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
+                sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, moveRegionMode);
         }
 
-        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int y = y1; y <= y2; y++)
-                sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
+                sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, moveRegionMode);
         }
 
-        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int x = x1; x <= x2; x++)
-                sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
+                sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, moveRegionMode);
         }
 
-        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int x = x1; x <= x2; x++)
-                sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
+                sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, moveRegionMode);
         }
 
-        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
+        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, CopyCellMode copyCellMode = null)
         {
             ICell sourceCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return sourceCell._Copy(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
+            return sourceCell._Copy(toCellY, toCellX, copyCellMode);
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -104,10 +104,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null, StyleMap toStyleMap = null)
+        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, CopyCellMode copyCellMode = null)
         {
             ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return fromCell._Move(toCellY, toCellX, onFormulaCellMoved, toSheet, toStyleMap);
+            return fromCell._Move(toCellY, toCellX, copyCellMode);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)
@@ -121,10 +121,12 @@ namespace Cliver
         static public ICell _GetCell(this ISheet sheet, string cellAddress, bool createCell)
         {
             var cs = GetCoordinates(cellAddress);
-            IRow r = sheet._GetRow(cs.Y, createCell);
-            if (r == null)
-                return null;
-            return r._GetCell(cs.X, createCell);
+            return sheet._GetCell(cs.Y, cs.X, createCell);
+        }
+
+        static public ICell _GetCell(this ISheet sheet, CellAddress cellAddress, bool createCell)
+        {
+            return sheet._GetCell(cellAddress.Row + 1, cellAddress.Column + 1, createCell);
         }
 
         static public void _RemoveCell(this ISheet sheet, int y, int x)

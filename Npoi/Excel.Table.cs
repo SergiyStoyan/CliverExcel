@@ -18,23 +18,16 @@ namespace Cliver
     {
         public partial class Table
         {
-            public Table(Excel excel)
+            public Table(Excel excel, ISheet sheet)
             {
                 Excel = excel;
-                Sheet = Excel.Sheet;
+                Sheet = sheet;
                 loadColumns();
             }
 
-            //public Table(Excel excel, SetColumnMode setColumnMode, params string[] headers) : this(excel, setColumnMode, (IEnumerable<string>)headers) { }
+            public Table(Excel excel, ISheet sheet, SetColumnMode setColumnMode, params Column[] columns) : this(excel, sheet, setColumnMode, (IEnumerable<Column>)columns) { }
 
-            //public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<string> headers) : this(excel)
-            //{
-            //    SetColumns(setColumnMode, headers);
-            //}
-
-            public Table(Excel excel, SetColumnMode setColumnMode, params Column[] columns) : this(excel, setColumnMode, (IEnumerable<Column>)columns) { }
-
-            public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(excel)
+            public Table(Excel excel, ISheet sheet, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(excel, sheet)
             {
                 SetColumns(setColumnMode, columns);
             }
@@ -270,6 +263,11 @@ namespace Cliver
             virtual public void Save(string file = null)
             {
                 Excel.Save(file);
+            }
+
+            virtual public void SafeSave(string file = null)
+            {
+                Excel.SafeSave(file);
             }
         }
     }

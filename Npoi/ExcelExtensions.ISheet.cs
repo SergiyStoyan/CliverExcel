@@ -22,9 +22,19 @@ namespace Cliver
             sheet.Workbook.RemoveSheetAt(sheet._GetIndex() - 1);
         }
 
-        static public void _Rename(this ISheet sheet, string name2)
+        /// <summary>
+        /// (!)The name will be corrected by altering unacceptable symbols.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="name"></param>
+        static public void _Rename(this ISheet sheet, string name)
         {
-            sheet.Workbook.SetSheetName(sheet._GetIndex() - 1, name2);
+            sheet.Workbook.SetSheetName(sheet._GetIndex() - 1, Excel.GetSafeSheetName(name));
+        }
+
+        static public string _Name(this ISheet sheet)
+        {
+            return sheet.SheetName;
         }
 
         static public int _GetIndex(this ISheet sheet)

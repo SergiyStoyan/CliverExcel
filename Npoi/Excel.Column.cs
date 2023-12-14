@@ -166,15 +166,23 @@ namespace Cliver
                 new Range(Sheet, 1, X, null, X).ClearMerging();
             }
 
-            public void ShiftCellsDown(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void ShiftCellsDown(int y1, int shift, MoveRegionMode moveRegionMode = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
                 for (int y = GetLastRow(LastRowCondition.HasCells, true); y >= y1; y--)
-                    Sheet._MoveCell(y, X, y + shift, X, onFormulaCellMoved, Sheet);
+                    Sheet._MoveCell(y, X, y + shift, X, moveRegionMode);
+
+                //TBD
+                //if (!(moveRegionMode?.MoveMergedRegions == false))
+                //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
+                //    {
+                //        a.FirstRow -= 1;
+                //        a.FirstRow -= 1;
+                //    });
             }
 
-            public void ShiftCellsUp(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void ShiftCellsUp(int y1, int shift, MoveRegionMode moveRegionMode = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
@@ -182,15 +190,23 @@ namespace Cliver
                     throw new Exception("Shifting up before the first row: shift=" + shift + ", y1=" + y1);
                 int y2 = GetLastRow(LastRowCondition.HasCells, true) + 1;
                 for (int y = y1; y <= y2; y++)
-                    Sheet._MoveCell(y, X, y - shift, X, onFormulaCellMoved, Sheet);
+                    Sheet._MoveCell(y, X, y - shift, X, moveRegionMode);
+
+                //TBD
+                //if (!(moveRegionMode?.MoveMergedRegions == false))
+                //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
+                //    {
+                //        a.FirstRow -= 1;
+                //        a.FirstRow -= 1;
+                //    });
             }
 
-            public void ShiftCells(int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void ShiftCells(int y1, int shift, MoveRegionMode moveRegionMode = null)
             {
                 if (shift >= 0)
-                    ShiftCellsUp(y1, shift, onFormulaCellMoved);
+                    ShiftCellsUp(y1, shift, moveRegionMode);
                 else
-                    ShiftCellsDown(y1, -shift, onFormulaCellMoved);
+                    ShiftCellsDown(y1, -shift, moveRegionMode);
             }
 
             /// <summary>
@@ -237,15 +253,15 @@ namespace Cliver
                     SetWidth(Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
             }
 
-            public void Copy(ISheet toSheet, string toColumnName = null, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void Copy(string toColumnName = null, CopyCellMode copyCellMode = null)
             {
                 int toX = toColumnName == null ? X : CellReference.ConvertColStringToIndex(toColumnName);
-                Copy(toSheet, toX, onFormulaCellMoved);
+                Copy(toX, copyCellMode);
             }
 
-            public void Copy(ISheet toSheet, int toX, OnFormulaCellMoved onFormulaCellMoved = null)
+            public void Copy(int toX, CopyCellMode copyCellMode = null)
             {
-                new Range(Sheet, 1, X, null, X).Copy(1, toX, onFormulaCellMoved, toSheet);
+                new Range(Sheet, 1, X, null, X).Copy(1, toX, copyCellMode);
             }
 
             public object GetValue(int y)

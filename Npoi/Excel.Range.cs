@@ -177,14 +177,14 @@ namespace Cliver
                 return copyCutRange(true);
             }
 
-            public void Move(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+            public void Move(int toY, int toX, Excel.CopyCellMode copyCellMode = null)
             {
-                PasteRange(Cut(), toY, toX, onFormulaCellMoved, toSheet);
+                PasteRange(Cut(), toY, toX, copyCellMode);
             }
 
-            public void Copy(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+            public void Copy(int toY, int toX, Excel.CopyCellMode copyCellMode = null)
             {
-                PasteRange(Copy(), toY, toX, onFormulaCellMoved, toSheet);
+                PasteRange(Copy(), toY, toX, copyCellMode);
             }
 
             public void SetComment(string comment, string author = null)

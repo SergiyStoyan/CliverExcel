@@ -262,16 +262,16 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
         /// <param name="y2"></param>
-        static public void _MoveRow(this ISheet sheet, int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public void _MoveRow(this ISheet sheet, int y1, int y2, MoveRegionMode moveRegionMode = null)
         {
             var r1 = sheet._GetRow(y1, false);
-            r1._Move(y2, onFormulaCellMoved, toSheet);
+            r1._Move(y2, moveRegionMode);
         }
 
-        static public void _CopyRow(this ISheet sheet, int y1, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public void _CopyRow(this ISheet sheet, int y1, int y2, CopyCellMode copyCellMode = null)
         {
             var r1 = sheet._GetRow(y1, false);
-            r1._Copy(y2, onFormulaCellMoved, toSheet);
+            r1._Copy(y2, copyCellMode);
         }
 
         /// <summary>
@@ -334,37 +334,37 @@ namespace Cliver
             }
         }
 
-        static public void _ShiftRowsDown(this ISheet sheet, int y, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowsDown(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int y0 = sheet.LastRowNum; y0 >= y; y0--)
             {
                 IRow row = sheet.GetRow(y0);
-                row._Move(y0 + shift, onFormulaCellMoved);
+                row._Move(y0 + shift, moveRegionMode);
             }
         }
 
-        static public void _ShiftRowsUp(this ISheet sheet, int y, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowsUp(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
             for (int y0 = y; y0 <= sheet.LastRowNum; y0++)
             {
                 IRow row = sheet.GetRow(y0);
-                row._Move(y0 - shift, onFormulaCellMoved);
+                row._Move(y0 - shift, moveRegionMode);
             }
         }
 
-        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
+            sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, moveRegionMode);
         }
 
-        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
+            sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, moveRegionMode);
         }
 
-        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCells(x1, shift, onFormulaCellMoved);
+            sheet._GetRow(y, false)?._ShiftCells(x1, shift, moveRegionMode);
         }
 
         static public void _SetStyleInRow(this ISheet sheet, ICellStyle style, bool createCells, int y)

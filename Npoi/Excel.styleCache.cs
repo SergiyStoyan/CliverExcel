@@ -189,17 +189,5 @@ namespace Cliver
         //    //    return s2;
         //    //}
         //}
-
-        protected StyleCache styleCache = null;
-
-        public void SetAlteredStyles<T>(IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
-        {
-            row._SetAlteredStyles(styleCache, alterationKey, alterStyle, reuseUnusedStyle);
-        }
-
-        public void SetAlteredStyle<T>(ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
-        {
-            cell._SetAlteredStyle(styleCache, alterationKey, alterStyle, reuseUnusedStyle);
-        }
     }
 }

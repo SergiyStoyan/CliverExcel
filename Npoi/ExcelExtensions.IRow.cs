@@ -15,14 +15,24 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _Move(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null)
+        static public void _Move(this IRow row, int y2, MoveRegionMode moveRegionMode = null)
         {
-            row._Copy(y2, onFormulaCellMoved, sheet2);
+            row._Copy(y2, moveRegionMode);
+
+            //TBD
+            //if (!(moveRegionMode?.MoveMergedRegions == false))
+            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
+            //    {
+            //        a.FirstRow -= 1;
+            //        a.FirstRow -= 1;
+            //    });
+
             row._Remove();
         }
 
-        static public void _Copy(this IRow row, int y2, OnFormulaCellMoved onFormulaCellMoved = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        static public void _Copy(this IRow row, int y2, CopyCellMode copyCellMode = null)
         {
+            ISheet sheet2 = copyCellMode?.ToSheet;
             if (sheet2 == null)
                 sheet2 = row.Sheet;
             if (row == null)
@@ -34,7 +44,7 @@ namespace Cliver
                 return;
             sheet2._RemoveRow(y2);
             foreach (ICell c1 in row.Cells)
-                c1._Copy(y2, c1._X(), onFormulaCellMoved, sheet2, styleMap);
+                c1._Copy(y2, c1._X(), copyCellMode);
         }
 
         static public void _Move2(this IRow row, int y2)
@@ -114,15 +124,23 @@ namespace Cliver
                     row._GetCell(x, true).CellStyle = style;
         }
 
-        static public void _ShiftCellsRight(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
             for (int x = row._GetLastColumn(true); x >= x1; x--)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved, row.Sheet);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, moveRegionMode);
+
+            //TBD
+            //if (!(moveRegionMode?.MoveMergedRegions == false))
+            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
+            //    {
+            //        a.FirstRow -= 1;
+            //        a.FirstRow -= 1;
+            //    });
         }
 
-        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
@@ -130,15 +148,23 @@ namespace Cliver
                 throw new Exception("Shifting left before the first column: shift=" + shift + ", x1=" + x1);
             int x2 = row._GetLastColumn(true) + 1;
             for (int x = x1; x <= x2; x++)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved, row.Sheet);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, moveRegionMode);
+
+            //TBD
+            //if (!(moveRegionMode?.MoveMergedRegions == false))
+            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
+            //    {
+            //        a.FirstRow -= 1;
+            //        a.FirstRow -= 1;
+            //    });
         }
 
-        static public void _ShiftCells(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCells(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
         {
             if (shift >= 0)
-                _ShiftCellsRight(row, x1, shift, onFormulaCellMoved);
+                _ShiftCellsRight(row, x1, shift, moveRegionMode);
             else
-                _ShiftCellsLeft(row, x1, -shift, onFormulaCellMoved);
+                _ShiftCellsLeft(row, x1, -shift, moveRegionMode);
         }
 
         static public ICell _GetCell(this IRow row, int x, bool createCell)

@@ -25,94 +25,64 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public IComment _SetComment(this ICell cell, string comment, string author = null, int paddingHeight = 2, int width = 3, IFont font = null, IFont authorFont = null)
+        static public IComment _SetComment(this ICell cell, string comment, Excel.CommentStyle commentStyle = null)
         {
             cell.RemoveCellComment();//!!!adding multiple comments brings to error
             if (string.IsNullOrWhiteSpace(comment))
                 return null;
 
+            Excel.CommentStyle s = commentStyle != null ? commentStyle : cell.Sheet.Workbook._Excel().DefaultCommentStyle;
+
             string @string = null;
-            string author_ = null;
-            if (!string.IsNullOrEmpty(author))
+            string author_ = string.Empty;
+            if (!string.IsNullOrEmpty(s.Author))
             {
-                author_ = author + ":";
-                @string = author_ + "\r\n";
+                author_ = s.Author + ":";
+                @string = author_ + s.AuthorDelimiter;
             }
             @string += comment;
             var drawingPatriarch = /*cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch :*/ cell.Sheet.CreateDrawingPatriarch();
             IClientAnchor anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0,
                     cell.ColumnIndex,
                     cell.RowIndex,
-                    cell.ColumnIndex + width,
-                    cell.RowIndex + Regex.Matches(@string, @"^", RegexOptions.Multiline).Count + paddingHeight
+                    cell.ColumnIndex + s.Columns,
+                    cell.RowIndex + Regex.Matches(@string, @"^", RegexOptions.Multiline).Count + s.PaddingRows
                     );
             IComment iComment = drawingPatriarch.CreateCellComment(anchor);
-            List<RichTextStringFormattingRun> rtsfrs = font != null ? new List<RichTextStringFormattingRun> { new RichTextStringFormattingRun(0, @string.Length, font) } : null;
-            if (!string.IsNullOrEmpty(author))
+            List<RichTextStringFormattingRun> rtsfrs = new List<RichTextStringFormattingRun>();
+            if (!string.IsNullOrEmpty(s.Author))
             {
-                iComment.Author = author;
-                if (authorFont == null)
-                {
-                    iComment.String = cell.Sheet.Workbook._GetRichTextString(@string, rtsfrs);
-                    var f = _GetRichTextStringFormattingRuns(cell.Sheet.Workbook, iComment.String).FirstOrDefault(a => a.Font != null)?.Font;
-                    if (f == null)//(!)on XSSFWorkbook, RichTextString can have no FormattingRuns or have FormattingRuns with Font=NULL
-                        f = cell.Sheet.Workbook._GetCommentDefaultFont();
-                    authorFont = cell.Sheet.Workbook._CloneUnregisteredFont(f);
-                    authorFont.IsBold = true;
-                    authorFont = cell.Sheet.Workbook._GetRegisteredFont(authorFont);
-                }
-                iComment.String.ApplyFont(0, author_.Length, authorFont);
+                iComment.Author = s.Author;
+                rtsfrs.Add(new RichTextStringFormattingRun(0, author_.Length, s.AuthorFont));
             }
-            else
-                iComment.String = cell.Sheet.Workbook._GetRichTextString(comment, rtsfrs);
+            rtsfrs.Add(new RichTextStringFormattingRun(author_.Length, @string.Length, s.Font));
+            iComment.String = cell.Sheet.Workbook._GetRichTextString(@string, rtsfrs);
             cell.CellComment = iComment;
 
             return cell.CellComment;
         }
 
-        static public IComment _AppendOrSetComment(this ICell cell, string comment, string author = null, int paddingHeight = 0, int width = 3, string delimiter = "\r\n", IFont font = null, IFont authorFont = null)
+        static public IComment _AppendOrSetComment(this ICell cell, string comment, Excel.CommentStyle commentStyle = null)
         {
             if (string.IsNullOrWhiteSpace(comment))
                 return cell?.CellComment;
 
             string string1 = cell?.CellComment?.String?.String;
             if (string.IsNullOrEmpty(string1))
-                return cell._SetComment(comment, author, paddingHeight < 2 ? 2 : paddingHeight, width, font);//(!)the first comment goes with altered paddingHeight
+                return cell._SetComment(comment);
+
+            Excel.CommentStyle s = commentStyle != null ? commentStyle : cell.Sheet.Workbook._Excel().DefaultCommentStyle;
 
             List<RichTextStringFormattingRun> rtsfrs = cell.Sheet.Workbook._GetRichTextStringFormattingRuns(cell.CellComment.String).ToList();
-            string string2 = delimiter;
-            if (!string.IsNullOrEmpty(author))
+            string string2 = s.AppendDelimiter;
+            if (!string.IsNullOrEmpty(s.Author))
             {
-                if (authorFont == null)
-                {
-                    if (font == null)
-                    {
-                        authorFont = rtsfrs.Select(a => a.Font).FirstOrDefault(a => a?.IsBold == true);
-                        if (authorFont == null)
-                        {
-                            IFont f = rtsfrs.Select(a => a.Font).FirstOrDefault(a => a?.IsBold == false);
-                            if (f == null)//(!)on XSSFWorkbook, RichTextString can have no FormattingRuns or have FormattingRuns with Font=NULL
-                                f = cell.Sheet.Workbook._GetCommentDefaultFont();
-                            authorFont = cell.Sheet.Workbook._CloneUnregisteredFont(f);
-                            authorFont.IsBold = true;
-                            authorFont = cell.Sheet.Workbook._GetRegisteredFont(authorFont);
-                        }
-                    }
-                    else
-                    {
-                        authorFont = cell.Sheet.Workbook._CloneUnregisteredFont(font);
-                        authorFont.IsBold = true;
-                        authorFont = cell.Sheet.Workbook._GetRegisteredFont(authorFont);
-                    }
-                }
-                string author_ = author + ":";
-                rtsfrs.Add(new RichTextStringFormattingRun(string1.Length + delimiter.Length, string1.Length + delimiter.Length + author_.Length, authorFont));
-                string2 += author_ + "\r\n";
+                string author_ = s.Author + ":";
+                rtsfrs.Add(new RichTextStringFormattingRun(string1.Length + s.AppendDelimiter.Length, string1.Length + s.AppendDelimiter.Length + author_.Length, s.AuthorFont));
+                string2 += author_ + s.AuthorDelimiter;
             }
             string2 += comment;
-            string @string = string1 + string2;
-            if (font != null)
-                rtsfrs.Add(new RichTextStringFormattingRun(@string.Length - comment.Length, @string.Length, font));
+            rtsfrs.Add(new RichTextStringFormattingRun(string1.Length + string2.Length - comment.Length, string1.Length + string2.Length, s.Font));
             var drawingPatriarch = /*cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch :*/ cell.Sheet.CreateDrawingPatriarch();
             IClientAnchor anchor = drawingPatriarch.CreateAnchor(
                 cell.CellComment.ClientAnchor.Dx1,
@@ -122,86 +92,17 @@ namespace Cliver
                 cell.CellComment.ClientAnchor.Col1,
                 cell.CellComment.ClientAnchor.Row1,
                 cell.CellComment.ClientAnchor.Col2,
-                cell.CellComment.ClientAnchor.Row2 + Regex.Matches(string2, @"^", RegexOptions.Multiline).Count + paddingHeight
+                cell.CellComment.ClientAnchor.Row2 + Regex.Matches(string2, @"^", RegexOptions.Multiline).Count + s.AppendPaddingRows
             );
             cell.RemoveCellComment();
             IComment iComment = drawingPatriarch.CreateCellComment(anchor);
-            if (author != null)//(!)set the last author
-                iComment.Author = author;
-            iComment.String = cell.Sheet.Workbook._GetRichTextString(@string, rtsfrs);
+            if (s.Author != null)//(!)set the last author
+                iComment.Author = s.Author;
+            iComment.String = cell.Sheet.Workbook._GetRichTextString(string1 + string2, rtsfrs);
             cell.CellComment = iComment;
 
             return cell.CellComment;
         }
-        //static public IComment _SetComment(this ICell cell, string comment, string author = null, int paddingHeight = 3, int width = 3)
-        //{
-        //    cell.RemoveCellComment();//!!!adding multiple comments brings to error            
-        //    return _AppendOrSetComment(cell, comment, author, "\r\n\r\n", paddingHeight, width);
-        //}
-        //static public IComment _AppendOrSetComment(this ICell cell, string comment, string author = null, string delimiter = "\r\n\r\n", int paddingHeight = 3, int width = 3)
-        //{
-        //    if (string.IsNullOrWhiteSpace(comment))
-        //        return cell?.CellComment;
-
-        //    string string1 = cell?.CellComment?.String?.String;
-        //    var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
-        //    IClientAnchor anchor;
-        //    int string2Linescount = Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + paddingHeight;
-        //    if (string.IsNullOrEmpty(string1))
-        //        anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0,
-        //            cell.ColumnIndex,
-        //            cell.RowIndex,
-        //            cell.ColumnIndex + width,
-        //            cell.RowIndex + string2Linescount
-        //            );
-        //    else
-        //        anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0,
-        //             cell.CellComment.ClientAnchor.Col1,
-        //             cell.CellComment.ClientAnchor.Row1,
-        //             cell.CellComment.ClientAnchor.Col2,
-        //             cell.CellComment.ClientAnchor.Row2 + string2Linescount
-        //             );
-        //    IComment iComment = drawingPatriarch.CreateCellComment(anchor);
-        //    if (author != null)//(!)set the last author
-        //        iComment.Author = author;
-        //    if (!string.IsNullOrEmpty(string1))
-        //        string1 += delimiter;
-        //    string string2 = null;
-        //    string author_ = null;
-        //    if (!string.IsNullOrEmpty(author))
-        //    {
-        //        author_ = author + ":";
-        //        string2 += author_ + "\r\n";
-        //    }
-        //    string2 += comment;
-        //    List<RichTextStringFormattingRun> rtsfrs;
-        //    if (!string.IsNullOrEmpty(string1))
-        //    {
-        //        rtsfrs = cell.Sheet.Workbook._GetRichTextStringFormattingRuns(cell.CellComment.String).ToList();
-        //        iComment.String = cell.Sheet.Workbook._GetRichTextString(string1 + string2, rtsfrs);
-        //    }
-        //    else
-        //    {
-        //        iComment.String = cell.Sheet.Workbook._GetRichTextString(string2, null);
-        //        rtsfrs = cell.Sheet.Workbook._GetRichTextStringFormattingRuns(iComment.String).ToList();
-        //    }
-        //    if (!string.IsNullOrEmpty(author))
-        //    {
-        //        IFont fb = rtsfrs.Select(a => a.Font).FirstOrDefault(a => a.IsBold);
-        //        if (fb == null)
-        //        {
-        //            IFont f = rtsfrs.Select(a => a.Font).FirstOrDefault(a => !a.IsBold);
-        //            fb = cell.Sheet.Workbook._CloneUnregisteredFont(f);
-        //            fb.IsBold = true;
-        //            fb = cell.Sheet.Workbook._GetRegisteredFont(fb);
-        //        }
-        //        iComment.String.ApplyFont(string1.Length, string1.Length + author_.Length, fb);
-        //    }
-        //    cell.RemoveCellComment();
-        //    cell.CellComment = iComment;
-
-        //    return cell.CellComment;
-        //}
 
         //public static IComment _CopyComment(this ICell cell, int y2, int x2)
         //{

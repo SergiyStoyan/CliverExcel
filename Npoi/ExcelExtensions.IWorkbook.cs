@@ -16,14 +16,23 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static internal Excel _Excel(this IWorkbook workbook)
+        {
+            return Cliver.Excel.Get(workbook);
+        }
+
         public static void _RemoveSheet(this IWorkbook workbook, ISheet sheet)
         {
-            workbook.RemoveSheetAt(workbook.GetSheetIndex(sheet));
+            int si = workbook.GetSheetIndex(sheet);
+            if (si >= 0)
+                workbook.RemoveSheetAt(si);
         }
 
         public static void _RemoveSheet(this IWorkbook workbook, string sheetName)
         {
-            workbook.RemoveSheetAt(workbook.GetSheetIndex(sheetName));
+            int si = workbook.GetSheetIndex(sheetName);
+            if (si >= 0)
+                workbook.RemoveSheetAt(si);
         }
 
         public static void _RemoveSheet(this IWorkbook workbook, int sheetIndex)
@@ -58,13 +67,13 @@ namespace Cliver
         }
 
         /// <summary>
-        /// (!)The name will be corrected to remove unacceptable symbols.
+        /// Set the active sheet. If no sheet with such name exists, a new sheet is created.
+        /// (!)The name will be corrected by altering unacceptable symbols.
         /// </summary>
-        /// <param name="workbook"></param>
         /// <param name="name"></param>
         /// <param name="createSheet"></param>
         /// <returns></returns>
-        static public ISheet _OpenSheet(this IWorkbook workbook, string name, bool createSheet = true)
+        static public ISheet _GetSheet(this IWorkbook workbook, string name, bool createSheet = true)
         {
             ISheet sheet = workbook.GetSheet(name);
             if (sheet == null && createSheet)
@@ -74,16 +83,16 @@ namespace Cliver
         }
 
         /// <summary>
-        /// 1-based
+        /// 
         /// </summary>
         /// <param name="workbook"></param>
-        /// <param name="index"></param>
+        /// <param name="index">1-based</param>
         /// <returns></returns>
-        static public ISheet _OpenSheet(this IWorkbook workbook, int index)
+        static public ISheet _GetSheet(this IWorkbook workbook, int index)
         {
             if (workbook.NumberOfSheets < 1 || workbook.NumberOfSheets < index)
                 return null;
-            workbook.SetActiveSheet(index - 1);
+            //workbook.SetActiveSheet(index - 1);
             return workbook.GetSheetAt(index - 1);
         }
 
