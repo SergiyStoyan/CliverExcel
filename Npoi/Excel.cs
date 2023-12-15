@@ -76,9 +76,9 @@ namespace Cliver
             {
                 if (Workbook != null)
                 {
-                    workbooks2Excel.Remove(Workbook);
                     Workbook.Close();
                     Workbook.Dispose();
+                    workbooks2Excel.Remove(Workbook);
                     Workbook = null;
                 }
             }
@@ -269,17 +269,6 @@ namespace Cliver
             NotNull,
         }
 
-        public enum RemoveRowMode
-        {
-            ShiftRowsBelow = 1,
-            ClearMerging = 2,
-            /// <summary>
-            /// (!)Done in a hacky way through Reflection so might change with POI update.
-            /// (!)GetCell() might work incorrectly on such rows.
-            /// </summary>
-            PreserveCells = 4,
-        }
-
         public enum RowStyleMode
         {
             /// <summary>
@@ -296,57 +285,27 @@ namespace Cliver
             NoGapCells = 4,
         }
 
-        //public class OneSheetCopyCellMode : CopyCellMode
-        //{
-        //    public bool CopyComment { get; set; } = false;
-        //    public bool CopyLink { get; set; } = true;
-        //    public OnFormulaCellMoved OnFormulaCellMoved { get; set; } = null;
-        //    public ISheet ToSheet { get; } = null;
-        //    public StyleMap ToStyleMap { get; } = null;
-        //    public CopyCellMode Clone()
-        //    {
-        //        OneSheetCopyCellMode ccm = new OneSheetCopyCellMode();
-        //        ccm.OnFormulaCellMoved = OnFormulaCellMoved;
-        //        ccm.CopyComment = CopyComment;
-        //        ccm.CopyLink = CopyLink;
-        //        return ccm;
-        //    }
-        //}
-
         public class CopyCellMode
         {
             public bool CopyComment { get; set; } = false;
             public bool CopyLink { get; set; } = true;
             public OnFormulaCellMoved OnFormulaCellMoved { get; set; } = null;
-            public ISheet ToSheet { get; set; } = null;
-            public StyleMap ToStyleMap { get; set; } = null;
 
             public CopyCellMode Clone()
             {
-                CopyCellMode ccm = new CopyCellMode();
-                ccm.ToSheet = ToSheet;
-                ccm.ToStyleMap = ToStyleMap;
-                ccm.OnFormulaCellMoved = OnFormulaCellMoved;
-                ccm.CopyComment = CopyComment;
-                ccm.CopyLink = CopyLink;
+                CopyCellMode ccm = new CopyCellMode
+                {
+                    OnFormulaCellMoved = OnFormulaCellMoved,
+                    CopyComment = CopyComment,
+                    CopyLink = CopyLink
+                };
                 return ccm;
             }
         }
 
-        //public interface CopyCellMode
-        //{
-        //    bool CopyComment { get; set; }
-        //    bool CopyLink { get; set; }
-        //    OnFormulaCellMoved OnFormulaCellMoved { get; set; }
-        //    ISheet ToSheet { get; }
-        //    StyleMap ToStyleMap { get; }
-
-        //    CopyCellMode Clone();
-        //}
-
         public class MoveRegionMode : CopyCellMode
         {
-            public bool MoveMergedRegions { get; set; } = true;
+            public bool UpdateMergedRegions { get; set; } = false;
         }
 
         public class CommentStyle

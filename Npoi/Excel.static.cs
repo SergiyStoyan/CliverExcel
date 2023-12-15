@@ -37,8 +37,9 @@ namespace Cliver
 
         static internal Excel Get(IWorkbook workbook)
         {
-            return workbooks2Excel.GetValue(workbook, (IWorkbook w) => { 
-                return new Excel(null); 
+            return workbooks2Excel.GetValue(workbook, (IWorkbook w) =>
+            {
+                return new Excel(null);
             });
         }
 
@@ -104,10 +105,10 @@ namespace Cliver
             return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, CopyCellMode copyCellMode)
+        static public void PasteRange(ICell[][] rangeCells, int y2, int x2, CopyCellMode copyCellMode, ISheet sheet2 = null, StyleMap styleMap2 = null)
         {
-            if (copyCellMode?.ToSheet == null)
-                throw new Exception("CopyCellMode.ToSheet must not be NULL.");
+            if (sheet2 == null)
+                throw new Exception("sheet2 must not be NULL.");
             for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
             {
                 ICell[] rowCells = rangeCells[yi];
@@ -115,9 +116,9 @@ namespace Cliver
                 {
                     var c = rowCells[xi];
                     if (c != null)
-                        c._Copy(toY + yi, toX + xi, copyCellMode);
+                        c._Copy(y2 + yi, x2 + xi, copyCellMode, sheet2, styleMap2);
                     else
-                        copyCellMode.ToSheet._RemoveCell(toY + yi, toX + xi);
+                        sheet2._RemoveCell(y2 + yi, x2 + xi);
                 }
             }
         }

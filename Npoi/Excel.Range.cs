@@ -80,6 +80,23 @@ namespace Cliver
             //    }
             //}
 
+            public void Clear(bool clearMerging, bool removeComment = true)
+            {
+                if (clearMerging)
+                    ClearMerging();
+
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                for (int y = Y1; y <= maxY; y++)
+                {
+                    IRow row = Sheet._GetRow(y, false);
+                    if (row == null)
+                        continue;
+                    int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                    for (int x = X1; x <= maxX; x++)
+                        row._GetCell(x, false)?._Remove(removeComment);
+                }
+            }
+
             public void ClearMerging()
             {
                 CellRangeAddress cra = GetCellRangeAddress();

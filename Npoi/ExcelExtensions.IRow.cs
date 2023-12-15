@@ -15,61 +15,89 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _Move(this IRow row, int y2, MoveRegionMode moveRegionMode = null)
+        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
-            row._Copy(y2, moveRegionMode);
-
-            //TBD
-            //if (!(moveRegionMode?.MoveMergedRegions == false))
-            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
-            //    {
-            //        a.FirstRow -= 1;
-            //        a.FirstRow -= 1;
-            //    });
-
-            row._Remove();
+            var styleCache = row.Sheet.Workbook._Excel().OneWorkbookStyleCache;
+            foreach (ICell cell in row.Cells)
+                cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
         static public void _Copy(this IRow row, int y2, CopyCellMode copyCellMode = null)
         {
-            ISheet sheet2 = copyCellMode?.ToSheet;
-            if (sheet2 == null)
-                sheet2 = row.Sheet;
-            if (row == null)
-            {
-                sheet2._RemoveRow(y2);
+            //if (row == null)
+            //    return;            
+            if (row._Y() == y2)
                 return;
-            }
-            if (row._Y() == y2 && sheet2 == row.Sheet)
-                return;
-            sheet2._RemoveRow(y2);
+            IRow r2 = row.Sheet._GetRow(y2 - 1, true);
+            r2._Clear(false);
+            r2.Height = row.Height;
             foreach (ICell c1 in row.Cells)
                 c1._Copy(y2, c1._X(), copyCellMode);
         }
 
-        static public void _Move2(this IRow row, int y2)
+        /// <summary>
+        /// Insert a copy and remove the source.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="y2"></param>
+        /// <param name="moveRegionMode"></param>
+        static public void _Move(this IRow row, int y2, MoveRegionMode moveRegionMode = null)
         {
-            row.Sheet._MoveRow2(row._Y(), y2);
-        }
+            row.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
 
-        static public void _Copy2(this IRow row, int y2)
-        {
-            row.Sheet._CopyRow2(row._Y(), y2);
-        }
+            if (moveRegionMode?.UpdateMergedRegions == true)
+            {
+                row.Sheet.MergedRegions.ForEach(a =>
+                {
+                    if (a.FirstRow < y2 - 1)
+                    {
+                        if (a.LastRow >= y2 - 1)
+                            a.LastRow += 1;
+                    }
+                    else
+                    {
+                        a.FirstRow += 1;
+                        a.LastRow += 1;
+                    }
+                });
+            }
 
-        static public void _Move3(this IRow row, int y2)
-        {
-            row.Sheet._MoveRow3(row._Y(), y2);
+            row._Copy(y2, moveRegionMode);
+            row._Remove(moveRegionMode);
         }
 
         /// <summary>
-        /// Remove the row from its sheet.
+        /// Remove the row from its sheet and shift rows below. 
         /// </summary>
         /// <param name="row"></param>
-        /// <param name="shiftRowsBelow"></param>
-        static public void _Remove(this IRow row, RemoveRowMode removeRowMode = 0)
+        /// <param name="moveRegionMode"></param>
+        /// <param name="preserveCells">
+        /// (!)Done in a hacky way through Reflection so might change with POI update.
+        /// (!)GetCell() might work incorrectly on such rows.
+        /// </param>
+        static public void _Remove(this IRow row, MoveRegionMode moveRegionMode = null, bool preserveCells = false)
         {
-            if (removeRowMode.HasFlag(RemoveRowMode.PreserveCells)
+            if (moveRegionMode?.UpdateMergedRegions == true)
+            {
+                for (int i = row.Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = row.Sheet.GetMergedRegion(i);
+                    if (a.FirstRow < row.RowNum)
+                    {
+                        if (a.LastRow >= row.RowNum)
+                            a.LastRow -= 1;
+                    }
+                    else if (a.FirstRow == row.RowNum && a.LastRow == row.RowNum)
+                        row.Sheet.RemoveMergedRegion(i);
+                    else
+                    {
+                        a.FirstRow -= 1;
+                        a.LastRow -= 1;
+                    }
+                }
+            }
+
+            if (preserveCells
                 && row is XSSFRow xSSFRow//in HSSFRow Cells remain after removing the row
                 )
             {
@@ -86,10 +114,7 @@ namespace Cliver
             else
                 row.Sheet.RemoveRow(row);
 
-            if (removeRowMode.HasFlag(RemoveRowMode.ShiftRowsBelow))
-                row.Sheet.ShiftRows(row.RowNum + 1, row.Sheet.LastRowNum, -1);
-            if (removeRowMode.HasFlag(RemoveRowMode.ClearMerging))
-                row.Sheet._ClearMergingInRow(row._Y());
+            row.Sheet._ShiftRowsUp(row.RowNum + 2, 1, moveRegionMode);
         }
         static System.Reflection.FieldInfo XSSFRow_cells_FI = null;
 
@@ -124,23 +149,15 @@ namespace Cliver
                     row._GetCell(x, true).CellStyle = style;
         }
 
-        static public void _ShiftCellsRight(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsRight(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
             for (int x = row._GetLastColumn(true); x >= x1; x--)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, moveRegionMode);
-
-            //TBD
-            //if (!(moveRegionMode?.MoveMergedRegions == false))
-            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
-            //    {
-            //        a.FirstRow -= 1;
-            //        a.FirstRow -= 1;
-            //    });
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, copyCellMode);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
@@ -148,23 +165,15 @@ namespace Cliver
                 throw new Exception("Shifting left before the first column: shift=" + shift + ", x1=" + x1);
             int x2 = row._GetLastColumn(true) + 1;
             for (int x = x1; x <= x2; x++)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, moveRegionMode);
-
-            //TBD
-            //if (!(moveRegionMode?.MoveMergedRegions == false))
-            //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
-            //    {
-            //        a.FirstRow -= 1;
-            //        a.FirstRow -= 1;
-            //    });
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, copyCellMode);
         }
 
-        static public void _ShiftCells(this IRow row, int x1, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCells(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift >= 0)
-                _ShiftCellsRight(row, x1, shift, moveRegionMode);
+                _ShiftCellsRight(row, x1, shift, copyCellMode);
             else
-                _ShiftCellsLeft(row, x1, -shift, moveRegionMode);
+                _ShiftCellsLeft(row, x1, -shift, copyCellMode);
         }
 
         static public ICell _GetCell(this IRow row, int x, bool createCell)
@@ -278,7 +287,11 @@ namespace Cliver
                 cs[i].CellStyle = styles[i];
         }
 
-
+        /// <summary>
+        /// Remove the row as an object but not shift rows below.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="clearMerging"></param>
         static public void _Clear(this IRow row, bool clearMerging)
         {
             if (clearMerging)

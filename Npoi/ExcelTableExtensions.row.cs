@@ -13,14 +13,14 @@ namespace Cliver
 {
     static public partial class ExcelTableExtensions
     {
-        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, CopyCellMode copyCellMode = null)
         {
-            row._ShiftCellsRight(c1.X, shift, moveRegionMode);
+            row._ShiftCellsRight(c1.X, shift, copyCellMode);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, CopyCellMode copyCellMode = null)
         {
-            row._ShiftCellsLeft(c1.X, shift, moveRegionMode);
+            row._ShiftCellsLeft(c1.X, shift, copyCellMode);
         }
 
         static public ICell _GetCell(this IRow row, Excel.Table.Column c, bool createCell)

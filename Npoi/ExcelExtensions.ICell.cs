@@ -26,31 +26,35 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _SetAlteredStyle<T>(this ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+        {
+            cell.CellStyle = cell.Sheet.Workbook._Excel().OneWorkbookStyleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
+        }
+
         static public string _GetAddress(this ICell cell)
         {
             return cell?.Address.ToString();
         }
 
         /// Remove the cell from its row.
-        static public void _Remove(this ICell cell)
+        static public void _Remove(this ICell cell, bool removeComment = true)
         {
-            cell.RemoveCellComment();
+            if (removeComment)
+                cell.RemoveCellComment();
             cell.Row.RemoveCell(cell);
         }
 
-        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null)
+        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap StyleMap2 = null)
         {
-            ISheet sheet2 = copyCellMode?.ToSheet;
-            if (sheet2 == null)
-                sheet2 = cell1?.Sheet;
+            sheet2 = sheet2 ?? cell1?.Sheet;
             if (sheet2 == null)
                 return null;
             ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            cell1._Move(cell2, copyCellMode);
+            cell1._Move(cell2, copyCellMode, StyleMap2);
             return cell2;
         }
 
-        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null)
+        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap StyleMap2 = null)
         {
             CopyCellMode ccm;
             if (copyCellMode != null)
@@ -60,32 +64,30 @@ namespace Cliver
             }
             else
                 ccm = null;
-            _Copy(cell1, cell2, ccm);
+            _Copy(cell1, cell2, ccm, StyleMap2);
             if (copyCellMode?.CopyComment == true && cell2 != null)
             {
                 cell2.RemoveCellComment();
                 cell2.CellComment = cell1?.CellComment;
             }
-            cell1?._Remove();
+            cell1?._Remove(copyCellMode?.CopyComment == true);
         }
 
-        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null)
+        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap StyleMap2 = null)
         {
-            ISheet sheet2 = copyCellMode?.ToSheet;
-            if (sheet2 == null)
-                sheet2 = cell1?.Sheet;
+            sheet2 = sheet2 ?? cell1?.Sheet;
             if (sheet2 == null)
                 return null;
             ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            _Copy(cell1, cell2, copyCellMode);
+            _Copy(cell1, cell2, copyCellMode, StyleMap2);
             return cell1 != null ? cell2 : null;
         }
 
-        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null)
+        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap StyleMap2 = null)
         {
             if (cell1 == null)
             {
-                cell2?._Remove();
+                cell2?._Remove(true);
                 return;
             }
 
@@ -97,11 +99,11 @@ namespace Cliver
 
             if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
             {
-                if (copyCellMode?.ToStyleMap == null)
-                    throw new Exception("StyleMap must be specified when copying cell to another workbook.");
-                if (cell2.Sheet.Workbook != copyCellMode.ToStyleMap.ToWorkbook)
-                    throw new Exception("cell2 does not belong to StyleMap's workbook.");
-                cell2.CellStyle = copyCellMode.ToStyleMap.GetMappedStyle(cell1.CellStyle);
+                if (StyleMap2 == null)
+                    throw new Exception("StyleMap2 must be specified when copying cell to another workbook.");
+                if (cell2.Sheet.Workbook != StyleMap2.ToWorkbook)
+                    throw new Exception("cell2 does not belong to StyleMap2's workbook.");
+                cell2.CellStyle = StyleMap2.GetMappedStyle(cell1.CellStyle);
             }
             else
                 cell2.CellStyle = cell1.CellStyle;

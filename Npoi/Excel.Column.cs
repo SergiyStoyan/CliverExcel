@@ -30,38 +30,29 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            /// <summary>         
-            /// NULL- and type-safe.
-            /// (!)Never returns NULL.
-            /// </summary>
-            /// <param name="y"></param>
-            /// <returns></returns>
-            public string this[int y]
-            {
-                get
-                {
-                    return GetValueAsString(y, false);
-                }
-                set
-                {
-                    GetCell(y, true).SetCellValue(value);
-                }
-            }
+            ///// <summary>         
+            ///// NULL- and type-safe.
+            ///// (!)Never returns NULL.
+            ///// </summary>
+            ///// <param name="y"></param>
+            ///// <returns></returns>
+            //public string this[int y]
+            //{
+            //    get
+            //    {
+            //        return GetValueAsString(y, false);
+            //    }
+            //    set
+            //    {
+            //        GetCell(y, true).SetCellValue(value);
+            //    }
+            //}
 
-            /// <summary>
-            /// NULL- and type-safe.
-            /// (!)Never returns NULL.
-            /// </summary>
-            public string this[string columnName]
+            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
-                get
-                {
-                    return this[GetX(columnName)];
-                }
-                set
-                {
-                    this[GetX(columnName)] = value;
-                }
+                var styleCache = Sheet.Workbook._Excel().OneWorkbookStyleCache;
+                foreach (ICell cell in GetCells(true))
+                    cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
             }
 
             public int GetLastRow(LastRowCondition lastRowCondition, bool includeMerged)
@@ -166,23 +157,15 @@ namespace Cliver
                 new Range(Sheet, 1, X, null, X).ClearMerging();
             }
 
-            public void ShiftCellsDown(int y1, int shift, MoveRegionMode moveRegionMode = null)
+            public void ShiftCellsDown(int y1, int shift, CopyCellMode copyCellMode = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
                 for (int y = GetLastRow(LastRowCondition.HasCells, true); y >= y1; y--)
-                    Sheet._MoveCell(y, X, y + shift, X, moveRegionMode);
-
-                //TBD
-                //if (!(moveRegionMode?.MoveMergedRegions == false))
-                //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
-                //    {
-                //        a.FirstRow -= 1;
-                //        a.FirstRow -= 1;
-                //    });
+                    Sheet._MoveCell(y, X, y + shift, X, copyCellMode);
             }
 
-            public void ShiftCellsUp(int y1, int shift, MoveRegionMode moveRegionMode = null)
+            public void ShiftCellsUp(int y1, int shift, CopyCellMode copyCellMode = null)
             {
                 if (shift < 0)
                     throw new Exception("Shift cannot be < 0: " + shift);
@@ -190,23 +173,15 @@ namespace Cliver
                     throw new Exception("Shifting up before the first row: shift=" + shift + ", y1=" + y1);
                 int y2 = GetLastRow(LastRowCondition.HasCells, true) + 1;
                 for (int y = y1; y <= y2; y++)
-                    Sheet._MoveCell(y, X, y - shift, X, moveRegionMode);
-
-                //TBD
-                //if (!(moveRegionMode?.MoveMergedRegions == false))
-                //    row.Sheet.MergedRegions.Where(a => a.FirstRow > row.RowNum && a.FirstRow < y2).ForEach(a =>
-                //    {
-                //        a.FirstRow -= 1;
-                //        a.FirstRow -= 1;
-                //    });
+                    Sheet._MoveCell(y, X, y - shift, X, copyCellMode);
             }
 
-            public void ShiftCells(int y1, int shift, MoveRegionMode moveRegionMode = null)
+            public void ShiftCells(int y1, int shift, CopyCellMode copyCellMode = null)
             {
                 if (shift >= 0)
-                    ShiftCellsUp(y1, shift, moveRegionMode);
+                    ShiftCellsUp(y1, shift, copyCellMode);
                 else
-                    ShiftCellsDown(y1, -shift, moveRegionMode);
+                    ShiftCellsDown(y1, -shift, copyCellMode);
             }
 
             /// <summary>
@@ -253,15 +228,87 @@ namespace Cliver
                     SetWidth(Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
             }
 
-            public void Copy(string toColumnName = null, CopyCellMode copyCellMode = null)
+            public int GetWidth()
             {
-                int toX = toColumnName == null ? X : CellReference.ConvertColStringToIndex(toColumnName);
-                Copy(toX, copyCellMode);
+                return Sheet.GetColumnWidth(X - 1);
             }
 
-            public void Copy(int toX, CopyCellMode copyCellMode = null)
+            public void Copy(string column2Name, CopyCellMode copyCellMode = null)
             {
-                new Range(Sheet, 1, X, null, X).Copy(1, toX, copyCellMode);
+                Copy(Excel.GetX(column2Name), copyCellMode);
+            }
+
+            public void Copy(int x2, CopyCellMode copyCellMode = null)
+            {
+                if (X == x2)
+                    return;
+                Column column2 = new Column(Sheet, x2);
+                column2.Clear(false);
+                column2.SetWidth(GetWidth());
+                foreach (ICell c1 in GetCells(false))
+                    c1._Copy(x2, c1._X(), copyCellMode);
+            }
+
+            public void Move(string column2Name, MoveRegionMode moveRegionMode = null)
+            {
+                Move(Excel.GetX(column2Name), moveRegionMode);
+            }
+
+            /// <summary>
+            /// Insert a copy and remove the source.
+            /// </summary>
+            /// <param name="x2"></param>
+            /// <param name="moveRegionMode"></param>
+            public void Move(int x2, MoveRegionMode moveRegionMode = null)
+            {
+                Sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
+
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    Sheet.MergedRegions.ForEach(a =>
+                    {
+                        if (a.FirstColumn < x2 - 1)
+                        {
+                            if (a.LastColumn >= x2 - 1)
+                                a.LastColumn += 1;
+                        }
+                        else
+                        {
+                            a.FirstColumn += 1;
+                            a.LastColumn += 1;
+                        }
+                    });
+                }
+                Copy(x2, moveRegionMode);
+                Remove(moveRegionMode);
+            }
+
+            /// <summary>
+            /// Remove the column from its sheet and shift columns on right. 
+            /// </summary>
+            /// <param name="moveRegionMode"></param>
+            public void Remove(MoveRegionMode moveRegionMode = null)
+            {
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                    {
+                        NPOI.SS.Util.CellRangeAddress a = Sheet.GetMergedRegion(i);
+                        if (a.FirstColumn < X - 1)
+                        {
+                            if (a.LastColumn >= X - 1)
+                                a.LastColumn -= 1;
+                        }
+                        else if (a.FirstColumn == X - 1 && a.LastColumn == X - 1)
+                            Sheet.RemoveMergedRegion(i);
+                        else
+                        {
+                            a.FirstColumn -= 1;
+                            a.LastColumn -= 1;
+                        }
+                    }
+                }
+                Sheet._ShiftColumnsLeft(X + 1, 1, moveRegionMode);
             }
 
             public object GetValue(int y)

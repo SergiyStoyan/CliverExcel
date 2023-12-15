@@ -245,9 +245,9 @@ namespace Cliver
                 return WriteRow(y, (IEnumerable<Cell>)cells);
             }
 
-            public IRow RemoveRow(int y, RemoveRowMode removeRowMode = 0)
+            public IRow RemoveRow(int y, MoveRegionMode moveRegionMode = null)
             {
-                return Sheet._RemoveRow(y, removeRowMode);
+                return Sheet._RemoveRow(y, moveRegionMode);
             }
 
             public ICell GetCell(IRow row, Column column, bool create)

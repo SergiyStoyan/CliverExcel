@@ -353,7 +353,7 @@ namespace Cliver
                 return c;
             }
 
-            public void InsertColumn(int x, Column column, MoveRegionMode moveRegionMode = null)
+            public void InsertColumn(int x, Column column, MoveRegionMode moveRegionMode)
             {
                 Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
                 if (column == null)

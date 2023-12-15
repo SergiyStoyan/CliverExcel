@@ -40,34 +40,34 @@ namespace Cliver
             return sheet?._GetCell(y, x, false)?._GetLink();
         }
 
-        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, CopyCellMode copyCellMode = null)
         {
             for (int y = y1; y <= y2; y++)
-                sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, moveRegionMode);
+                sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, copyCellMode);
         }
 
-        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsLeft(this ISheet sheet, int x1, int y1, int y2, int shift, CopyCellMode copyCellMode = null)
         {
             for (int y = y1; y <= y2; y++)
-                sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, moveRegionMode);
+                sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, copyCellMode);
         }
 
-        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsDown(this ISheet sheet, int y1, int x1, int x2, int shift, CopyCellMode copyCellMode = null)
         {
             for (int x = x1; x <= x2; x++)
-                sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, moveRegionMode);
+                sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, copyCellMode);
         }
 
-        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, MoveRegionMode moveRegionMode = null)
+        static public void _ShiftCellsUp(this ISheet sheet, int y1, int x1, int x2, int shift, CopyCellMode copyCellMode = null)
         {
             for (int x = x1; x <= x2; x++)
-                sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, moveRegionMode);
+                sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, copyCellMode);
         }
 
-        static public ICell _CopyCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, CopyCellMode copyCellMode = null)
+        static public ICell _CopyCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap2 = null)
         {
-            ICell sourceCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return sourceCell._Copy(toCellY, toCellX, copyCellMode);
+            ICell sourceCell = sheet._GetCell(y1, x1, false);
+            return sourceCell._Move(y2, x2, copyCellMode, sheet2, styleMap2);
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -104,10 +104,10 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int fromCellY, int fromCellX, int toCellY, int toCellX, CopyCellMode copyCellMode = null)
+        static public ICell _MoveCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap2 = null)
         {
-            ICell fromCell = sheet._GetCell(fromCellY, fromCellX, false);
-            return fromCell._Move(toCellY, toCellX, copyCellMode);
+            ICell fromCell = sheet._GetCell(y1, x1, false);
+            return fromCell._Move(y2, x2, copyCellMode, sheet2, styleMap2);
         }
 
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)
