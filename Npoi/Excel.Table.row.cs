@@ -20,11 +20,11 @@ namespace Cliver
         public partial class Table
         {
             /// <summary>
-            /// Intended for easier filtering and CRUD operations. So it represents values only.
+            /// Intended for easier filtering and CRUD operations.
             /// </summary>
-            public class Row
+            public class Row<T> where T : Table
             {
-                public virtual Table Table { get; private set; }
+                public virtual T Table { get; private set; }
                 public SortedDictionary<int, Cell> Cells { get; private set; } = new SortedDictionary<int, Cell>();
 
                 public Cell this[Column column]
@@ -40,45 +40,61 @@ namespace Cliver
                     }
                 }
 
-                public Row(Table table)
+                public Row(T table)
                 {
                     Table = table;
                 }
 
-                public Row(Table table, params Cell[] cells) : this(table, (IEnumerable<Cell>)cells)
+                public Row(T table, params Cell[] cells) : this(table, (IEnumerable<Cell>)cells)
                 { }
 
-                public Row(Table table, IEnumerable<Cell> cells)
+                public Row(T table, IEnumerable<Cell> cells)
                 {
                     Table = table;
                     foreach (Cell c in cells)
                         Cells[c.X] = c;
                 }
 
-                public Row(Table table, IRow iRow)
+                public Row(T table, IRow iRow, Get get)
                 {
                     Table = table;
-                    foreach (Column c in table.Columns)
-                        Cells[c.X] = new Cell(c, iRow._GetCell(c.X, false)?._GetValue());
+                    foreach (Column column in table.Columns)
+                    {
+                        ICell c = iRow._GetCell(column.X, false);
+                        Cells[column.X] = new Cell(column,
+                            get.HasFlag(Get.Value) ? c?._GetValue() : null,
+                            get.HasFlag(Get.Value) ? c?.CellStyle : null,
+                            get.HasFlag(Get.Type) ? c?.CellType : null,
+                            get.HasFlag(Get.Link) ? c?._GetLink() : null
+                            );
+                    }
                 }
             }
 
-            public IEnumerable<Row> GetRows(IEnumerable<IRow> iRows)
+            public enum Get
             {
-                return iRows.Select(a => new Row(this, a));
+                Value,
+                Style,
+                Type,
+                Link,
             }
 
-            public IRow AppendRow(Row row)
+            public IEnumerable<Row<Table>> GetRows(IEnumerable<IRow> iRows, Get get)
+            {
+                return iRows.Select(a => new Row<Table>(this, a, get));
+            }
+
+            public IRow AppendRow<T>(Row<T> row) where T : Table
             {
                 return AppendRow(row.Cells.Values);
             }
 
-            public IRow InsertRow(int y, Row row)
+            public IRow InsertRow<T>(int y, Row<T> row) where T : Table
             {
                 return InsertRow(y, row.Cells.Values);
             }
 
-            public IRow WriteRow(int y, Row row)
+            public IRow WriteRow<T>(int y, Row<T> row) where T : Table
             {
                 return WriteRow(y, row.Cells.Values);
             }

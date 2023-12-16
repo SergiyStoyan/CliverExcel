@@ -67,7 +67,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Remove the row from its sheet and shift rows below. 
+        /// Remove the row from its sheet and (!)shift rows below which can be slow. Not to shift, use Clear()
         /// </summary>
         /// <param name="row"></param>
         /// <param name="moveRegionMode"></param>
@@ -137,17 +137,17 @@ namespace Cliver
                 row.MoveCell(c, x2 - 1);
         }
 
-        static public void _SetStyle(this IRow row, ICellStyle style, RowStyleMode rowStyleMode)
-        {
-            if (rowStyleMode.HasFlag(RowStyleMode.Row))
-                row.RowStyle = style;
-            if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
-                foreach (ICell c in row.Cells)
-                    c.CellStyle = style;
-            else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
-                for (int x = row.LastCellNum; x > 0; x--)
-                    row._GetCell(x, true).CellStyle = style;
-        }
+        //static public void _SetStyle(this IRow row, ICellStyle style, RowStyleMode rowStyleMode)
+        //{
+        //    if (rowStyleMode.HasFlag(RowStyleMode.Row))
+        //        row.RowStyle = style;
+        //    if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
+        //        foreach (ICell c in row.Cells)
+        //            c.CellStyle = style;
+        //    else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
+        //        for (int x = row.LastCellNum; x > 0; x--)
+        //            row._GetCell(x, true).CellStyle = style;
+        //}
 
         static public void _ShiftCellsRight(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
@@ -288,7 +288,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Remove the row as an object but not shift rows below.
+        /// Delete the row as an object but not shift rows below.
         /// </summary>
         /// <param name="row"></param>
         /// <param name="clearMerging"></param>

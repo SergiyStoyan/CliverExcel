@@ -278,7 +278,7 @@ namespace Cliver
                         r2 = Sheet._GetRow(2, true);
                         r2created = true;
                     }
-                    Columns.Where(a => a.DataStyle == null).ForEach(a =>
+                    Columns.Where(a => a.Style == null).ForEach(a =>
                     {
                         ICell c = r2._GetCell(a.X, false);
                         bool ccreated = false;
@@ -287,11 +287,11 @@ namespace Cliver
                             c = r2._GetCell(a.X, true);
                             ccreated = true;
                         }
-                        a.DataStyle = c.CellStyle;
+                        a.Style = c.CellStyle;
                         if (ccreated)
                             c._Remove();
                     });
-                    Columns.Where(a => a.DataType == null).ForEach(a =>
+                    Columns.Where(a => a.Type == null).ForEach(a =>
                     {
                         ICell c = r2._GetCell(a.X, false);
                         bool ccreated = false;
@@ -300,7 +300,7 @@ namespace Cliver
                             c = r2._GetCell(a.X, true);
                             ccreated = true;
                         }
-                        a.DataType = c.CellType;
+                        a.Type = c.CellType;
                         if (ccreated)
                             c._Remove();
                     });
@@ -385,11 +385,11 @@ namespace Cliver
                 /// <summary>
                 /// (!)Unregistered style will be registered when setting.
                 /// </summary>
-                public ICellStyle DataStyle
+                public ICellStyle Style
                 {
                     get
                     {
-                        return dataStyle;
+                        return style;
                     }
                     set
                     {
@@ -397,27 +397,27 @@ namespace Cliver
                             return;
                         if (value.Index < 0)
                             value = Table.Excel.Workbook._GetRegisteredStyle(value);
-                        dataStyle = value;
-                        //Table?.Sheet.SetDefaultColumnStyle(X - 1, dataStyle);
+                        style = value;
+                        //Table?.Sheet.SetDefaultColumnStyle(X - 1, style);
                     }
                 }
-                ICellStyle dataStyle = null;
-                public void ApplyDataStyle(ICellStyle style = null)
+                ICellStyle style = null;
+                public void ApplyStyle(ICellStyle style = null)
                 {
                     if (style != null)
-                        DataStyle = style;
+                        Style = style;
                     foreach (ICell c in GetDataCells(RowScope.WithCells))
-                        c.CellStyle = DataStyle;
+                        c.CellStyle = Style;
                 }
 
-                public CellType? DataType { get; set; } = null;
-                public void ApplyDataType(CellType? dataType = null)
+                public CellType? Type { get; set; } = null;
+                public void ApplyType(CellType? type = null)
                 {
-                    if (dataType != null)
-                        DataType = dataType.Value;
-                    if (DataType != null)
+                    if (type != null)
+                        Type = type.Value;
+                    if (Type != null)
                         foreach (ICell c in GetDataCells(RowScope.WithCells))
-                            c.SetCellType(DataType.Value);
+                            c.SetCellType(Type.Value);
                 }
 
                 public Table Table { get; internal set; } = null;
@@ -427,13 +427,13 @@ namespace Cliver
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
-                public Column(string header, ICellStyle dataStyle = null, CellType? dataType = null)
+                public Column(string header, ICellStyle style = null, CellType? type = null)
                 {
                     if (string.IsNullOrWhiteSpace(header))
                         throw new Exception("Header cannot be empty or space.");
                     Header = header;
-                    DataStyle = dataStyle;
-                    DataType = dataType;
+                    Style = style;
+                    Type = type;
                 }
 
                 public ICell GetCell(int y, bool create)

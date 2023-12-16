@@ -123,6 +123,7 @@ namespace Cliver
                 public int X { get { return Column.X; } }
                 public ICellStyle Style { get; set; } = null;
                 public CellType? Type { get; set; } = null;
+                public string Link { get; set; } = null;
 
                 /// <summary>
                 /// (!)Unregistered style will be registered.
@@ -132,7 +133,7 @@ namespace Cliver
                 /// <param name="value"></param>
                 /// <param name="style"></param>
                 /// <exception cref="Exception"></exception>
-                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null)
+                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null, string link = null)
                 {
                     if (column.Table == null)
                         throw new Exception("Column is not initialized: Table is not set.");
@@ -140,9 +141,10 @@ namespace Cliver
                     Value = value;
                     Style = style;
                     Type = type;
+                    Link = link;
                 }
 
-                public Cell(Style style, object value, CellType? type = null) : this(style.Column, value, style.Value, type)
+                public Cell(Style style, object value, CellType? type = null, string link = null) : this(style.Column, value, style.Value, type, link)
                 {
                 }
             }
@@ -229,13 +231,14 @@ namespace Cliver
                     //if (r.Sheet != cell.Column.Table.Sheet)
                     //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
                     var c = r._GetCell(cell.X, true);
-                    var type = cell.Type != null ? cell.Type : cell.Column.DataType;
+                    var type = cell.Type != null ? cell.Type : cell.Column.Type;
                     if (type != null)
                         c.SetCellType(type.Value);
                     c._SetValue(cell.Value);
-                    var style = cell.Style != null ? cell.Style : cell.Column.DataStyle;
+                    var style = cell.Style != null ? cell.Style : cell.Column.Style;
                     if (style != null)
                         c.CellStyle = style;
+                    c._SetLink(cell.Link);
                 }
                 return r;
             }

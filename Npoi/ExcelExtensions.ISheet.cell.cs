@@ -64,10 +64,25 @@ namespace Cliver
                 sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, copyCellMode);
         }
 
-        static public ICell _CopyCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap2 = null)
+        static public ICell _MoveCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            ICell sourceCell = sheet._GetCell(y1, x1, false);
-            return sourceCell._Move(y2, x2, copyCellMode, sheet2, styleMap2);
+            ICell cell2 = sheet._CopyCell(y1, x1, y2, x2, copyCellMode, sheet2, styleMap);
+            sheet?._RemoveCell(y1, x1);
+            return cell2;
+        }
+
+        static public ICell _CopyCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            sheet2 = sheet2 ?? sheet;
+            ICell cell1 = sheet._GetCell(y1, x1, false);
+            if (cell1 == null)
+            {
+                sheet2._RemoveCell(y2, x2);
+                return null;
+            }
+            ICell cell2 = sheet2._GetCell(y2, x2, true);
+            cell1._Move(cell2, copyCellMode, styleMap);
+            return cell2;
         }
 
         static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
@@ -104,12 +119,6 @@ namespace Cliver
             c._SetValue(value);
         }
 
-        static public ICell _MoveCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap2 = null)
-        {
-            ICell fromCell = sheet._GetCell(y1, x1, false);
-            return fromCell._Move(y2, x2, copyCellMode, sheet2, styleMap2);
-        }
-
         static public ICell _GetCell(this ISheet sheet, int y, int x, bool createCell)
         {
             IRow r = sheet._GetRow(y, createCell);
@@ -129,9 +138,9 @@ namespace Cliver
             return sheet._GetCell(cellAddress.Row + 1, cellAddress.Column + 1, createCell);
         }
 
-        static public void _RemoveCell(this ISheet sheet, int y, int x)
+        static public void _RemoveCell(this ISheet sheet, int y, int x, bool removeComment = true)
         {
-            sheet._GetCell(y, x, false)?._Remove();
+            sheet._GetCell(y, x, false)?._Remove(removeComment);
         }
 
         static public void _UpdateFormulaRange(this ISheet sheet, int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)

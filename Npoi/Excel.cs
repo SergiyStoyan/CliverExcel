@@ -269,21 +269,21 @@ namespace Cliver
             NotNull,
         }
 
-        public enum RowStyleMode
-        {
-            /// <summary>
-            /// Set the row default style.
-            /// </summary>
-            Row = 1,
-            /// <summary>
-            /// Set style to the existing cells.
-            /// </summary>
-            ExistingCells = 2,
-            /// <summary>
-            /// Set style to all the cells with no gaps. When need, blank cells are created.
-            /// </summary>
-            NoGapCells = 4,
-        }
+        //public enum RowStyleMode
+        //{
+        //    /// <summary>
+        //    /// Set the row default style.
+        //    /// </summary>
+        //    Row = 1,
+        //    /// <summary>
+        //    /// Set style to the existing cells.
+        //    /// </summary>
+        //    ExistingCells = 2,
+        //    /// <summary>
+        //    /// Set style to all the cells with no gaps. When need, blank cells are created.
+        //    /// </summary>
+        //    NoGapCells = 4,
+        //}
 
         public class CopyCellMode
         {

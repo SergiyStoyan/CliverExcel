@@ -44,17 +44,17 @@ namespace Cliver
             cell.Row.RemoveCell(cell);
         }
 
-        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap StyleMap2 = null)
+        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet2 = sheet2 ?? cell1?.Sheet;
+            sheet2 = sheet2 ?? cell1.Sheet;
             if (sheet2 == null)
                 return null;
             ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            cell1._Move(cell2, copyCellMode, StyleMap2);
+            cell1._Move(cell2, copyCellMode, styleMap);
             return cell2;
         }
 
-        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap StyleMap2 = null)
+        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
             CopyCellMode ccm;
             if (copyCellMode != null)
@@ -64,7 +64,7 @@ namespace Cliver
             }
             else
                 ccm = null;
-            _Copy(cell1, cell2, ccm, StyleMap2);
+            _Copy(cell1, cell2, ccm, styleMap);
             if (copyCellMode?.CopyComment == true && cell2 != null)
             {
                 cell2.RemoveCellComment();
@@ -73,17 +73,15 @@ namespace Cliver
             cell1?._Remove(copyCellMode?.CopyComment == true);
         }
 
-        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap StyleMap2 = null)
+        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet2 = sheet2 ?? cell1?.Sheet;
-            if (sheet2 == null)
-                return null;
+            sheet2 = sheet2 ?? cell1.Sheet;
             ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            _Copy(cell1, cell2, copyCellMode, StyleMap2);
+            _Copy(cell1, cell2, copyCellMode, styleMap);
             return cell1 != null ? cell2 : null;
         }
 
-        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap StyleMap2 = null)
+        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
             if (cell1 == null)
             {
@@ -99,11 +97,11 @@ namespace Cliver
 
             if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
             {
-                if (StyleMap2 == null)
-                    throw new Exception("StyleMap2 must be specified when copying cell to another workbook.");
-                if (cell2.Sheet.Workbook != StyleMap2.ToWorkbook)
-                    throw new Exception("cell2 does not belong to StyleMap2's workbook.");
-                cell2.CellStyle = StyleMap2.GetMappedStyle(cell1.CellStyle);
+                if (styleMap == null)
+                    throw new Exception("StyleMap must be specified when copying cell to another workbook.");
+                if (cell2.Sheet.Workbook != styleMap.Workbook2)
+                    throw new Exception("cell2 does not belong to StyleMap's workbook.");
+                cell2.CellStyle = styleMap.GetMappedStyle(cell1.CellStyle);
             }
             else
                 cell2.CellStyle = cell1.CellStyle;
@@ -404,7 +402,14 @@ namespace Cliver
                 //else
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
             }
-            formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+            try
+            {
+                formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         static public Excel.Range _GetMergedRange(this ICell cell)

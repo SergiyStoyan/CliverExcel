@@ -149,7 +149,7 @@ namespace Cliver
         /// <param name="workbook"></param>
         /// <param name="color"></param>
         /// <returns></returns>
-        public static HSSFColor GetRegisteredHSSFColor(HSSFWorkbook workbook, Excel.Color color)
+        public static HSSFColor GetRegisteredHSSFColor(HSSFWorkbook workbook, Excel.Color color, bool allowSimilarColor = true)
         {
             HSSFPalette palette = workbook.GetCustomPalette();
             HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
@@ -161,32 +161,48 @@ namespace Cliver
             }
             catch
             {//pallete is full
+                bool isIndexedColorUsed(short c/*, List<ICellStyle> unusedStyles, List<IFont> unusedFonts*/)
+                {
+                    for (int i = workbook.NumCellStyles - 1; i >= 0; i--)
+                    {
+                        ICellStyle s = workbook.GetCellStyleAt(i);
+                        if (s.BorderDiagonalColor == c
+                            || s.BottomBorderColor == c
+                            || s.FillBackgroundColor == c
+                            || s.FillForegroundColor == c
+                            || s.LeftBorderColor == c
+                            || s.RightBorderColor == c
+                            || s.TopBorderColor == c
+                            )
+                            //if (!unusedStyles.Contains(s))
+                            return true;
+                    }
+                    for (short i = (short)(workbook.NumberOfFonts - 1); i >= 0; i--)
+                    {
+                        IFont f = workbook.GetFontAt(i);
+                        if (f.Color == c)
+                            //if (!unusedFonts.Contains(f))
+                            return true;
+                    }
+                    return false;
+                }
                 short? findUnusedColorIndex()
                 {
+                    //workbook._OptimizeStylesAndFonts(out List<ICellStyle> unusedStyles, out List<IFont> unusedFonts);
                     for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
                     {
-                        int i = 0;
-                        for (; i < workbook.NumCellStyles; i++)
-                        {
-                            var s = workbook.GetCellStyleAt(i);
-                            if (s.BorderDiagonalColor == j
-                                || s.BottomBorderColor == j
-                                || s.FillBackgroundColor == j
-                                || s.FillForegroundColor == j
-                                || s.LeftBorderColor == j
-                                || s.RightBorderColor == j
-                                || s.TopBorderColor == j
-                                )
-                                break;
-                        }
-                        if (i >= workbook.NumCellStyles)
+                        if (!isIndexedColorUsed(j))
                             return j;
                     }
                     return null;
                 }
                 short? ci = findUnusedColorIndex();
                 if (ci == null)
+                {
+                    if (!allowSimilarColor)
+                        throw new Exception("The palette of indexed colors is full and all the colors are in use. Consider optimizing styles and fonts.");
                     ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
+                }
                 palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
                 hssfColor = palette.GetColor(ci.Value);
             }

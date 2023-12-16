@@ -260,6 +260,12 @@ namespace Cliver
                 sheet._RemoveRow(y, moveRegionMode);
         }
 
+        /// <summary>
+        /// Delete the row as an object but not shift rows below.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="clearMerging"></param>
         static public void _ClearRow(this ISheet sheet, int y, bool clearMerging)
         {
             var r = sheet._GetRow(y, false);
