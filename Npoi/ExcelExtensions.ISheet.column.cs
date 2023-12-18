@@ -250,15 +250,15 @@ namespace Cliver
             sheet._GetColumn(x1).Copy(x2, copyCellMode);
         }
 
-        static public void _MoveColumn(this ISheet sheet, string Column1Name, string Column2Name, MoveRegionMode moveRegionMode = null)
+        static public void _MoveColumn(this ISheet sheet, string Column1Name, string Column2Name, bool insert, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetColumn(Column1Name).Move(Column2Name, moveRegionMode);
+            sheet._GetColumn(Column1Name).Move(Column2Name, insert, moveRegionMode);
         }
 
-        static public void _MoveColumn(this ISheet sheet, int x1, int x2, MoveRegionMode moveRegionMode = null)
+        static public void _MoveColumn(this ISheet sheet, int x1, int x2, bool insert, MoveRegionMode moveRegionMode = null)
         {
             var c1 = sheet._GetColumn(x1);
-            c1.Move(x2, moveRegionMode);
+            c1.Move(x2, insert, moveRegionMode);
         }
 
         static public int _GetLastNotEmptyRowInColumn(this ISheet sheet, bool includeMerged, int x)

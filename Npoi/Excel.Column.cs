@@ -249,9 +249,9 @@ namespace Cliver
                     c1._Copy(x2, c1._X(), copyCellMode);
             }
 
-            public void Move(string column2Name, MoveRegionMode moveRegionMode = null)
+            public void Move(string column2Name, bool insert, MoveRegionMode moveRegionMode = null)
             {
-                Move(Excel.GetX(column2Name), moveRegionMode);
+                Move(Excel.GetX(column2Name), insert, moveRegionMode);
             }
 
             /// <summary>
@@ -259,25 +259,28 @@ namespace Cliver
             /// </summary>
             /// <param name="x2"></param>
             /// <param name="moveRegionMode"></param>
-            public void Move(int x2, MoveRegionMode moveRegionMode = null)
+            public void Move(int x2, bool insert, MoveRegionMode moveRegionMode = null)
             {
-                Sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
-
-                if (moveRegionMode?.UpdateMergedRegions == true)
+                if (insert)
                 {
-                    Sheet.MergedRegions.ForEach(a =>
+                    Sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
+
+                    if (moveRegionMode?.UpdateMergedRegions == true)
                     {
-                        if (a.FirstColumn < x2 - 1)
+                        Sheet.MergedRegions.ForEach(a =>
                         {
-                            if (a.LastColumn >= x2 - 1)
+                            if (a.FirstColumn < x2 - 1)
+                            {
+                                if (a.LastColumn >= x2 - 1)
+                                    a.LastColumn += 1;
+                            }
+                            else
+                            {
+                                a.FirstColumn += 1;
                                 a.LastColumn += 1;
-                        }
-                        else
-                        {
-                            a.FirstColumn += 1;
-                            a.LastColumn += 1;
-                        }
-                    });
+                            }
+                        });
+                    }
                 }
                 Copy(x2, moveRegionMode);
                 Remove(moveRegionMode);

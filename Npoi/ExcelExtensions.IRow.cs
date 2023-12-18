@@ -35,33 +35,29 @@ namespace Cliver
                 c1._Copy(y2, c1._X(), copyCellMode);
         }
 
-        /// <summary>
-        /// Insert a copy and remove the source.
-        /// </summary>
-        /// <param name="row"></param>
-        /// <param name="y2"></param>
-        /// <param name="moveRegionMode"></param>
-        static public void _Move(this IRow row, int y2, MoveRegionMode moveRegionMode = null)
+        static public void _Move(this IRow row, int y2, bool insert, MoveRegionMode moveRegionMode = null)
         {
-            row.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
-
-            if (moveRegionMode?.UpdateMergedRegions == true)
+            if (insert)
             {
-                row.Sheet.MergedRegions.ForEach(a =>
-                {
-                    if (a.FirstRow < y2 - 1)
-                    {
-                        if (a.LastRow >= y2 - 1)
-                            a.LastRow += 1;
-                    }
-                    else
-                    {
-                        a.FirstRow += 1;
-                        a.LastRow += 1;
-                    }
-                });
-            }
+                row.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
 
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    row.Sheet.MergedRegions.ForEach(a =>
+                    {
+                        if (a.FirstRow < y2 - 1)
+                        {
+                            if (a.LastRow >= y2 - 1)
+                                a.LastRow += 1;
+                        }
+                        else
+                        {
+                            a.FirstRow += 1;
+                            a.LastRow += 1;
+                        }
+                    });
+                }
+            }
             row._Copy(y2, moveRegionMode);
             row._Remove(moveRegionMode);
         }

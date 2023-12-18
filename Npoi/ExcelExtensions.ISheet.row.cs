@@ -287,10 +287,10 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
         /// <param name="y2"></param>
-        static public void _MoveRow(this ISheet sheet, int y1, int y2, MoveRegionMode moveRegionMode = null)
+        static public void _MoveRow(this ISheet sheet, int y1, int y2, bool insert, MoveRegionMode moveRegionMode = null)
         {
             var r1 = sheet._GetRow(y1, false);
-            r1._Move(y2, moveRegionMode);
+            r1._Move(y2, insert, moveRegionMode);
         }
 
         static public void _CopyRow(this ISheet sheet, int y1, int y2, CopyCellMode copyCellMode = null)
