@@ -66,39 +66,152 @@ namespace Cliver
 
         static public ICell _MoveCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            ICell cell2 = sheet._CopyCell(y1, x1, y2, x2, copyCellMode, sheet2, styleMap);
-            sheet?._RemoveCell(y1, x1);
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && y1 == y2 && x1 == x2)//(!)otherwise it will remove the cell
+                return sheet._GetCell(y1, x1, false);
+
+            CopyCellMode ccm;
+            if (copyCellMode != null && sheet is HSSFSheet)//!!!REMOVE WHEN FIXED IN NPOI: NPOI_BUG_ShapeId_duplication_when_creating_a_comment
+            {
+                ccm = copyCellMode.Clone();
+                ccm.CopyComment = false;//(!)done due to the bug in in NPOI: ShapeId duplication when creating a comment.
+            }
+            else
+                ccm = null;
+            ICell cell2 = sheet._CopyCell(y1, x1, y2, x2, ccm, sheet2, styleMap);
+            if (ccm != null && copyCellMode?.CopyComment == true && cell2 != null)
+            {
+                cell2.RemoveCellComment();
+                cell2.CellComment = sheet._GetCell(y1, x1, false)?.CellComment;
+            }
+
+            bool removeComment = false;
+            if (copyCellMode?.CopyComment == true)
+                removeComment = sheet.GetCellComment(new CellAddress(x1 - 1, y1 - 1)) == null;
+            sheet2._RemoveCell(y1, x1, removeComment);
             return cell2;
         }
 
         static public ICell _CopyCell(this ISheet sheet, int y1, int x1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
             sheet2 = sheet2 ?? sheet;
+            if (sheet == sheet2 && y1 == y2 && x1 == x2)
+                return null;
+
             ICell cell1 = sheet._GetCell(y1, x1, false);
             if (cell1 == null)
             {
-                sheet2._RemoveCell(y2, x2);
+                var comment = sheet.GetCellComment(new CellAddress(x1 - 1, y1 - 1));
+                sheet2._RemoveCell(y2, x2, comment == null && copyCellMode?.CopyComment == true);
                 return null;
             }
+
             ICell cell2 = sheet2._GetCell(y2, x2, true);
-            cell1._Move(cell2, copyCellMode, styleMap);
+            if (cell2.CellType != cell1.CellType)
+            {
+                cell2.SetBlank();//necessary if changing type
+                cell2.SetCellType(cell1.CellType);
+            }
+
+            if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
+            {
+                if (styleMap == null)
+                    throw new Exception("StyleMap must be specified when copying cell to another workbook.");
+                if (cell2.Sheet.Workbook != styleMap.Workbook2)
+                    throw new Exception("cell2 does not belong to StyleMap's workbook.");
+                cell2.CellStyle = styleMap.GetMappedStyle(cell1.CellStyle);
+            }
+            else
+                cell2.CellStyle = cell1.CellStyle;
+
+            switch (cell1.CellType)
+            {
+                case CellType.Formula:
+                    cell2.CellFormula = cell1.CellFormula;
+                    break;
+                case CellType.Numeric:
+                    cell2.SetCellValue(cell1.NumericCellValue);
+                    break;
+                case CellType.String:
+                    cell2.SetCellValue(cell1.StringCellValue);
+                    break;
+                case CellType.Boolean:
+                    cell2.SetCellValue(cell1.BooleanCellValue);
+                    break;
+                case CellType.Error:
+                    cell2.SetCellErrorValue(cell1.ErrorCellValue);
+                    break;
+                case CellType.Blank:
+                    cell2.SetBlank();
+                    break;
+                default:
+                    throw new Exception("Unknown cell type: " + cell1.CellType);
+            }
+
+            if (copyCellMode?.CopyComment == true)
+            {
+                cell2.RemoveCellComment();
+                if (cell1.CellComment != null)
+                {
+                    //cell1.Sheet.CopyComment(cell1, cell2);!!!on HSSF it moves the comment, not copies; on XSSF it copies but does not preserve box size
+                    var drawingPatriarch2 = /*cell1.Sheet.DrawingPatriarch != null ? cell1.Sheet.DrawingPatriarch :*/ cell2.Sheet.CreateDrawingPatriarch();
+                    (int Y, int X) shift = (cell2._Y() - cell1._Y(), cell2._X() - cell1._X());
+                    IClientAnchor anchor2 = drawingPatriarch2.CreateAnchor(
+                        cell1.CellComment.ClientAnchor.Dx1,
+                        cell1.CellComment.ClientAnchor.Dy1,
+                        cell1.CellComment.ClientAnchor.Dx2,
+                        cell1.CellComment.ClientAnchor.Dy2,
+                        cell1.CellComment.ClientAnchor.Col1 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row1 + shift.Y,
+                        cell1.CellComment.ClientAnchor.Col2 + shift.X,
+                        cell1.CellComment.ClientAnchor.Row2 + shift.Y
+                    );
+                    IComment comment2;
+                    try
+                    {
+                        comment2 = drawingPatriarch2.CreateCellComment(anchor2);
+                    }
+                    catch (Exception e)
+                    {//!!!when fixed, search for label NPOI_BUG_ShapeId_duplication_when_creating_a_comment and update the code
+                        throw new Exception("A bug in HSSFPatriarch implementation: ShapeId duplication when creating a comment.", e);
+                    }
+                    if (cell1.CellComment.Author != null)
+                        comment2.Author = cell1.CellComment.Author;
+                    comment2.String = cell1.CellComment.String.Copy();
+                    cell2.CellComment = comment2;
+                }
+            }
+
+            if (!(copyCellMode?.CopyLink == false))
+                cell2.Hyperlink = cell1.Hyperlink;
+
+            if (cell2?.CellType == CellType.Formula)
+                copyCellMode?.OnFormulaCellMoved?.Invoke(cell1, cell2);
+
             return cell2;
         }
 
-        static public string _GetValueAsString(this ISheet sheet, int y, int x, bool allowNull = false)
+        static public void _RemoveCell(this ISheet sheet, int y, int x, bool removeComment)
         {
-            ICell c = sheet._GetCell(y, x, false);
-            if (c == null)
-                return allowNull ? null : string.Empty;
-            return c?._GetValueAsString(allowNull);
+            ICell cell = sheet._GetCell(y, x, false);
+            if (removeComment)
+            {
+                cell = cell ?? sheet._GetCell(y, x, true);
+                cell.RemoveCellComment();
+            }
+            cell?.Row.RemoveCell(cell);
         }
 
-        static public string _GetValueAsString(this ISheet sheet, string cellAddress, bool allowNull = false)
+        static public string _GetValueAsString(this ISheet sheet, int y, int x, StringMode stringMode = DefaultStringMode)
+        {
+            ICell c = sheet._GetCell(y, x, false);
+            return c._GetValueAsString(stringMode);
+        }
+
+        static public string _GetValueAsString(this ISheet sheet, string cellAddress, StringMode stringMode = DefaultStringMode)
         {
             ICell c = sheet._GetCell(cellAddress, false);
-            if (c == null)
-                return allowNull ? null : string.Empty;
-            return c?._GetValueAsString(allowNull);
+            return c._GetValueAsString(stringMode);
         }
 
         static public object _GetValue(this ISheet sheet, int y, int x)
@@ -136,11 +249,6 @@ namespace Cliver
         static public ICell _GetCell(this ISheet sheet, CellAddress cellAddress, bool createCell)
         {
             return sheet._GetCell(cellAddress.Row + 1, cellAddress.Column + 1, createCell);
-        }
-
-        static public void _RemoveCell(this ISheet sheet, int y, int x, bool removeComment = true)
-        {
-            sheet._GetCell(y, x, false)?._Remove(removeComment);
         }
 
         static public void _UpdateFormulaRange(this ISheet sheet, int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)

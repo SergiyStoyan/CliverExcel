@@ -30,28 +30,10 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            ///// <summary>         
-            ///// NULL- and type-safe.
-            ///// (!)Never returns NULL.
-            ///// </summary>
-            ///// <param name="y"></param>
-            ///// <returns></returns>
-            //public string this[int y]
-            //{
-            //    get
-            //    {
-            //        return GetValueAsString(y, false);
-            //    }
-            //    set
-            //    {
-            //        GetCell(y, true).SetCellValue(value);
-            //    }
-            //}
-
             public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
                 var styleCache = Sheet.Workbook._Excel().OneWorkbookStyleCache;
-                foreach (ICell cell in GetCells(true))
+                foreach (ICell cell in GetCells(CellScope.CreateIfNull))
                     cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
             }
 
@@ -83,23 +65,55 @@ namespace Cliver
                 if (!includeMerged)
                     return row._Y();
                 var c = row.GetCell(X - 1);
-                var r = c._GetMergedRange();
+                var r = c?._GetMergedRange();
                 if (r != null)
                     return r.Y2.Value;
                 return row._Y();
             }
 
-            public IEnumerable<ICell> GetCells(bool createCells)
+            public IEnumerable<ICell> GetCells(CellScope cellScope)
             {
-                return GetCellsInRange(createCells);
+                return GetCellsInRange(cellScope);
             }
 
-            public IEnumerable<ICell> GetCellsInRange(bool createCells, int y1 = 1, int? y2 = null)
+            public IEnumerable<ICell> GetCellsInRange(CellScope cellScope, int y1 = 1, int? y2 = null)
             {
                 if (y2 == null)
-                    y2 = GetLastRow(LastRowCondition.HasCells, false);
-                for (int y = y1; y <= y2; y++)
-                    yield return GetCell(y, createCells);
+                    y2 = Sheet.LastRowNum + 1; //GetLastRow(LastRowCondition.HasCells, false);
+                switch (cellScope)
+                {
+                    case CellScope.NotEmpty:
+                        for (int y = y1; y <= y2; y++)
+                        {
+                            var c = GetCell(y, false);
+                            if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
+                                yield return c;
+                        }
+                        break;
+                    case CellScope.NotNull:
+                        for (int y = y1; y <= y2; y++)
+                        {
+                            var c = GetCell(y, false);
+                            if (c != null)
+                                yield return c;
+                        }
+                        break;
+                    case CellScope.IncludeNull:
+                        for (int y = y1; y <= y2; y++)
+                        {
+                            var c = GetCell(y, false);
+                            yield return c;
+                        }
+                        break;
+                    case CellScope.CreateIfNull:
+                        for (int y = y1; y <= y2; y++)
+                        {
+                            var c = GetCell(y, true);
+                            yield return c;
+                        }
+                        break;
+                    default: throw new Exception("Unknown option: " + cellScope.ToString());
+                }
             }
 
             public void SetStyles(int y1, IEnumerable<ICellStyle> styles)
@@ -109,9 +123,8 @@ namespace Cliver
 
             public void SetStyles(int y1, params ICellStyle[] styles)
             {
-                var cs = GetCellsInRange(true, y1, styles.Length).ToList();
                 for (int i = y1 - 1; i < styles.Length; i++)
-                    cs[i].CellStyle = styles[i];
+                    GetCell(i + 1, true).CellStyle = styles[i];
             }
 
             public void SetStyle(ICellStyle style, bool createCells)
@@ -127,7 +140,7 @@ namespace Cliver
                     if (row == null)
                         continue;
                     var c = row.GetCell(X - 1);
-                    if (string.IsNullOrEmpty(c?._GetValueAsString()))
+                    if (string.IsNullOrEmpty(c._GetValueAsString()))
                         continue;
                     if (includeMerged)
                     {
@@ -206,9 +219,9 @@ namespace Cliver
                 SetWidth((int)(width * 256));
             }
 
-            public IEnumerable<ICell> GetCells(RowScope rowScope)
+            public int GetWidth()
             {
-                return Sheet._GetRows(rowScope).Select(a => a?.GetCell(X));
+                return Sheet.GetColumnWidth(X - 1);
             }
 
             /// <summary>
@@ -228,30 +241,29 @@ namespace Cliver
                     SetWidth(Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
             }
 
-            public int GetWidth()
+            public Column Copy(string column2Name, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
             {
-                return Sheet.GetColumnWidth(X - 1);
+                return Sheet._CopyColumn(X, GetX(column2Name), copyCellMode, sheet2, styleMap);
             }
 
-            public void Copy(string column2Name, CopyCellMode copyCellMode = null)
+            public Column Copy(int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
             {
-                Copy(Excel.GetX(column2Name), copyCellMode);
+                return Sheet._CopyColumn(X, x2, copyCellMode, sheet2, styleMap);
             }
 
-            public void Copy(int x2, CopyCellMode copyCellMode = null)
+            public Column Copy(Column column2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
             {
-                if (X == x2)
-                    return;
-                Column column2 = new Column(Sheet, x2);
-                column2.Clear(false);
-                column2.SetWidth(GetWidth());
-                foreach (ICell c1 in GetCells(false))
-                    c1._Copy(x2, c1._X(), copyCellMode);
+                return Sheet._CopyColumn(X, column2.X, copyCellMode, sheet2, styleMap);
             }
 
-            public void Move(string column2Name, bool insert, MoveRegionMode moveRegionMode = null)
+            public Column Move(string column2Name, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
             {
-                Move(Excel.GetX(column2Name), insert, moveRegionMode);
+                return Sheet._MoveColumn(X, GetX(column2Name), insert, moveRegionMode, sheet2, styleMap);
+            }
+
+            public Column Move(Column column2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+            {
+                return Sheet._MoveColumn(X, column2.X, insert, moveRegionMode, sheet2, styleMap);
             }
 
             /// <summary>
@@ -259,31 +271,9 @@ namespace Cliver
             /// </summary>
             /// <param name="x2"></param>
             /// <param name="moveRegionMode"></param>
-            public void Move(int x2, bool insert, MoveRegionMode moveRegionMode = null)
+            public Column Move(int x2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
             {
-                if (insert)
-                {
-                    Sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
-
-                    if (moveRegionMode?.UpdateMergedRegions == true)
-                    {
-                        Sheet.MergedRegions.ForEach(a =>
-                        {
-                            if (a.FirstColumn < x2 - 1)
-                            {
-                                if (a.LastColumn >= x2 - 1)
-                                    a.LastColumn += 1;
-                            }
-                            else
-                            {
-                                a.FirstColumn += 1;
-                                a.LastColumn += 1;
-                            }
-                        });
-                    }
-                }
-                Copy(x2, moveRegionMode);
-                Remove(moveRegionMode);
+                return Sheet._MoveColumn(X, x2, insert, moveRegionMode, sheet2, styleMap);
             }
 
             /// <summary>
@@ -292,26 +282,7 @@ namespace Cliver
             /// <param name="moveRegionMode"></param>
             public void Remove(MoveRegionMode moveRegionMode = null)
             {
-                if (moveRegionMode?.UpdateMergedRegions == true)
-                {
-                    for (int i = Sheet.MergedRegions.Count - 1; i >= 0; i--)
-                    {
-                        NPOI.SS.Util.CellRangeAddress a = Sheet.GetMergedRegion(i);
-                        if (a.FirstColumn < X - 1)
-                        {
-                            if (a.LastColumn >= X - 1)
-                                a.LastColumn -= 1;
-                        }
-                        else if (a.FirstColumn == X - 1 && a.LastColumn == X - 1)
-                            Sheet.RemoveMergedRegion(i);
-                        else
-                        {
-                            a.FirstColumn -= 1;
-                            a.LastColumn -= 1;
-                        }
-                    }
-                }
-                Sheet._ShiftColumnsLeft(X + 1, 1, moveRegionMode);
+                Sheet._RemoveColumn(X, moveRegionMode);
             }
 
             public object GetValue(int y)
@@ -319,12 +290,10 @@ namespace Cliver
                 return GetCell(y, false)?._GetValue();
             }
 
-            public string GetValueAsString(int y, bool allowNull = false)
+            public string GetValueAsString(int y, StringMode stringMode = DefaultStringMode)
             {
                 ICell c = GetCell(y, false);
-                if (c == null)
-                    return allowNull ? null : string.Empty;
-                return c._GetValueAsString(allowNull);
+                return c._GetValueAsString(stringMode);
             }
 
             /// <summary>

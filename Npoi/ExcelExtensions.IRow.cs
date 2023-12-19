@@ -22,44 +22,16 @@ namespace Cliver
                 cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
-        static public void _Copy(this IRow row, int y2, CopyCellMode copyCellMode = null)
+        static public IRow _Copy(this IRow row1, int y2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            //if (row == null)
-            //    return;            
-            if (row._Y() == y2)
-                return;
-            IRow r2 = row.Sheet._GetRow(y2 - 1, true);
-            r2._Clear(false);
-            r2.Height = row.Height;
-            foreach (ICell c1 in row.Cells)
-                c1._Copy(y2, c1._X(), copyCellMode);
+            _ = row1 ?? throw new ArgumentNullException(nameof(row1));
+            return row1.Sheet._CopyRow(row1._Y(), y2, copyCellMode, sheet2, styleMap);
         }
 
-        static public void _Move(this IRow row, int y2, bool insert, MoveRegionMode moveRegionMode = null)
+        static public IRow _Move(this IRow row1, int y2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            if (insert)
-            {
-                row.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
-
-                if (moveRegionMode?.UpdateMergedRegions == true)
-                {
-                    row.Sheet.MergedRegions.ForEach(a =>
-                    {
-                        if (a.FirstRow < y2 - 1)
-                        {
-                            if (a.LastRow >= y2 - 1)
-                                a.LastRow += 1;
-                        }
-                        else
-                        {
-                            a.FirstRow += 1;
-                            a.LastRow += 1;
-                        }
-                    });
-                }
-            }
-            row._Copy(y2, moveRegionMode);
-            row._Remove(moveRegionMode);
+            _ = row1 ?? throw new ArgumentNullException(nameof(row1));
+            return row1.Sheet._MoveRow(row1._Y(), y2, insert, moveRegionMode, sheet2, styleMap);
         }
 
         /// <summary>
@@ -73,46 +45,9 @@ namespace Cliver
         /// </param>
         static public void _Remove(this IRow row, MoveRegionMode moveRegionMode = null, bool preserveCells = false)
         {
-            if (moveRegionMode?.UpdateMergedRegions == true)
-            {
-                for (int i = row.Sheet.MergedRegions.Count - 1; i >= 0; i--)
-                {
-                    NPOI.SS.Util.CellRangeAddress a = row.Sheet.GetMergedRegion(i);
-                    if (a.FirstRow < row.RowNum)
-                    {
-                        if (a.LastRow >= row.RowNum)
-                            a.LastRow -= 1;
-                    }
-                    else if (a.FirstRow == row.RowNum && a.LastRow == row.RowNum)
-                        row.Sheet.RemoveMergedRegion(i);
-                    else
-                    {
-                        a.FirstRow -= 1;
-                        a.LastRow -= 1;
-                    }
-                }
-            }
-
-            if (preserveCells
-                && row is XSSFRow xSSFRow//in HSSFRow Cells remain after removing the row
-                )
-            {
-                SortedDictionary<int, ICell> cells = new SortedDictionary<int, ICell>();
-                row.Cells.Select((a, i) => (a, i)).ForEach(a => cells.Add(a.i, a.a));
-                if (XSSFRow_cells_FI == null)
-                    XSSFRow_cells_FI = xSSFRow.GetType().GetField("_cells", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                //cells = (SortedDictionary<int, ICell>)XSSFRow_cells_FI.GetValue(xSSFRow);!!!will be NULLed when removing
-
-                row.Sheet.RemoveRow(row);
-
-                XSSFRow_cells_FI.SetValue(row, cells);
-            }
-            else
-                row.Sheet.RemoveRow(row);
-
-            row.Sheet._ShiftRowsUp(row.RowNum + 2, 1, moveRegionMode);
+            _ = row ?? throw new ArgumentNullException(nameof(row));
+            row.Sheet._RemoveRow(row._Y(), moveRegionMode, preserveCells);
         }
-        static System.Reflection.FieldInfo XSSFRow_cells_FI = null;
 
         public static int _LastCellX(this IRow row)
         {
@@ -193,7 +128,7 @@ namespace Cliver
             for (int i = row.Cells.Count - 1; i >= 0; i--)
             {
                 var c = row.Cells[i];
-                if (!string.IsNullOrWhiteSpace(c?._GetValueAsString()))
+                if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
                 {
                     if (includeMerged)
                     {
@@ -234,19 +169,50 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="createCells"></param>
         /// <returns></returns>
-        static public IEnumerable<ICell> _GetCells(this IRow row, bool createCells)
+        static public IEnumerable<ICell> _GetCells(this IRow row, CellScope cellScope)
         {
-            return _GetCellsInRange(row, createCells);
+            return _GetCellsInRange(row, cellScope);
         }
 
-        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, bool createCells, int x1 = 1, int? x2 = null)
+        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, CellScope cellScope, int x1 = 1, int? x2 = null)
         {
-            if (row == null)
-                yield break;
+            _ = row ?? throw new ArgumentNullException(nameof(row));
             if (x2 == null)
-                x2 = row.LastCellNum;
-            for (int x = x1; x <= x2; x++)
-                yield return row._GetCell(x, createCells);
+                x2 = row.LastCellNum + 1;
+            switch (cellScope)
+            {
+                case CellScope.NotEmpty:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
+                            yield return c;
+                    }
+                    break;
+                case CellScope.NotNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        if (c != null)
+                            yield return c;
+                    }
+                    break;
+                case CellScope.IncludeNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        yield return c;
+                    }
+                    break;
+                case CellScope.CreateIfNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, true);
+                        yield return c;
+                    }
+                    break;
+                default: throw new Exception("Unknown option: " + cellScope.ToString());
+            }
         }
 
         /// <summary>
@@ -278,9 +244,8 @@ namespace Cliver
 
         static public void _SetStyles(this IRow row, int x1, params ICellStyle[] styles)
         {
-            var cs = row._GetCellsInRange(true, x1, styles.Length).ToList();
             for (int i = x1 - 1; i < styles.Length; i++)
-                cs[i].CellStyle = styles[i];
+                row._GetCell(i + 1, true).CellStyle = styles[i];
         }
 
         /// <summary>
@@ -329,12 +294,10 @@ namespace Cliver
         /// <param name="x"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this IRow row, int x, bool allowNull = false)
+        static public string _GetValueAsString(this IRow row, int x, StringMode stringMode = DefaultStringMode)
         {
             ICell c = row._GetCell(x, false);
-            if (c == null)
-                return allowNull ? null : string.Empty;
-            return c._GetValueAsString(allowNull);
+            return c._GetValueAsString(stringMode);
         }
 
         /// <summary>

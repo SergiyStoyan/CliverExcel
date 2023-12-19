@@ -67,7 +67,6 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Set the active sheet. If no sheet with such name exists, a new sheet is created.
         /// (!)The name will be corrected by altering unacceptable symbols.
         /// </summary>
         /// <param name="name"></param>

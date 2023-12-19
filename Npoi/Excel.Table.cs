@@ -36,6 +36,11 @@ namespace Cliver
             readonly public Excel Excel;
 
             /// <summary>
+            /// Sheet (alias). (For easy writing/reading code because the scope of Excel.Table is ISheet.)
+            /// </summary>
+            public ISheet _ { get { return Sheet; } }
+
+            /// <summary>
             /// Looks among the passed rows.
             /// (!)Rows and keys must belong to the same table.
             /// </summary>
@@ -80,7 +85,7 @@ namespace Cliver
                 static Func<ICell, bool> getIsValueMatch(object value)
                 {
                     string v = value.ToString();
-                    return (c) => { return c?._GetValueAsString() == v; };
+                    return (c) => { return c._GetValueAsString() == v; };
                 }
 
                 /// <summary>
@@ -261,16 +266,6 @@ namespace Cliver
             public ICell GetCell(int y, Column column, bool create)
             {
                 return Sheet._GetCell(y, column.X, create);
-            }
-
-            virtual public void Save(string file = null)
-            {
-                Excel.Save(file);
-            }
-
-            virtual public void SafeSave(string file = null)
-            {
-                Excel.SafeSave(file);
             }
         }
     }

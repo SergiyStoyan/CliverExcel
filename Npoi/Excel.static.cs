@@ -7,6 +7,7 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.Util;
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using NPOI.HSSF.UserModel;
@@ -16,25 +17,6 @@ namespace Cliver
 {
     public partial class Excel
     {
-        //static internal Excel Get(IWorkbook workbook)
-        //{
-        //    if (!workbooks2Excel.TryGetValue(workbook, out WeakReference<Excel> wre))
-        //    {
-        //        wre = new WeakReference<Excel>(new Excel(null));
-        //        workbooks2Excel[workbook] = wre;
-        //    }
-        //    wre.TryGetTarget(out Excel e);
-        //    return e;
-        //}
-
-        ///// <summary>
-        ///// Call if the cache needs freeing due to extra-extensive use.
-        ///// </summary>
-        //static public void ClearWorkbooksCache()
-        //{
-        //    workbooks2Excel.Clear();
-        //}
-
         static internal Excel Get(IWorkbook workbook)
         {
             return workbooks2Excel.GetValue(workbook, (IWorkbook w) =>
@@ -118,7 +100,7 @@ namespace Cliver
                     if (c != null)
                         c._Copy(y2 + yi, x2 + xi, copyCellMode, sheet2, styleMap2);
                     else
-                        sheet2._RemoveCell(y2 + yi, x2 + xi);
+                        sheet2._RemoveCell(y2 + yi, x2 + xi, copyCellMode?.CopyComment == true);
                 }
             }
         }

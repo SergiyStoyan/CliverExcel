@@ -28,6 +28,7 @@ namespace Cliver
     {
         static public void _SetAlteredStyle<T>(this ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             cell.CellStyle = cell.Sheet.Workbook._Excel().OneWorkbookStyleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
@@ -36,152 +37,36 @@ namespace Cliver
             return cell?.Address.ToString();
         }
 
-        /// Remove the cell from its row.
-        static public void _Remove(this ICell cell, bool removeComment = true)
+        static public void _Remove(this ICell cell, bool removeComment)
         {
-            if (removeComment)
-                cell.RemoveCellComment();
-            cell.Row.RemoveCell(cell);
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+            cell.Sheet._RemoveCell(cell._Y(), cell._X(), removeComment);
         }
 
-        static public ICell _Move(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        static public ICell _Move(this ICell cell1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet2 = sheet2 ?? cell1.Sheet;
-            if (sheet2 == null)
-                return null;
-            ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            cell1._Move(cell2, copyCellMode, styleMap);
-            return cell2;
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            return cell1.Sheet._MoveCell(cell1._Y(), cell1._X(), y2, x2, copyCellMode, sheet2, styleMap);
         }
 
         static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
-            CopyCellMode ccm;
-            if (copyCellMode != null)
-            {
-                ccm = copyCellMode.Clone();
-                ccm.CopyComment = false;
-            }
-            else
-                ccm = null;
-            _Copy(cell1, cell2, ccm, styleMap);
-            if (copyCellMode?.CopyComment == true && cell2 != null)
-            {
-                cell2.RemoveCellComment();
-                cell2.CellComment = cell1?.CellComment;
-            }
-            cell1?._Remove(copyCellMode?.CopyComment == true);
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            _ = cell2 ?? throw new ArgumentNullException(nameof(cell2));
+            cell1.Sheet._MoveCell(cell1._Y(), cell1._X(), cell2._Y(), cell2._X(), copyCellMode, cell2.Sheet, styleMap);
         }
 
-        static public ICell _Copy(this ICell cell1, int cell2Y, int cell2X, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        static public ICell _Copy(this ICell cell1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet2 = sheet2 ?? cell1.Sheet;
-            ICell cell2 = sheet2._GetCell(cell2Y, cell2X, true);
-            _Copy(cell1, cell2, copyCellMode, styleMap);
-            return cell1 != null ? cell2 : null;
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            return cell1.Sheet._CopyCell(cell1._Y(), cell1._X(), y2, x2, copyCellMode, sheet2, styleMap);
         }
 
         static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
-            if (cell1 == null)
-            {
-                cell2?._Remove(true);
-                return;
-            }
-
-            if (cell2.CellType != cell1.CellType)
-            {
-                cell2.SetBlank();//necessary if changing type
-                cell2.SetCellType(cell1.CellType);
-            }
-
-            if (cell1.Sheet.Workbook != cell2.Sheet.Workbook)
-            {
-                if (styleMap == null)
-                    throw new Exception("StyleMap must be specified when copying cell to another workbook.");
-                if (cell2.Sheet.Workbook != styleMap.Workbook2)
-                    throw new Exception("cell2 does not belong to StyleMap's workbook.");
-                cell2.CellStyle = styleMap.GetMappedStyle(cell1.CellStyle);
-            }
-            else
-                cell2.CellStyle = cell1.CellStyle;
-
-            switch (cell1.CellType)
-            {
-                case CellType.Formula:
-                    cell2.CellFormula = cell1.CellFormula;
-                    break;
-                case CellType.Numeric:
-                    cell2.SetCellValue(cell1.NumericCellValue);
-                    break;
-                case CellType.String:
-                    cell2.SetCellValue(cell1.StringCellValue);
-                    break;
-                case CellType.Boolean:
-                    cell2.SetCellValue(cell1.BooleanCellValue);
-                    break;
-                case CellType.Error:
-                    cell2.SetCellErrorValue(cell1.ErrorCellValue);
-                    break;
-                case CellType.Blank:
-                    cell2.SetBlank();
-                    break;
-                default:
-                    throw new Exception("Unknown cell type: " + cell1.CellType);
-            }
-
-            if (copyCellMode?.CopyComment == true)
-            {
-                cell2.RemoveCellComment();
-                if (cell1.CellComment != null)
-                {
-                    //cell1.Sheet.CopyComment(cell1, cell2);!!!on HSSF it moves the comment, not copies; on XSSF it copies but does not preserve box size
-                    var drawingPatriarch2 = /*cell1.Sheet.DrawingPatriarch != null ? cell1.Sheet.DrawingPatriarch :*/ cell2.Sheet.CreateDrawingPatriarch();
-                    (int Y, int X) shift = (cell2._Y() - cell1._Y(), cell2._X() - cell1._X());
-                    IClientAnchor anchor2 = drawingPatriarch2.CreateAnchor(
-                        cell1.CellComment.ClientAnchor.Dx1,
-                        cell1.CellComment.ClientAnchor.Dy1,
-                        cell1.CellComment.ClientAnchor.Dx2,
-                        cell1.CellComment.ClientAnchor.Dy2,
-                        cell1.CellComment.ClientAnchor.Col1 + shift.X,
-                        cell1.CellComment.ClientAnchor.Row1 + shift.Y,
-                        cell1.CellComment.ClientAnchor.Col2 + shift.X,
-                        cell1.CellComment.ClientAnchor.Row2 + shift.Y
-                    );
-                    IComment comment2;
-                    try
-                    {
-                        comment2 = drawingPatriarch2.CreateCellComment(anchor2);
-                    }
-                    catch (Exception e)
-                    {
-                        //var qs = cell2.Sheet.GetCellComments();
-                        //var r = qs.First().Value.Address;
-                        //cell2.Sheet._GetCell(r, true).RemoveCellComment();
-                        //HSSFPatriarch p = (HSSFPatriarch)drawingPatriarch2;
-                        //var ss = p.GetShapes();
-                        //while (ss.Count > 0)
-                        //    p.RemoveShape(ss[0]);
-                        //{
-                        //    //HSSFComment shape = new HSSFComment(null, (HSSFAnchor)anchor2);
-                        //    drawingPatriarch2.CreateCellComment(anchor2);
-                        //}
-                        //var q = qs.Values.FirstOrDefault(a => a.ClientAnchor?.Row1 == anchor2.Row1 && a.ClientAnchor?.Col1 == anchor2.Col1);
-                        //var s2 = qs.Values.FirstOrDefault(a => a.Row == anchor2.Row1 && a.Column == anchor2.Col1);
-                        throw new Exception("A bug in HSSFPatriarch implementation: ShapeId duplication when creating a comment.", e);
-                    }
-                    if (cell1.CellComment.Author != null)
-                        comment2.Author = cell1.CellComment.Author;
-                    comment2.String = cell1.CellComment.String.Copy();
-                    cell2.CellComment = comment2;
-                }
-            }
-
-            if (!(copyCellMode?.CopyLink == false))
-                cell2.Hyperlink = cell1.Hyperlink;
-
-            if (cell2?.CellType == CellType.Formula)
-                copyCellMode?.OnFormulaCellMoved?.Invoke(cell1, cell2);
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            _ = cell2 ?? throw new ArgumentNullException(nameof(cell2));
+            cell1.Sheet._CopyCell(cell1._Y(), cell1._X(), cell2._Y(), cell2._X(), copyCellMode, cell2.Sheet, styleMap);
         }
 
         /// <summary>
@@ -190,20 +75,26 @@ namespace Cliver
         /// <param name="cell"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this ICell cell, bool allowNull = false)
+        static public string _GetValueAsString(this ICell cell, StringMode stringMode = DefaultStringMode)
         {
             object o = cell?._GetValue();
             if (o == null)
-                return allowNull ? null : string.Empty;
+                return stringMode.HasFlag(StringMode.NotNull) ? string.Empty : null;
             if (o is DateTime dt)
                 return dt.ToString("yyyy-MM-dd hh:mm:ss");
-            return o?.ToString();
+            string s = o?.ToString();
+            if (s == null && stringMode.HasFlag(StringMode.NotNull))
+                s = string.Empty;
+            if (stringMode.HasFlag(StringMode.Trim))
+                return s?.Trim();
+            return s;
         }
 
         static public object _GetValue(this ICell cell)
         {
             if (cell == null)
                 return null;
+
             switch (cell.CellType)
             {
                 case CellType.Unknown:
@@ -273,6 +164,8 @@ namespace Cliver
         /// <param name="value"></param>
         static public void _SetValue(this ICell cell, object value)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             if (value == null)
                 cell.SetBlank();
             else if (value is sbyte
@@ -296,22 +189,56 @@ namespace Cliver
                 cell.SetCellValue(value?.ToString());
         }
 
+        ///// <summary>
+        ///// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel gets the last one which is considered correct.
+        ///// This methods gets the last one.
+        ///// </summary>
+        ///// <param name="cell"></param>
+        ///// <returns></returns>
+        //static public string _GetLink(this ICell cell)
+        //{
+        //    return cell?.Sheet.GetHyperlinkList()
+        //            .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
+        //            ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
+        //}
+
+        /// <summary>
+        /// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel gets the last one which is considered correct.
+        /// (!)This methods works as NPOI because it is faster. To get links corrected, call once ISheet._FixLinks().
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
         static public string _GetLink(this ICell cell)
         {
             return cell?.Hyperlink?.Address;
+            //return cell?.Sheet.GetHyperlinkList()
+            //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
+            //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
         }
 
+        /// <summary>
+        /// (!)Removes all the old links for the cell, if any.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="link"></param>
+        /// <param name="hyperlinkType"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
         static public void _SetLink(this ICell cell, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
-            while (cell.Hyperlink != null)//it might be more than 1 link in the table
-                cell.RemoveHyperlink();//(!)seems to be necessary in any case to get rid of the old link. Otherwise sometimes the old link is not overriden by the new one.
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
+            while (cell.Hyperlink != null)//(!)BUG: there can be multiple links per cell
+                cell.RemoveHyperlink();//(!)necessary to get rid of all the old links if any. Otherwise sometimes the old link is not overriden by the new one.
+
             if (link == null)
             {
                 //if (cell.GetValueAsString() == LinkEmptyValueFiller)
                 //    cell.SetCellValue("");
                 return;
             }
-            if (string.IsNullOrEmpty(cell._GetValueAsString()))
+
+            if (string.IsNullOrWhiteSpace(cell._GetValueAsString()))
                 cell.SetCellValue(cell.Sheet.Workbook._Excel().LinkEmptyValueFiller);
 
             if (hyperlinkType == HyperlinkType.Unknown)
@@ -332,6 +259,12 @@ namespace Cliver
                 cell.Hyperlink = new HSSFHyperlink(hyperlinkType) { Address = link };
             else
                 throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
+
+            //if (link != cell.Hyperlink.Address)
+            //{
+            //    var ls2 = cell.Sheet.GetHyperlinkList().Where(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex).ToList();
+            //    throw new Exception("Could not set link: " + link);
+            //}
         }
 
         /// <summary>
@@ -414,11 +347,12 @@ namespace Cliver
 
         static public Excel.Range _GetMergedRange(this ICell cell)
         {
-            return cell.Sheet._GetMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
+            return cell?.Sheet._GetMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
         static public void _ClearMerging(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             for (int i = cell.Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (cell.Sheet.MergedRegions[i].IsInRange(cell.RowIndex, cell.ColumnIndex))
                 {
@@ -434,6 +368,7 @@ namespace Cliver
         /// <returns>1-based</returns>
         static public int _Y(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             return cell.RowIndex + 1;
         }
 
@@ -444,11 +379,14 @@ namespace Cliver
         /// <returns>1-based</returns>
         static public int _X(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             return cell.ColumnIndex + 1;
         }
 
         static public void _CreateDropdown<T>(this ICell cell, IEnumerable<T> values, T value, bool allowBlank = true)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             List<string> vs = new List<string>();
             foreach (object v in values)
                 vs.Add(v?.ToString());
@@ -476,6 +414,8 @@ namespace Cliver
 
         static public IEnumerable<Excel.Image> _GetImages(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             return cell.Sheet._GetImages(cell._Y(), cell._X());
         }
     }

@@ -17,6 +17,51 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        /// <summary>
+        /// (!)Some cells can have (made mistakenly by a thrid-party app?) multiple links.
+        /// NPOI gets the first one while Excel seems to get the last one which is considered correct.
+        /// This method removes all the links except the last one.
+        /// </summary>
+        /// <param name="sheet"></param>
+        static public void _FixLinks(this ISheet sheet)
+        {
+            var ls = sheet.GetHyperlinkList().Where(a => a.FirstColumn == a.LastColumn && a.FirstRow == a.LastRow)
+                  .OrderBy(a => a.FirstColumn * 1000 + a.FirstRow).ToList();
+            if (ls.Count < 1)
+                return;
+            IHyperlink lastLink = ls[0];
+            for (int i = 1; i < ls.Count; i++)
+            {
+                var l = ls[i];
+                if (lastLink == null)
+                {
+                    lastLink = l;
+                    continue;
+                }
+                if (lastLink.FirstColumn != l.FirstColumn
+                    || lastLink.FirstRow != l.FirstRow
+                   )
+                    setLastLink();
+                lastLink = l;
+            }
+            setLastLink();
+            void setLastLink()
+            {
+                var r = sheet.GetRow(lastLink.FirstRow);
+                var c = r.GetCell(lastLink.FirstColumn);
+                if (c == null)
+                {
+                    c = r.CreateCell(lastLink.FirstColumn);
+                    while (c.Hyperlink != null)
+                        c.RemoveHyperlink();//the only way to remove stray link
+                    r.RemoveCell(c);
+                    return;
+                }
+                if (c.Hyperlink?.Address != lastLink.Address)
+                    c._SetLink(lastLink.Address);
+            }
+        }
+
         static public void _Remove(this ISheet sheet)
         {
             sheet.Workbook.RemoveSheetAt(sheet._GetIndex() - 1);

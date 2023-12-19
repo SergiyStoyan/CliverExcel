@@ -9,6 +9,7 @@ using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Cliver
 {
@@ -52,11 +53,10 @@ namespace Cliver
         //readonly static Dictionary<IWorkbook, WeakReference<Excel>> workbooks2Excel = new Dictionary<IWorkbook, WeakReference<Excel>>();
         static System.Runtime.CompilerServices.ConditionalWeakTable<IWorkbook, Excel> workbooks2Excel = new System.Runtime.CompilerServices.ConditionalWeakTable<IWorkbook, Excel>();
 
-
         public IWorkbook Workbook { get; private set; }
 
         /// <summary>
-        /// Workbook (alias)
+        /// Workbook (alias). (For easy writing/reading code because the scope of Excel is IWorkbook.)
         /// </summary>
         public IWorkbook _ { get { return Workbook; } }
 
@@ -253,6 +253,27 @@ namespace Cliver
             CreateIfNull
         }
 
+        public enum CellScope
+        {
+            /// <summary>
+            /// Returns only not empty cells.
+            /// (!)Slow due to checking all the cells' values.
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Returns only cells existing as objects.
+            /// </summary>
+            NotNull,
+            /// <summary>
+            /// Returns all the cells withing the range with non-existing rows represented as NULL.
+            /// </summary>
+            IncludeNull,
+            /// <summary>
+            /// Returns all the cells withing the range with non-existing cells having been created.
+            /// </summary>
+            CreateIfNull
+        }
+
         public enum LastRowCondition
         {
             /// <summary>
@@ -371,5 +392,13 @@ namespace Cliver
                 Workbook = workbook;
             }
         }
+
+        public enum StringMode
+        {
+            AsIs = 0,
+            NotNull = 1,
+            Trim = 2,
+        }
+        internal const StringMode DefaultStringMode = StringMode.NotNull | StringMode.Trim;
     }
 }

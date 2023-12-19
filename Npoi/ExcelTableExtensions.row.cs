@@ -28,11 +28,11 @@ namespace Cliver
             return row._GetCell(c.X, createCell);
         }
 
-        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, bool createCells, Excel.Table.Column c1, Excel.Table.Column c2)
+        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, CellScope cellScope, Excel.Table.Column c1, Excel.Table.Column c2)
         {
             if (c1 == null)
-                return c2 == null ? row._GetCellsInRange(createCells) : row._GetCellsInRange(createCells, 1, c2.X);
-            return c2 == null ? row._GetCellsInRange(createCells, c1.X) : row._GetCellsInRange(createCells, c1.X, c2.X);
+                return c2 == null ? row._GetCellsInRange(cellScope) : row._GetCellsInRange(cellScope, 1, c2.X);
+            return c2 == null ? row._GetCellsInRange(cellScope, c1.X) : row._GetCellsInRange(cellScope, c1.X, c2.X);
         }
 
         /// <summary> 
@@ -64,9 +64,9 @@ namespace Cliver
         /// <param name="c"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this IRow row, Excel.Table.Column c, bool allowNull = false)
+        static public string _GetValueAsString(this IRow row, Excel.Table.Column c, StringMode stringMode = DefaultStringMode)
         {
-            return row._GetValueAsString(c.X, allowNull);
+            return row._GetValueAsString(c.X, stringMode);
         }
 
         /// <summary>

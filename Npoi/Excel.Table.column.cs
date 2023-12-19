@@ -25,7 +25,7 @@ namespace Cliver
             void loadColumns()
             {
                 IRow headersRow = Sheet._GetRow(1, true);
-                IEnumerable<Column> columns = headersRow._GetCells(true).Select(a =>
+                IEnumerable<Column> columns = headersRow._GetCells(CellScope.CreateIfNull).Select(a =>
                 {
                     string h = a._GetValueAsString();
                     return string.IsNullOrWhiteSpace(h) ? null : new Column(h) { X = a._X() };
@@ -289,7 +289,7 @@ namespace Cliver
                         }
                         a.Style = c.CellStyle;
                         if (ccreated)
-                            c._Remove();
+                            c._Remove(false);
                     });
                     Columns.Where(a => a.Type == null).ForEach(a =>
                     {
@@ -302,7 +302,7 @@ namespace Cliver
                         }
                         a.Type = c.CellType;
                         if (ccreated)
-                            c._Remove();
+                            c._Remove(false);
                     });
                     if (r2created)
                         r2._Remove();
@@ -418,6 +418,16 @@ namespace Cliver
                     if (Type != null)
                         foreach (ICell c in GetDataCells(RowScope.WithCells))
                             c.SetCellType(Type.Value);
+                }
+
+                public int GetWidth()
+                {
+                    return Table._.GetColumnWidth(X - 1);
+                }
+
+                public void SetWidth(int width)
+                {
+                    Table._._SetColumnWidth(X - 1, width);
                 }
 
                 public Table Table { get; internal set; } = null;

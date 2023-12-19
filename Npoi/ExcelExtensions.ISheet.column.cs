@@ -80,7 +80,7 @@ namespace Cliver
                 if (row == null)
                     continue;
                 var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a._GetValueAsString()));
-                if (string.IsNullOrEmpty(c?._GetValueAsString()))
+                if (string.IsNullOrEmpty(c._GetValueAsString()))
                     continue;
                 if (includeMerged)
                 {
@@ -107,7 +107,7 @@ namespace Cliver
                 if (row == null)
                     continue;
                 var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a._GetValueAsString()));
-                if (string.IsNullOrEmpty(c?._GetValueAsString()))
+                if (string.IsNullOrEmpty(c._GetValueAsString()))
                     continue;
                 if (includeMerged)
                 {
@@ -143,7 +143,7 @@ namespace Cliver
             if (row == null)
                 return 0;
             for (int x = 1; x <= row.Cells.Count; x++)
-                if (cellValueRegex.IsMatch(sheet._GetValueAsString(cellY, x, false)))
+                if (cellValueRegex.IsMatch(sheet._GetValueAsString(cellY, x)))
                     return x;
             return 0;
         }
@@ -240,25 +240,59 @@ namespace Cliver
             return sheet._GetLastNotEmptyColumnInRowRange(includeMerged, 1, null);
         }
 
-        static public void _CopyColumn(this ISheet sheet, string Column1Name, string Column2Name, CopyCellMode copyCellMode = null)
+        static public Column _CopyColumn(this ISheet sheet, string column1Name, string column2Name, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet._GetColumn(Column1Name).Copy(Column2Name, copyCellMode);
+            return sheet._CopyColumn(GetX(column1Name), GetX(column2Name), copyCellMode, sheet2, styleMap);
         }
 
-        static public void _CopyColumn(this ISheet sheet, int x1, int x2, CopyCellMode copyCellMode = null)
+        static public Column _CopyColumn(this ISheet sheet, int x1, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet._GetColumn(x1).Copy(x2, copyCellMode);
+            Column column1 = new Column(sheet, x1);
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && x1 == x2)
+                return column1;
+            Column column2 = new Column(sheet2, x2);
+            column2.Clear(false);
+            column2.SetWidth(column1.GetWidth());
+            foreach (ICell c1 in column1.GetCells(CellScope.NotNull))
+                c1._Copy(x2, c1._X(), copyCellMode, sheet2, styleMap);
+            return column2;
         }
 
-        static public void _MoveColumn(this ISheet sheet, string Column1Name, string Column2Name, bool insert, MoveRegionMode moveRegionMode = null)
+        static public Column _MoveColumn(this ISheet sheet, string column1Name, string column2Name, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet._GetColumn(Column1Name).Move(Column2Name, insert, moveRegionMode);
+            return sheet._MoveColumn(GetX(column1Name), GetX(column2Name), insert, moveRegionMode, sheet2, styleMap);
         }
 
-        static public void _MoveColumn(this ISheet sheet, int x1, int x2, bool insert, MoveRegionMode moveRegionMode = null)
+        static public Column _MoveColumn(this ISheet sheet, int x1, int x2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            var c1 = sheet._GetColumn(x1);
-            c1.Move(x2, insert, moveRegionMode);
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && x1 == x2)//(!)otherwise it will be removed
+                return sheet._GetColumn(x1);
+            if (insert)
+            {
+                sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
+
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    sheet.MergedRegions.ForEach(a =>
+                    {
+                        if (a.FirstColumn < x2 - 1)
+                        {
+                            if (a.LastColumn >= x2 - 1)
+                                a.LastColumn += 1;
+                        }
+                        else
+                        {
+                            a.FirstColumn += 1;
+                            a.LastColumn += 1;
+                        }
+                    });
+                }
+            }
+            var column2 = sheet._CopyColumn(x1, x2, moveRegionMode, sheet2, styleMap);
+            sheet._RemoveColumn(x1, moveRegionMode);
+            return column2;
         }
 
         static public int _GetLastNotEmptyRowInColumn(this ISheet sheet, bool includeMerged, int x)
@@ -399,9 +433,9 @@ namespace Cliver
             sheet._GetColumn(x).Autosize(padding);
         }
 
-        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x, RowScope rowScope)
+        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x, CellScope cellScope)
         {
-            return sheet._GetColumn(x).GetCells(rowScope);
+            return sheet._GetColumn(x).GetCells(cellScope);
         }
 
         /// <summary>
