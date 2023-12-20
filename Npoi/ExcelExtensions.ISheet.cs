@@ -30,30 +30,46 @@ namespace Cliver
             if (ls.Count < 1)
                 return;
             IHyperlink lastLink = ls[0];
+            int cellLinkCount = 1;
             for (int i = 1; i < ls.Count; i++)
             {
                 var l = ls[i];
                 if (lastLink.FirstColumn != l.FirstColumn
                     || lastLink.FirstRow != l.FirstRow
                    )
+                {
                     setLastLink();
+                    cellLinkCount = 1;
+                }
                 lastLink = l;
+                cellLinkCount++;
             }
             setLastLink();
             void setLastLink()
             {
                 var r = sheet.GetRow(lastLink.FirstRow);
-                var c = r.GetCell(lastLink.FirstColumn);
-                if (c == null)
+                if (r == null)
                 {
-                    c = r.CreateCell(lastLink.FirstColumn);
+                    r = sheet.CreateRow(lastLink.FirstRow);
+                    var c = r.CreateCell(lastLink.FirstColumn);
                     while (c.Hyperlink != null)
                         c.RemoveHyperlink();//the only way to remove stray link
-                    r.RemoveCell(c);
+                    sheet.RemoveRow(r);
                     return;
                 }
-                if (c.Hyperlink?.Address != lastLink.Address)
-                    c._SetLink(lastLink.Address);
+                {
+                    var c = r.GetCell(lastLink.FirstColumn);
+                    if (c == null)
+                    {
+                        c = r.CreateCell(lastLink.FirstColumn);
+                        while (c.Hyperlink != null)
+                            c.RemoveHyperlink();//the only way to remove stray link
+                        r.RemoveCell(c);
+                        return;
+                    }
+                    if (c.Hyperlink?.Address != lastLink.Address || cellLinkCount > 1)
+                        c._SetLink(lastLink.Address);
+                }
             }
         }
 
