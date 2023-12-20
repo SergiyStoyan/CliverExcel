@@ -33,11 +33,6 @@ namespace Cliver
             for (int i = 1; i < ls.Count; i++)
             {
                 var l = ls[i];
-                if (lastLink == null)
-                {
-                    lastLink = l;
-                    continue;
-                }
                 if (lastLink.FirstColumn != l.FirstColumn
                     || lastLink.FirstRow != l.FirstRow
                    )

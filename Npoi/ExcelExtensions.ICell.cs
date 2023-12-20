@@ -203,8 +203,8 @@ namespace Cliver
         //}
 
         /// <summary>
-        /// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel gets the last one which is considered correct.
-        /// (!)This methods works as NPOI because it is faster. To get links corrected, call once ISheet._FixLinks().
+        /// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel seems to get the last one which is considered correct.
+        /// (!)This method follows NPOI routine because it is faster. To get links corrected once, call ISheet._FixLinks().
         /// </summary>
         /// <param name="cell"></param>
         /// <returns></returns>
