@@ -18,16 +18,18 @@ namespace Cliver
     {
         public partial class Table
         {
-            public Table(Excel excel, ISheet sheet)
+            public Table(ISheet sheet)
             {
-                Excel = excel;
+                Excel = sheet.Workbook._Excel();
+                if (Excel == null)
+                    throw new Exception("The passed in sheet has no Cliver.Excel attached. Most likely it was created outside of Cliver.Excel.");
                 Sheet = sheet;
                 loadColumns();
             }
 
-            public Table(Excel excel, ISheet sheet, SetColumnMode setColumnMode, params Column[] columns) : this(excel, sheet, setColumnMode, (IEnumerable<Column>)columns) { }
+            public Table(ISheet sheet, SetColumnMode setColumnMode, params Column[] columns) : this(sheet, setColumnMode, (IEnumerable<Column>)columns) { }
 
-            public Table(Excel excel, ISheet sheet, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(excel, sheet)
+            public Table(ISheet sheet, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(sheet)
             {
                 SetColumns(setColumnMode, columns);
             }

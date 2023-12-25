@@ -11,15 +11,15 @@
 <body>
 <script src="prism.js"></script>
 <div class='header'>
-<div class='mainHeader'>Cliver Excel 6.*</div>
+<div class='mainHeader'>Cliver Excel 7.*</div>
 </div>
 
 <div class='content'>
 <h1><a name='CliverExcel'>Overview</a></h1>
-CliverExcel is an .NET API for creating and editing excel files.
+CliverExcel is a .NET lib for creating and editing excel files.
 
 <br>
-It is based on the NPOI lib and allows accessing the NPOI's API, besides its own. Its goal is to provide an API more advanced than NPOI's.
+It is based on the NPOI lib and basically is a collection of extension methods to the NPOI objects. Its goal is providing an API more advanced and handy than NPOI's.
 
 		
 <p><b>Compatibility</b>
@@ -41,54 +41,78 @@ It is based on the NPOI lib and allows accessing the NPOI's API, besides its own
 		
 			
 <h1>Usage</h1>
-			
+
+The basic code which frames any custom operations looks like this:
 <script type="text/plain" class="language-csharp">using Cliver;
 
 ...
-using (Excel xls = new Excel(xlsFile, "sheet1"))
-{
-	int y = xls.GetLastNotEmptyRow();
-	string s = xls[y, 1];
-	xls.CreateDropdown(y, 2, new int[] { 1, 2, 3 }, 1);
-	xls.Save();
-}</script>
-		
-		
-<br><p>The same as above, using extension methods:
-			
-<script type="text/plain" class="language-csharp">using Cliver;
-
-...
-using (Excel xls = new Excel(xlsFile, "sheet1"))
-{
-	int y = xls.Sheet._GetLastNotEmptyRow();
-	string s = xls.Sheet._GetCell(y, 1, true)._GetValueAsString();
-	xls.Sheet._GetCell(y, 2, true)._CreateDropdown(new int[] { 1, 2, 3 }, 1);
+using (Excel xls = new Excel(xlsFile))
+{	
+	ISheet sheet = xls.Workbook._GetSheet(1);
+	
+	//<custom operations here...>
+	
 	xls.Save();
 }</script>
 
+<p>For instance:
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
+{	
+	ISheet sheet = xls.Workbook._GetSheet("Test", true);
+	
+	int y = sheet._GetLastNotEmptyRow(false);
+	ICell cell = sheet._GetCell(y, 1, true);
+	cell._CreateDropdown(new int[] { 1, 2, 3 }, 1);
+	
+	xls.Save();
+}</script>
+		
 
 
-<h1>Routines</h1>
+<h1>Idea</h1>
 
-<p>All the methods are plainly accessible through the class <code>Cliver.Excel</code>. In this class their scope is defaulted to the opened workbook and currently picked worksheet. 
+<p>Most methods in CliverExcel are presented as extension methods for the NPOI types: <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. 
 
-<p>Alternatively, all the basic methods are presented as extension methods of the NPOI types <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. <br><span class='attention'>(!)</span>The extension methods start with '_' to be easily distinguished from the NPOI natives.
+<p><span class='attention'>(!)</span>All the CliverExcel extension methods start with '_' to be easily distinguished from the NPOI natives.
+
+<p>Besides the extension methods, there are classes that provide routines native to CliverExcel. The main such class is <a href='#Excel'><code>Cliver.Excel</code></a>.
+
 
 <p>
-<span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the methods you are using. In the CliverExcel methods' arguments, column and row indexes are always represented by 'x' and 'y' respectively. 
+<span class='attention'>(!)</span>In CliverExcel, cell, row and sheet indexes are always 1-based, while in the NPOI API they are mostly 0-based. As both API's coexist, be careful of the arguments and output of the methods you are using. 
+
+<p>In the CliverExcel, row and column indexes are always represented by 'y' and 'x'. 
 
 
+
+<h2><a name='Excel'>Cliver.Excel</a></h2>
+
+<p>Any work with CliverExcel must begin with creation of a <code>Cliver.Excel</code>.
+
+<p>Creating a <code>Cliver.Excel</code> means creating both <code>Cliver.Excel</code> and <code>IWorkbook</code> objects at once which remain coupled during their lifetime. These objects reciprocally allow accessing each other by the respective method/property.
+
+<p><code>Cliver.Excel</code> provides properties and methods that could not be implemented by the mechanism of C# extension methods and thus can be viewed as a sort of 'extension property' of <code>IWorkbook</code> if such a mechanism existed in C#.
+
+<p>
+<span class='attention'>(!)</span>CliverExcel extension methods can access the <code>Cliver.Excel</code> object via <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> or <code>ICell</code> passed in them; hence, such objects must be originated through <code>Cliver.Excel</code>, not by the NPOI API directly.
+
+
+
+
+<h1>Routines</h1> 
+
+<p>The routines presented here must give a conception. They are not comprehensive.
 
 <h2>Shifting cells</h2>
 
-It is possible to move a range of cells down, up, left and right:
+How to move a range of cells down, up, left and right:
 
-<script type="text/plain" class="language-csharp">...
-using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	int y = xls.GetLastNotEmptyRowInColumnRange(false, x1, x2);
-    xls.ShiftCellsUp(y, x1, x2, shift, onFormulaCellMoved_shiftSpan);
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+                    
+	int y = sheet._GetLastNotEmptyRowInColumnRange(false, x1, x2);
+	sheet._ShiftCellsUp(y, x1, x2, shift, onFormulaCellMoved_shiftSpan);
 	
 	xls.Save();
 }
@@ -98,16 +122,17 @@ void onFormulaCellMoved_shiftSpan(ICell fromCell, ICell toCell)
 {
 	int shiftX = toCell._X() - fromCell._X();
 	int shiftY = toCell._Y() - fromCell._Y();
-	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//for ordinary formulas
+	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//suitable for ordinary formulas
 }</script>
 
 
 <h2>Sizing columns</h2>
 
-<script type="text/plain" class="language-csharp">...
-using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	xls.AutosizeColumnsInRange(3, 7, 1.8f);
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	
+	sheet._AutosizeColumnsInRange(3, 7, 1.8f);
 	
 	xls.Save();
 }</script>
@@ -115,27 +140,75 @@ using (Excel xls = new Excel(xlsFile, "sheet1"))
 
 <h2>Commenting</h2>
 
-<script type="text/plain" class="language-csharp">...
-using (Excel xls = new Excel(xlsFile, "sheet1"))
+<p>Add a comment:
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-    xls._GetCell(1, 1, true)._AppendOrSetComment("Comment", "Author", "\r\n");
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	
+	sheet._GetCell(1, 1, true)._SetComment("Comment");
+	
+	xls.Save();
+}</script>
+
+<p>Append a comment with custom styling:
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
+{
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	
+	var f = xls.Workbook._CreateUnregisteredFont();
+	f.FontName = "Arial";
+	f.FontHeight = 9 * 20;
+	f.Color = IndexedColors.Red.Index;
+	var font1 = xls.Workbook._GetRegisteredFont(f);
+	Excel.CommentStyle commentStyle = new Excel.CommentStyle(xls.Workbook) {
+		Author = "Cliver", 
+		Columns = 3, 
+		Font = font1 
+	};
+	sheet._GetCell(1, 1, true)._AppendOrSetComment("Comment", commentStyle);
 	
 	xls.Save();
 }</script>
 
 
+<h2>Copying/moving</h2>
+CliverExcel facilitates copying/moving cells/rows/columns between sheets. The sheets can belong to different workbooks. How it is done preserving styling, see <a href='#StyleMap'>Excel.StyleMap</a>.
 
 
-
-<h1>Styles</h1>
+<h1>Styling</h1>
 It is always commendable when styles are managed in a way that they are not duplicated in the workbook. It is especially important when the same workbook is edited constantly. The general routine to do so is shown in the following example:
 	
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {	
-    var dataFormat = xls.Workbook.CreateDataFormat();
-					
-	//Create a bogus style. It will be used as a base style for the other styles.
-	NPOI.SS.UserModel.ICellStyle s = xls.CreateUnregisteredStyle();//create a style that actually does not exist in the workbook
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+
+	//get a 'ghost' style beyond the workbook. It will be used as a model.
+	NPOI.SS.UserModel.ICellStyle style = xls.Workbook._CreateUnregisteredStyle();
+	style.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+	style.BorderBottom = style.BorderLeft = style.BorderRight = style.BorderTop = NPOI.SS.UserModel.BorderStyle.Double;
+	style.WrapText = false;
+	IFont font = xls.Workbook._GetRegisteredFont("Arial", 10, true, NPOI.SS.UserModel.IndexedColors.Automatic.Index);
+	style.SetFont(font);
+	//look for an equivalent style in the workbook and create one if not found. Now the style can be used.
+	style = xls.Workbook._GetRegisteredStyle(style);
+
+	sheet._GetCell(1, 1, true).CellStyle = style;
+	sheet._GetCell(1, 2, true).CellStyle = style;
+	
+	xls.Save();
+}</script>
+
+
+<p>A more advanced example of creating and using multiple styles:
+	
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
+{	
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+
+	var dataFormat = xls.Workbook.CreateDataFormat();
+
+	//get a 'ghost' style beyond the workbook. It will be used as a base style for the other styles.
+	NPOI.SS.UserModel.ICellStyle s = xls.Workbook._CreateUnregisteredStyle();
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
 	s.BorderDiagonal = NPOI.SS.UserModel.BorderDiagonal.None;
 	s.BorderDiagonalColor = 0;
@@ -155,26 +228,30 @@ It is always commendable when styles are managed in a way that they are not dupl
 	s.TopBorderColor = 0;
 	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
 	s.WrapText = false;
-	var f = xls.GetRegisteredFont(true, NPOI.SS.UserModel.IndexedColors.Automatic, 10, "Arial");
+	IFont f = xls.Workbook._GetRegisteredFont("Arial", 10, true, NPOI.SS.UserModel.IndexedColors.Automatic.Index);
 	s.SetFont(f);
 	s.IsLocked = true;
 
-	//clone, configure and register a real style
-	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.CloneUnregisteredStyle(s);//create a style's clone that actually does not exist in the workbook
+	//clone, configure and register a real style	
+	//Get a 'ghost' clone of the style.
+	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Workbook._CloneUnregisteredStyle(s);
 	rowStyle1.BorderBottom = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderLeft = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderRight = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderTop = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.DataFormat = dataFormat.GetFormat(@"_(""$""* #,##0.00_);_(""$""* \(#,##0.00\);_(""$""* "" - ""??_);_(@_)");
-	rowStyle1 = xls.GetRegisteredStyle(rowStyle1);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
-	
-	//clone, configure and register a real style
-	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.CloneUnregisteredStyle(s);//create a style's clone that actually does not exist in the workbook
+	//create a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	rowStyle1 = xls.Workbook._GetRegisteredStyle(rowStyle1);
+
+	//clone, configure and register a real style		
+	//Get a 'ghost' clone of the style.
+	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Workbook._CloneUnregisteredStyle(s);
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Left;
 	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Top;
-	rowStyle2 = xls.GetRegisteredStyle(rowStyle2);//it creates a new style only if no equivalent style exists in the workbook. Now the style can be used.
-	
-	foreach (var r in xls.GetRows(Excel.RowScope.OnlyExisting))
+	//create a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	rowStyle2 = xls.Workbook._GetRegisteredStyle(rowStyle2);
+
+	foreach (IRow r in sheet._GetRows(Excel.RowScope.WithCells))
 	{
 		r._GetCell(1, true).CellStyle = rowStyle1;
 		r._GetCell(2, true).CellStyle = rowStyle2;
@@ -187,8 +264,10 @@ It is always commendable when styles are managed in a way that they are not dupl
 <h2>Highlighting</h2>
 <p>If you need to add highlighting to a style, use the method <code>Highlight()</code>:
 	
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	
 	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Workbook._CreateUnregisteredStyle();
 	xls.Highlight(rowStyle1, new Excel.Color(System.Drawing.Color.LightGray));
 	rowStyle1 = xls.GetRegisteredStyle(rowStyle1);
@@ -196,45 +275,47 @@ It is always commendable when styles are managed in a way that they are not dupl
 	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Workbook._CreateUnregisteredStyle();
 	xls.Highlight(rowStyle2, new Excel.Color(System.Drawing.Color.LightPink));
 	rowStyle2 = xls.GetRegisteredStyle(rowStyle2);
-		
-	foreach (var r in xls.GetRows(Excel.RowScope.CreateIfNull))
+
+	foreach (IRow r in sheet._GetRows(Excel.RowScope.CreateIfNull))
 	{
-		r._SetStyle(r._Y() % 2 == 0 ? rowStyle1 : rowStyle2, Excel.RowStyleMode.RowAndCells);
+		r._GetCell(1, true).CellStyle = r._Y() % 2 == 0 ? rowStyle1 : rowStyle2;
 	}
 	
 	xls.Save();
 }</script>
-      
+ 
+
 
 <h2>Fonts</h2>  
     
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<p>Getting a font and setting it to a style:
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	ICell cell = xls.GetCell(1, 1, true);
-	var f = cell.CellStyle.GetFont(Excel.Workbook);
-	f.IsBold = true;
-	cell.CellStyle.SetFont(f);
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 	
-	xls.Save();
-}</script>  
-
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
-{
-	var font = xls.GetRegisteredFont(true, NPOI.SS.UserModel.IndexedColors.Automatic.Index, 10, "Arial");
-	xls.GetCell(1, 1, true).CellStyle.SetFont(font);
+	//find or create the required font
+	IFont font = xls.Workbook._GetRegisteredFont("Arial", 10, true, NPOI.SS.UserModel.IndexedColors.Automatic.Index);
+	sheet._GetCell(1, 1, true).CellStyle.SetFont(font);
 	
 	xls.Save();
 }</script>  
     
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<p>Creating a new style with new font:
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	ICell cell = xls.GetCell(1, 1, true);
-	NPOI.SS.UserModel.ICellStyle style = xls.CloneUnregisteredStyle(cell.CellStyle);
-	var f = Excel.CloneUnregisteredFont(style.GetFont(Excel.Workbook));
-	f.IsBold = false;
-	style.SetFont(Excel.GetRegisteredFont(f));
-	style = Excel.GetRegisteredStyle(style);
-	...
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	
+	ICell cell = sheet._GetCell(1, 1, true);
+	NPOI.SS.UserModel.ICellStyle style = xls.Workbook._CloneUnregisteredStyle(cell.CellStyle);
+	
+	IFont font = xls.Workbook._CloneUnregisteredFont(xls.Workbook._GetFont(style));
+	font.IsBold = false;
+	font = xls.Workbook._GetRegisteredFont(font);
+	
+	style.SetFont(font);
+	
+	style = xls.Workbook._GetRegisteredStyle(style);
+	
 	cell.CellStyle = style;
 	
 	xls.Save();
@@ -245,43 +326,12 @@ It is always commendable when styles are managed in a way that they are not dupl
 
 
 
-<h2>Excel.StyleCache</h2>
+<h2>Altering styles</h2>
+
+See <a href='#StyleCache'>Excel.StyleCache</a>.
 
 
-<p><code>StyleCache</code> helps when you need to alter certain style parameters in some cells, e.g. set a new color or font but you do not know in advance which styles you will alter.
-<br>It takes care about registering and caching all the styles needed in the workbook during editing.
-<p>It allows:
-<br>- not to trouble about duplicating styles in the workbook;
-<br>- to increase performance by avoiding matching styles in the workbook;
-	
-<script type="text/plain" class="language-csharp">void Test()
-{
-	using (Excel xls = new Excel(xlsFile, "sheet1"))
-	{
-		styleCache = new StyleCache(xls);
 
-		highlight(xls.GetCell(1, 1, true), new Excel.Color(System.Drawing.Color.FromArgb(255, 150, 150)));
-		highlight(xls.GetCell(1, 2, true), new Excel.Color(System.Drawing.Color.FromArgb(0, 200, 0))); 
-		
-		xls.Save();
-	}
-}
-StyleCache styleCache;
-
-void highlight(ICell cell, Excel.Color color)
-{
-	long getAlterationKey()
-	{
-		if (color == null)
-			return -1;
-		return (color.R << 16) + (color.G << 8) + color.B;
-	}
-	void alterStyle(ICellStyle s)
-	{
-		Excel.Highlight(s, color);
-	}
-	cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, getAlterationKey, alterStyle);
-}</script>
 
          
 
@@ -290,31 +340,33 @@ void highlight(ICell cell, Excel.Color color)
 <code>Excel.Table</code> is handy for performing CRUD operations on a sheet that has a predetermined number of columns and whose first row is headers.
 <p>An example:
 
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	Column header1 = new Column("Header1");
-	Column header2 = new Column("Header2");
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 
-	var table = new Excel.Table(xls, SetColumnMode.FindOrCreate, header1, header2);
+	Excel.Table.Column header1 = new Excel.Table.Column("Header1");
+	Excel.Table.Column header2 = new Excel.Table.Column("Header2");
 
-	NPOI.SS.UserModel.IRow r = table.FindDataRows(new Key(header1, "value1")).LastOrDefault();
-	table.InsertRow(r == null ? 1 : r._Y(), new Cell(header1, "value1"), new Cell(header2, "value2"));
+	var table = new Excel.Table(sheet, Excel.Table.SetColumnMode.FindOrCreate, header1, header2);
+
+	NPOI.SS.UserModel.IRow r = table.FindDataRows(new Excel.Table.Key(header1, "value1")).LastOrDefault();
+	table.InsertRow(r == null ? 1 : r._Y(), new Excel.Table.Cell(header1, "value1"), new Excel.Table.Cell(header2, "value2"));
 	
 	xls.Save();
 }</script>
 
 
 <h2>Inheriting Excel.Table</h2>
-<p>Usually it is handy to inherit <code>Excel.Table</code> and extend the heir with custom methods as in the following:
+<p>The usual routine would be inheriting <code>Excel.Table</code> and extending the heir with custom methods as in the following:
 <script type="text/plain" class="language-csharp">public class JobTable : Excel.Table
-{	
-	public JobTable(Excel xls) : base(xls)
+{
+	public JobTable(ISheet sheet) : base(sheet)
 	{
 		SetColumns(SetColumnMode.Find, JobId, PoId, PoCost);
 
 		StyleError = Excel.Workbook._CreateUnregisteredStyle();
-		Excel.Highlight(StyleError, new Excel.Color(255, 220, 220));
-		StyleError = Excel.GetRegisteredStyle(StyleError);
+		Excel.Workbook._Highlight(StyleError, new Excel.Color(255, 220, 220));
+		StyleError = Excel.Workbook._GetRegisteredStyle(StyleError);
 	}
 
 	static public readonly Column JobId = new Column("Job");
@@ -326,7 +378,7 @@ void highlight(ICell cell, Excel.Color color)
 	public void Record(string jobId, string poId, decimal poCost, string poLink, bool error = false)
 	{
 		Key jobIdKey = new Key(JobId, jobId);
-		Key poIdKey = new Key(PoId, (NPOI.SS.UserModel.ICell cell) => { return cell?._GetValueAsString(true)?.Trim() == poId; });
+		Key poIdKey = new Key(PoId, (NPOI.SS.UserModel.ICell cell) => { return cell?._GetValueAsString(Excel.StringMode.Trim) == poId; });
 
 		NPOI.SS.UserModel.IRow row = FindDataRows(jobIdKey, poIdKey).FirstOrDefault();
 		if (row == null)
@@ -342,71 +394,162 @@ void highlight(ICell cell, Excel.Color color)
 				, new Cell(PoCost, poCost)
 			);
 
-		GetCell(row, PoId, true)._SetLink(new Uri(poLink, UriKind.Absolute));
+		GetCell(row, PoId, true)._SetLink(poLink);
 
 		if (error)
-			row._SetStyle(StyleError, ExcelExtensions.SetRowStyleMode.CellsOnly);
+			foreach (var cell in row)
+				cell.CellStyle = StyleError;
 	}
 
 	public void Save()
 	{
-		//xls.AutosizeColumnsInRange(1, table.Headers.Count, 1.5f);!!!very slow
 		const float charWidth = 1.14388f;
-		Excel.SetColumnWidth(JobId.X, charWidth * 15);
-		Excel.SetColumnWidth(PoId.X, charWidth * 15);
-		Excel.SetColumnWidth(PoCost.X, charWidth * 15);
+		Sheet._SetColumnWidth(JobId.X, charWidth * 15);
+		Sheet._SetColumnWidth(PoId.X, charWidth * 15);
+		Sheet._SetColumnWidth(PoCost.X, charWidth * 15);
 		Excel.Save();
 	}
 }
 
 ...
 
-using (Excel xls = new Excel(xlsFile, "sheet1"))
+using (Excel xls = new Excel(xlsFile))
 {
-	JobTable jt = new JobTable(xls);
-	jt.Record("job1", "po1", 100);
-	jt.Record("job1", "po2", 0, true);	
+	JobTable jt = new JobTable(xls.Workbook._GetSheet("sheet1"));
+	jt.Record("job1", "po1", 100, "https://test.test");
+	jt.Record("job1", "po2", 0, null, true);
 	jt.Save();
 }</script>
 
                
 <h1>Excel.Range</h1>
 
-The class <code>Excel.Range</code> exposes methods on ranges. It is native to CliverExcel as has no underlying NPOI type.
+The class <code>Excel.Range</code> exposes methods on ranges. It is native to CliverExcel and has no underlying NPOI type.
 
-<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile, "sheet1"))
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
-	Excel.Range range = xls.NewRange(headersY, poX0, headersY + 2, poX0 + 3);
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+
+	Excel.Range range = sheet._NewRange(1, 1, 1, 10);
 	range.ClearMerging();
-	range.SetStyle(styles.PoHeader(poHeader), true);
 
-	range = xls.NewRange(headersY, poX0, headersY + 1, poX0 + 3);
+	var style = sheet.Workbook._CreateUnregisteredStyle();
+	sheet.Workbook._Highlight(style, new Excel.Color(System.Drawing.Color.Red.ToArgb()));
+	range.SetStyle(style, true);
+
+	range = sheet._NewRange(2, 1, 5, 10);
 	range.Merge(false);
-
-	var cell = xls.GetCell(headersY, poX0, true);
-	cell.SetCellValue(poHeader.Header);
-
-	cell = xls.GetCell(headersY + 2, poX0, true);
-	cell.SetCellValue(poIdHeader);
-
-	cell = xls.GetCell(headersY + 2, poX0 + 1, true);
-	cell.SetCellValue("P.O. COST");
-
-	cell = xls.GetCell(headersY + 2, poX0 + 2, true);
-	cell.SetCellValue("INV. #");
-
-	cell = xls.GetCell(headersY + 2, poX0 + 3, true);
-	cell.SetCellValue("INV. COST");
 	
 	xls.Save();
 }</script>
 
 
 <h1>Excel.Column</h1>
-The class <code>Excel.Column</code> exposes methods on columns analogous to the extension methods of NPOI's <code>IRow</code>. It is native to CliverExcel as has no underlying NPOI type.
+The class <code>Excel.Column</code> looks to provide routines for sheet columns analogous to those provided for <code>IRow</code>.
+It has no underlying NPOI type.
 
-           
 
+<h1><a name='StyleCache'>Excel.StyleCache</a></h1>
+
+
+<p><code>StyleCache</code> helps when you need to alter certain style parameters for some cells, e.g. set a new color or font, but you do not know in advance which styles you will alter and hence, which new styles must be created.
+
+<p><code>StyleCache</code> takes care of registering and caching all the styles needed in the workbook during editing.
+
+<p>Profits by <code>StyleCache</code>:
+<br>- guaranteeing no style duplication;
+<br>- increasing performance;
+
+
+<p>
+A <code>Cliver.Excel</code> always has a <code>StyleCache</code> object which is used by default when operating within the same workbook. One <code>StyleCache</code> is enough for one <code>IWorkbook</code>. 
+
+<p>The default <code>StyleCache</code> is used behind the scene in the following example:
+
+	
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
+{
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+
+	//this custom method provides custom altering of a style.
+	//It is invoked only when no respective style is yet cached. 
+	void alterStyle(ICellStyle style, StyleAlterationKey alterationKey)
+	{
+		IFont font = xls.Workbook._GetFont(style);
+
+		//making font bold
+		IFont f = xls.Workbook._CloneUnregisteredFont(font);
+		f.IsBold = alterationKey.IsBold;
+		f = xls.Workbook._GetRegisteredFont(f);
+		style.SetFont(f);
+
+		//changing background color
+		xls.Workbook._Highlight(style, alterationKey.Color);
+	}
+
+	foreach (var r in sheet._GetRows(Excel.RowScope.CreateIfNull))
+	{
+		StyleAlterationKey styleAlterationKey;
+		if(r._Y() % 2 == 0)
+			styleAlterationKey = new StyleAlterationKey { new Excel.Color(System.Drawing.Color.Gray), IsBold = true	};
+		else
+			styleAlterationKey = new StyleAlterationKey { new Excel.Color(System.Drawing.Color.Blue), IsBold = false };
+		r._SetAlteredStyles(styleAlterationKey, alterStyle);
+	}
+	
+	xls.Save();
+}
+
+//A custom implementation of Excel.StyleCache.IKey which is dictated by the required style altering.
+public class StyleAlterationKey : Excel.StyleCache.Key
+{
+	public Excel.Color Color = null;
+
+	public bool IsBold = false;
+
+	//(!)The key must be constructed in such a way so it is unique for the given property combination.
+	public override int Get()
+	{
+		Add(IsBold == true ? (byte)1 : (byte)2);
+
+		if (Color != null)
+			Add(Color.R, Color.G, Color.B);
+		else
+			Add(255, 255, 255);
+
+		return base.Get();
+	}
+}</script>
+         
+<p>
+<span class='attention'>(!)</span>If you want to copy/move cells between 2 workbooks and, at the same time, alter their styles, you need to create your own <code>StyleCache</code> for 2 workbooks and pass it explicitly in the respective methods. Without altering refer to <a href='#StyleMap'>StyleMap</a>.
+
+
+
+
+
+
+<h2><a name='StyleMap'>Excel.StyleMap</a></h2>
+If you want to copy/move cells/rows preserving their styling between 2 workbooks, it can be done with <code>StyleMap</code> which is an adaptation of <code>StyleCache</code> for such operations. The following example gives the idea: 
+
+<script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
+using (Excel xls2 = new Excel(xlsFile2))
+{
+	ISheet sheet = xls.Workbook._GetSheet("sheet1");
+	ISheet sheet2 = xls2.Workbook._GetSheet("sheet1");
+
+	Excel.StyleMap styleMap = new Excel.StyleMap(sheet.Workbook, sheet2.Workbook);
+
+	IRow row = sheet._GetRow(1, true);
+	Excel.CopyCellMode copyCellMode = new Excel.CopyCellMode { CopyComment = true };
+	IRow row2 = row._Copy(1, copyCellMode, sheet2, styleMap);
+
+	xls2.Save();
+}</script>
+               
+
+<P>
+<span class='attention'>(!)</span><code>StyleMap</code> is intended only for copying styles from one workbook to another without altering them. If you want to copy and alter at the same time, use <code>StyleCache</code> created for 2 workbooks.
 
 
 

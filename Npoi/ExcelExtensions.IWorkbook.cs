@@ -16,7 +16,7 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static internal Excel _Excel(this IWorkbook workbook)
+        static public Excel _Excel(this IWorkbook workbook)
         {
             return Cliver.Excel.Get(workbook);
         }

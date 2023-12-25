@@ -70,17 +70,20 @@ namespace Cliver
         /// <summary>
         /// If the font does not exists, it is created.
         /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="name"></param>
+        /// <param name="fontHeightInPoints"></param>
         /// <param name="bold"></param>
         /// <param name="color"></param>
-        /// <param name="fontHeight"></param>
-        /// <param name="name"></param>
         /// <param name="italic"></param>
         /// <param name="strikeout"></param>
-        /// <param name="fontSuperScript"></param>
-        /// <param name="fontUnderlineType"></param>
+        /// <param name="typeOffset"></param>
+        /// <param name="underline"></param>
         /// <returns></returns>
-        static public IFont _GetRegisteredFont(this IWorkbook workbook, bool bold, short color, short fontHeightInPoints, string name, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
+        static public IFont _GetRegisteredFont(this IWorkbook workbook, string name, short fontHeightInPoints, bool bold = false, short color = -1, bool italic = false, bool strikeout = false, FontSuperScript typeOffset = FontSuperScript.None, FontUnderlineType underline = FontUnderlineType.None)
         {
+            if (color < 0)
+                color = NPOI.SS.UserModel.IndexedColors.Automatic.Index;
             short fontHeight = (short)(20 * fontHeightInPoints);
             IFont f = workbook.FindFont(bold, color, fontHeight, name, italic, strikeout, typeOffset, underline);
             if (f == null)
