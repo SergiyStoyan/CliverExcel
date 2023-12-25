@@ -186,16 +186,29 @@ namespace Cliver
                 throw new Exception("Unsupported type of IRichTextString: " + text.GetType());
         }
 
-        public static IRichTextString _GetRichTextString(this IWorkbook workbook, string @string, List<Excel.RichTextStringFormattingRun> richTextStringFormattingRuns)
+        public static IRichTextString _GetRichTextString(this IWorkbook workbook, string @string, IEnumerable<Excel.RichTextStringFormattingRun> richTextStringFormattingRuns)
         {
-            IRichTextString text = workbook.GetCreationHelper().CreateRichTextString(@string);
-            richTextStringFormattingRuns?.Where(a => a?.Font != null).ForEach(a => text.ApplyFont(a.Start, a.ExcludedEnd, a.Font));
-            //else if(workbook is XSSFWorkbook) // sets NumFormattingRuns==0
-            //{
-            //    XSSFRichTextString t = new XSSFRichTextString((workbook.GetSheetAt(0));
-            //    ((XSSFRichTextString)text).Append("");//(!)makes NumFormattingRuns > 0; it seems to be a bug that FormattingRun can have Font=NULL
-            //}
-            return text;
+            if (workbook is XSSFWorkbook) //(!)NPOI bug work around
+            {
+                XSSFRichTextString text = new XSSFRichTextString();
+                int p = 0;
+                foreach (var rtsfr in richTextStringFormattingRuns?.Where(a => a?.Font != null && a.Start < @string.Length).OrderBy(a => a.Start))
+                {
+                    if (p < rtsfr.Start)
+                        text.Append(@string.Substring(p, rtsfr.Start - p));
+                    text.Append(@string.Substring(rtsfr.Start, (rtsfr.ExcludedEnd < @string.Length ? rtsfr.ExcludedEnd : @string.Length) - rtsfr.Start), (XSSFFont)rtsfr.Font);
+                    p = rtsfr.ExcludedEnd;
+                }
+                if (p < @string.Length)
+                    text.Append(@string.Substring(p, @string.Length - p));
+                return text;
+            }
+            else
+            {
+                IRichTextString text = workbook.GetCreationHelper().CreateRichTextString(@string);
+                richTextStringFormattingRuns?.Where(a => a?.Font != null).ForEach(a => text.ApplyFont(a.Start, a.ExcludedEnd, a.Font));
+                return text;
+            }
         }
     }
 }

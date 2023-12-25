@@ -42,13 +42,17 @@ namespace Cliver
             }
             @string += comment;
             var drawingPatriarch = /*cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch :*/ cell.Sheet.CreateDrawingPatriarch();
-            IClientAnchor anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0,
-                    cell.ColumnIndex,
-                    cell.RowIndex,
-                    cell.ColumnIndex + s.Columns,
-                    cell.RowIndex + Regex.Matches(@string, @"^", RegexOptions.Multiline).Count + s.PaddingRows
-                    );
-            IComment iComment = drawingPatriarch.CreateCellComment(anchor);
+            IClientAnchor anchor = drawingPatriarch.CreateAnchor(
+                0,
+                cell.RowIndex == 0 ? 40 : 0/*to avoid bad representation*/,
+                0,
+                0,
+                cell.ColumnIndex,
+                cell.RowIndex,
+                cell.ColumnIndex + s.Columns,
+                cell.RowIndex + Regex.Matches(@string, @"^", RegexOptions.Multiline).Count + s.PaddingRows
+                );
+            IComment iComment = drawingPatriarch.CreateCellComment(anchor);//!!!due to NPOI implementation, it sets the comment to the cell
             List<RichTextStringFormattingRun> rtsfrs = new List<RichTextStringFormattingRun>();
             if (!string.IsNullOrEmpty(s.Author))
             {
@@ -57,7 +61,7 @@ namespace Cliver
             }
             rtsfrs.Add(new RichTextStringFormattingRun(author_.Length, @string.Length, s.Font));
             iComment.String = cell.Sheet.Workbook._GetRichTextString(@string, rtsfrs);
-            cell.CellComment = iComment;
+            cell.CellComment = iComment;//!!!due to NPOI implementation, it is already set
 
             return cell.CellComment;
         }
@@ -67,11 +71,11 @@ namespace Cliver
             if (string.IsNullOrWhiteSpace(comment))
                 return cell?.CellComment;
 
+            Excel.CommentStyle s = commentStyle != null ? commentStyle : cell.Sheet.Workbook._Excel().DefaultCommentStyle;
+
             string string1 = cell?.CellComment?.String?.String;
             if (string.IsNullOrEmpty(string1))
-                return cell._SetComment(comment);
-
-            Excel.CommentStyle s = commentStyle != null ? commentStyle : cell.Sheet.Workbook._Excel().DefaultCommentStyle;
+                return cell._SetComment(comment, s);
 
             List<RichTextStringFormattingRun> rtsfrs = cell.Sheet.Workbook._GetRichTextStringFormattingRuns(cell.CellComment.String).ToList();
             string string2 = s.AppendDelimiter;
@@ -95,11 +99,11 @@ namespace Cliver
                 cell.CellComment.ClientAnchor.Row2 + Regex.Matches(string2, @"^", RegexOptions.Multiline).Count + s.AppendPaddingRows
             );
             cell.RemoveCellComment();
-            IComment iComment = drawingPatriarch.CreateCellComment(anchor);
+            IComment iComment = drawingPatriarch.CreateCellComment(anchor);//!!!due to NPOI implementation, it sets the comment to the cell
             if (s.Author != null)//(!)set the last author
                 iComment.Author = s.Author;
             iComment.String = cell.Sheet.Workbook._GetRichTextString(string1 + string2, rtsfrs);
-            cell.CellComment = iComment;
+            cell.CellComment = iComment;//!!!due to NPOI implementation, it is already set;
 
             return cell.CellComment;
         }

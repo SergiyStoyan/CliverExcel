@@ -20,7 +20,7 @@ namespace Cliver
         /// <summary>
         /// (!)Some cells can have (made mistakenly by a thrid-party app?) multiple links.
         /// NPOI gets the first one while Excel seems to get the last one which is considered correct.
-        /// This method removes all the links except the last one.
+        /// This method removes all the links for each cell except the last one.
         /// </summary>
         /// <param name="sheet"></param>
         static public void _FixLinks(this ISheet sheet)

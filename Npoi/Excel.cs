@@ -346,7 +346,7 @@ namespace Cliver
                 }
                 set
                 {
-                    font = value;
+                    font = Workbook._GetRegisteredFont(value);
                 }
             }
             IFont font = null;
@@ -365,7 +365,7 @@ namespace Cliver
                 }
                 set
                 {
-                    authorFont = value;
+                    authorFont = Workbook._GetRegisteredFont(value);
                 }
             }
             IFont authorFont = null;
@@ -381,13 +381,14 @@ namespace Cliver
             public string AppendDelimiter = "\r\n";
 
             public string DefaultFontName = "Tahoma";
+            /// <summary>
+            /// Size in points which means IFont.FontHeight/20
+            /// </summary>
             public int DefaultFontSize = 9;
-            public Excel.Color DefaultFontColor;
-            public Excel.Color AuthorDefaultFontColor;
 
             public IWorkbook Workbook { get; private set; }
 
-            internal CommentStyle(IWorkbook workbook)
+            public CommentStyle(IWorkbook workbook)
             {
                 Workbook = workbook;
             }
