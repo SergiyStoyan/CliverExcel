@@ -335,14 +335,7 @@ namespace Cliver
                 //else
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
             }
-            try
-            {
-                formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }
 
         static public Excel.Range _GetMergedRange(this ICell cell)
