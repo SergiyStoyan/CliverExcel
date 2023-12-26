@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>7.5.1</Version>
+	  <Version>7.6.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,13 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v6 =&gt; v7
+	  <PackageReleaseNotes>v7.5 =&gt; v7.6
+- SafeSave() merged into Save();
+- Table.Column.HeaderStyle added;
+- AddRow() merged into WriteRow();
+- Table.Get renamed to Table.GetMode;
+
+v6 =&gt; v7
 - Sheet removed from Cliver.Excel;
 - Cliver.Excel stripped off almost all methods;
 - many extension methods were removed, changed, added;

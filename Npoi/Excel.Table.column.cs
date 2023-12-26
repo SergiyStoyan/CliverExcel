@@ -267,6 +267,8 @@ namespace Cliver
                     {
                         var c = r._GetCell(column.X, true);
                         c._SetValue(column.Header);
+                        if (column.HeaderStyle != null)
+                            c.CellStyle = column.HeaderStyle;
                     }
                 }
 
@@ -420,6 +422,8 @@ namespace Cliver
                             c.SetCellType(Type.Value);
                 }
 
+                readonly public ICellStyle HeaderStyle;
+
                 public int GetWidth()
                 {
                     return Table._.GetColumnWidth(X - 1);
@@ -437,13 +441,14 @@ namespace Cliver
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
-                public Column(string header, ICellStyle style = null, CellType? type = null)
+                public Column(string header, ICellStyle style = null, CellType? type = null, ICellStyle headerStyle = null)
                 {
                     if (string.IsNullOrWhiteSpace(header))
                         throw new Exception("Header cannot be empty or space.");
                     Header = header;
                     Style = style;
                     Type = type;
+                    HeaderStyle = headerStyle;
                 }
 
                 public ICell GetCell(int y, bool create)

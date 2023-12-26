@@ -55,23 +55,23 @@ namespace Cliver
                         Cells[c.X] = c;
                 }
 
-                public Row(T table, IRow iRow, Get get)
+                public Row(T table, IRow iRow, GetMode getMode)
                 {
                     Table = table;
                     foreach (Column column in table.Columns)
                     {
                         ICell c = iRow._GetCell(column.X, false);
                         Cells[column.X] = new Cell(column,
-                            get.HasFlag(Get.Value) ? c?._GetValue() : null,
-                            get.HasFlag(Get.Value) ? c?.CellStyle : null,
-                            get.HasFlag(Get.Type) ? c?.CellType : null,
-                            get.HasFlag(Get.Link) ? c?._GetLink() : null
+                            getMode.HasFlag(GetMode.Value) ? c?._GetValue() : null,
+                            getMode.HasFlag(GetMode.Value) ? c?.CellStyle : null,
+                            getMode.HasFlag(GetMode.Type) ? c?.CellType : null,
+                            getMode.HasFlag(GetMode.Link) ? c?._GetLink() : null
                             );
                     }
                 }
             }
 
-            public enum Get
+            public enum GetMode
             {
                 Value,
                 Style,
@@ -79,9 +79,9 @@ namespace Cliver
                 Link,
             }
 
-            public IEnumerable<Row<Table>> GetRows(IEnumerable<IRow> iRows, Get get)
+            public IEnumerable<Row<Table>> GetRows(IEnumerable<IRow> iRows, GetMode getMode)
             {
-                return iRows.Select(a => new Row<Table>(this, a, get));
+                return iRows.Select(a => new Row<Table>(this, a, getMode));
             }
 
             public IRow AppendRow<T>(Row<T> row) where T : Table

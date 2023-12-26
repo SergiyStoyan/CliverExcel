@@ -86,18 +86,11 @@ namespace Cliver
 
         public bool Disposed { get { return Workbook == null; } }
 
-        public void Save(string file = null)
-        {
-            if (file != null)
-                File = file;
-            Workbook._Save(File);
-        }
-
         /// <summary>
-        /// Makes sure that the file is not mangled in the case of a error.
+        /// Safe saving that guarantees that the file is not corrupted in the case of a error.
         /// </summary>
         /// <param name="file"></param>
-        public void SafeSave(string file = null)
+        public void Save(string file = null)
         {
             if (file != null)
                 File = file;

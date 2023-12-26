@@ -69,7 +69,7 @@ using (Excel xls = new Excel(xlsFile))
 		
 
 
-<h1>Idea</h1>
+<h1>Conception</h1>
 
 <p>Most methods in CliverExcel are presented as extension methods for the NPOI types: <code>IWorkbook</code>, <code>ISheet</code>, <code>IRow</code> and <code>ICell</code>. 
 
@@ -110,19 +110,24 @@ How to move a range of cells down, up, left and right:
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
-                    
-	int y = sheet._GetLastNotEmptyRowInColumnRange(false, x1, x2);
-	sheet._ShiftCellsUp(y, x1, x2, shift, onFormulaCellMoved_shiftSpan);
+
+	int y = sheet._GetLastNotEmptyRowInColumnRange(false, 1, 10);
+	Excel.CopyCellMode copyCellMode = new Excel.CopyCellMode
+	{
+		OnFormulaCellMoved = onFormulaCellMoved_shiftSpan,
+		CopyComment = true
+	};
+	sheet._ShiftCellsDown(y, 1, 4, 1, copyCellMode);
 	
 	xls.Save();
 }
 ...
-//it updates cell formulas if any
+//a callback that updates cell formulas if any
 void onFormulaCellMoved_shiftSpan(ICell fromCell, ICell toCell)
 {
 	int shiftX = toCell._X() - fromCell._X();
 	int shiftY = toCell._Y() - fromCell._Y();
-	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//suitable for ordinary formulas
+	toCell._UpdateFormulaRange(shiftY, shiftX, shiftY, shiftX);//suitable for ordinary cases
 }</script>
 
 
@@ -182,14 +187,14 @@ It is always commendable when styles are managed in a way that they are not dupl
 {	
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 
-	//get a 'ghost' style beyond the workbook. It will be used as a model.
+	//create a 'ghost' style beyond the workbook. It will be used as a model.
 	NPOI.SS.UserModel.ICellStyle style = xls.Workbook._CreateUnregisteredStyle();
 	style.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
 	style.BorderBottom = style.BorderLeft = style.BorderRight = style.BorderTop = NPOI.SS.UserModel.BorderStyle.Double;
 	style.WrapText = false;
 	IFont font = xls.Workbook._GetRegisteredFont("Arial", 10, true, NPOI.SS.UserModel.IndexedColors.Automatic.Index);
 	style.SetFont(font);
-	//look for an equivalent style in the workbook and create one if not found. Now the style can be used.
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
 	style = xls.Workbook._GetRegisteredStyle(style);
 
 	sheet._GetCell(1, 1, true).CellStyle = style;
@@ -207,7 +212,7 @@ It is always commendable when styles are managed in a way that they are not dupl
 
 	var dataFormat = xls.Workbook.CreateDataFormat();
 
-	//get a 'ghost' style beyond the workbook. It will be used as a base style for the other styles.
+	//create a 'ghost' style beyond the workbook. It will be used as a base style for the other styles.
 	NPOI.SS.UserModel.ICellStyle s = xls.Workbook._CreateUnregisteredStyle();
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
 	s.BorderDiagonal = NPOI.SS.UserModel.BorderDiagonal.None;
@@ -233,22 +238,22 @@ It is always commendable when styles are managed in a way that they are not dupl
 	s.IsLocked = true;
 
 	//clone, configure and register a real style	
-	//Get a 'ghost' clone of the style.
+	//Create a 'ghost' clone of the style.
 	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Workbook._CloneUnregisteredStyle(s);
 	rowStyle1.BorderBottom = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderLeft = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderRight = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.BorderTop = NPOI.SS.UserModel.BorderStyle.Medium;
 	rowStyle1.DataFormat = dataFormat.GetFormat(@"_(""$""* #,##0.00_);_(""$""* \(#,##0.00\);_(""$""* "" - ""??_);_(@_)");
-	//create a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
 	rowStyle1 = xls.Workbook._GetRegisteredStyle(rowStyle1);
 
 	//clone, configure and register a real style		
-	//Get a 'ghost' clone of the style.
+	//Create a 'ghost' clone of the style.
 	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Workbook._CloneUnregisteredStyle(s);
 	s.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Left;
 	s.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Top;
-	//create a new style only if no equivalent style exists in the workbook. Now the style can be used.
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
 	rowStyle2 = xls.Workbook._GetRegisteredStyle(rowStyle2);
 
 	foreach (IRow r in sheet._GetRows(Excel.RowScope.WithCells))
@@ -267,14 +272,18 @@ It is always commendable when styles are managed in a way that they are not dupl
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
-	
+
+	//create a 'ghost' clone of the style.
 	NPOI.SS.UserModel.ICellStyle rowStyle1 = xls.Workbook._CreateUnregisteredStyle();
-	xls.Highlight(rowStyle1, new Excel.Color(System.Drawing.Color.LightGray));
-	rowStyle1 = xls.GetRegisteredStyle(rowStyle1);
-	
+	xls.Workbook._Highlight(rowStyle1, new Excel.Color(System.Drawing.Color.LightGray));
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
+	rowStyle1 = xls.Workbook._GetRegisteredStyle(rowStyle1);
+
+	//create a 'ghost' clone of the style.
 	NPOI.SS.UserModel.ICellStyle rowStyle2 = xls.Workbook._CreateUnregisteredStyle();
-	xls.Highlight(rowStyle2, new Excel.Color(System.Drawing.Color.LightPink));
-	rowStyle2 = xls.GetRegisteredStyle(rowStyle2);
+	xls.Workbook._Highlight(rowStyle2, new Excel.Color(System.Drawing.Color.LightPink));
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
+	rowStyle2 = xls.Workbook._GetRegisteredStyle(rowStyle2);
 
 	foreach (IRow r in sheet._GetRows(Excel.RowScope.CreateIfNull))
 	{
@@ -306,14 +315,18 @@ It is always commendable when styles are managed in a way that they are not dupl
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 	
 	ICell cell = sheet._GetCell(1, 1, true);
+	//create a 'ghost' clone of the style.
 	NPOI.SS.UserModel.ICellStyle style = xls.Workbook._CloneUnregisteredStyle(cell.CellStyle);
-	
+			
+	//create a 'ghost' clone of the font.
 	IFont font = xls.Workbook._CloneUnregisteredFont(xls.Workbook._GetFont(style));
 	font.IsBold = false;
+	//find an equivalent font in the workbook or create one if not found. Now the font can be used.
 	font = xls.Workbook._GetRegisteredFont(font);
 	
 	style.SetFont(font);
 	
+	//find an equivalent style in the workbook or create one if not found. Now the style can be used.
 	style = xls.Workbook._GetRegisteredStyle(style);
 	
 	cell.CellStyle = style;
@@ -344,13 +357,21 @@ See <a href='#StyleCache'>Excel.StyleCache</a>.
 {
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 
-	Excel.Table.Column header1 = new Excel.Table.Column("Header1");
-	Excel.Table.Column header2 = new Excel.Table.Column("Header2");
+	NPOI.SS.UserModel.ICellStyle style1 = xls.Workbook._CreateUnregisteredStyle();
+	xls.Workbook._Highlight(style1, new Excel.Color(System.Drawing.Color.LightGray));
+	style1 = xls.Workbook._GetRegisteredStyle(style1);
 
-	var table = new Excel.Table(sheet, Excel.Table.SetColumnMode.FindOrCreate, header1, header2);
+	NPOI.SS.UserModel.ICellStyle style2 = xls.Workbook._CreateUnregisteredStyle();
+	xls.Workbook._Highlight(style2, new Excel.Color(System.Drawing.Color.LightPink));
+	style2 = xls.Workbook._GetRegisteredStyle(style2);
 
-	NPOI.SS.UserModel.IRow r = table.FindDataRows(new Excel.Table.Key(header1, "value1")).LastOrDefault();
-	table.InsertRow(r == null ? 1 : r._Y(), new Excel.Table.Cell(header1, "value1"), new Excel.Table.Cell(header2, "value2"));
+	Excel.Table.Column column1 = new Excel.Table.Column("Header1", style1);
+	Excel.Table.Column column2 = new Excel.Table.Column("Header2", style2);
+
+	var table = new Excel.Table(sheet, Excel.Table.SetColumnMode.FindOrCreate, column1, column2);
+
+	NPOI.SS.UserModel.IRow r = table.FindDataRows(new Excel.Table.Key(column1, "value1")).LastOrDefault();
+	table.InsertRow(r == null ? 1 : r._Y(), new Excel.Table.Cell(column1, "value1"), new Excel.Table.Cell(column2, "value2"));
 	
 	xls.Save();
 }</script>
@@ -380,25 +401,17 @@ See <a href='#StyleCache'>Excel.StyleCache</a>.
 		Key jobIdKey = new Key(JobId, jobId);
 		Key poIdKey = new Key(PoId, (NPOI.SS.UserModel.ICell cell) => { return cell?._GetValueAsString(Excel.StringMode.Trim) == poId; });
 
-		NPOI.SS.UserModel.IRow row = FindDataRows(jobIdKey, poIdKey).FirstOrDefault();
-		if (row == null)
-			row = AppendRow(
-				new Cell(JobId, jobId)
-				, new Cell(PoId, poId)
-				, new Cell(PoCost, poCost)
-			);
-		else
-			WriteRow(row._Y(),
-				new Cell(JobId, jobId)
-				, new Cell(PoId, poId)
-				, new Cell(PoCost, poCost)
-			);
+		NPOI.SS.UserModel.IRow iRow = FindDataRows(jobIdKey, poIdKey).FirstOrDefault();
 
-		GetCell(row, PoId, true)._SetLink(poLink);
+		iRow = WriteRow(iRow?._Y(), false
+			, new Cell(JobId, jobId)
+			, new Cell(PoId, poId) { Link = poLink }
+			, new Cell(PoCost, poCost)
+		);
 
 		if (error)
-			foreach (var cell in row)
-				cell.CellStyle = StyleError;
+			foreach (var iCell in iRow)
+				iCell.CellStyle = StyleError;
 	}
 
 	public void Save()
@@ -424,21 +437,21 @@ using (Excel xls = new Excel(xlsFile))
                
 <h1>Excel.Range</h1>
 
-The class <code>Excel.Range</code> exposes methods on ranges. It is native to CliverExcel and has no underlying NPOI type.
+The class <code>Excel.Range</code> provides routines for ranges. It is native to CliverExcel and has no underlying NPOI type.
 
 <script type="text/plain" class="language-csharp">using (Excel xls = new Excel(xlsFile))
 {
 	ISheet sheet = xls.Workbook._GetSheet("sheet1");
 
-	Excel.Range range = sheet._NewRange(1, 1, 1, 10);
+	Excel.Range range = new Excel.Range(sheet, 1, 1);
 	range.ClearMerging();
 
 	var style = sheet.Workbook._CreateUnregisteredStyle();
-	sheet.Workbook._Highlight(style, new Excel.Color(System.Drawing.Color.Red.ToArgb()));
+	sheet.Workbook._Highlight(style, new Excel.Color(System.Drawing.Color.Red));
+	style = xls.Workbook._GetRegisteredStyle(style);
 	range.SetStyle(style, true);
 
-	range = sheet._NewRange(2, 1, 5, 10);
-	range.Merge(false);
+	sheet._NewRange(2, 1, 5, 10).Merge(false);
 	
 	xls.Save();
 }</script>

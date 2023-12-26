@@ -181,7 +181,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// (!)Re-reads the sheet on every call which can be slow.
+            /// (!)Re-reads the sheet on every call which can be slow. When possible, use FindRows() instead.
             /// </summary>
             /// <param name="rowKeys"></param>
             /// <returns></returns>
@@ -220,14 +220,14 @@ namespace Cliver
                 return InsertRow(y, (IEnumerable<Cell>)cells);
             }
 
-            public IRow AddRow(int? y, IEnumerable<Cell> cells)
+            public IRow WriteRow(int? y, bool insert, IEnumerable<Cell> cells)
             {
-                return y == null ? AppendRow(cells) : InsertRow(y.Value, cells);
+                return y == null ? AppendRow(cells) : insert ? InsertRow(y.Value, cells) : WriteRow(y.Value, cells);
             }
 
-            public IRow AddRow(int? y, params Cell[] cells)
+            public IRow WriteRow(int? y, bool insert, params Cell[] cells)
             {
-                return AddRow(y, (IEnumerable<Cell>)cells);
+                return WriteRow(y, insert, (IEnumerable<Cell>)cells);
             }
 
             public IRow WriteRow(int y, IEnumerable<Cell> cells)

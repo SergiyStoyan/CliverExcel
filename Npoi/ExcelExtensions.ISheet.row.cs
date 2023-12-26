@@ -224,22 +224,14 @@ namespace Cliver
             return sheet._InsertRow(y, (IEnumerable<T>)values);
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        static public IRow _AddRow<T>(this ISheet sheet, int? y, IEnumerable<T> values, MoveRegionMode moveRegionMode = null)
+        static public IRow _WriteRow<T>(this ISheet sheet, int? y, bool insert, IEnumerable<T> values)
         {
-            return y == null ? sheet._AppendRow(values) : sheet._InsertRow(y.Value, values, moveRegionMode);
+            return y == null ? sheet._AppendRow(values) : insert ? sheet._InsertRow(y.Value, values) : sheet._WriteRow(y.Value, values);
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        static public IRow _AddRow<T>(this ISheet sheet, int? y, params T[] values)
+        static public IRow _WriteRow(this ISheet sheet, int? y, bool insert, params string[] values)
         {
-            return sheet._AddRow(y, (IEnumerable<T>)values);
+            return sheet._WriteRow(y, insert, (IEnumerable<string>)values);
         }
 
         static public IRow _WriteRow<T>(this ISheet sheet, int y, IEnumerable<T> values)
