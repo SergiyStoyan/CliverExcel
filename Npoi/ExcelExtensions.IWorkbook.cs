@@ -77,7 +77,7 @@ namespace Cliver
             ISheet sheet = workbook.GetSheet(name);
             if (sheet == null && createSheet)
                 sheet = workbook.CreateSheet(Excel.GetSafeSheetName(name));
-            workbook.SetActiveSheet(sheet._GetIndex() - 1);
+            //workbook.SetActiveSheet(sheet._GetIndex() - 1);
             return sheet;
         }
 

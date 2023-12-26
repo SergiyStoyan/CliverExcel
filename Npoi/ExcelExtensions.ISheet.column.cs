@@ -375,7 +375,7 @@ namespace Cliver
 
         static public void _ClearMergingInColumn(this ISheet sheet, int x)
         {
-            sheet._NewRange(1, x, null, x).ClearMerging();
+            sheet._GetRange(1, x, null, x).ClearMerging();
         }
 
         static public void _SetStyleInColumn(this ISheet sheet, ICellStyle style, bool createCells, int x)
@@ -385,12 +385,12 @@ namespace Cliver
 
         static public void _SetStyleInColumnRange(this ISheet sheet, ICellStyle style, bool createCells, int x1, int? x2 = null)
         {
-            sheet._NewRange(1, x1, null, x2).SetStyle(style, createCells);
+            sheet._GetRange(1, x1, null, x2).SetStyle(style, createCells);
         }
 
         static public void _ReplaceStyleInColumnRange(this ISheet sheet, ICellStyle style1, ICellStyle style2, int x1, int? x2 = null)
         {
-            sheet._NewRange(1, x1, null, x2).ReplaceStyle(style1, style2);
+            sheet._GetRange(1, x1, null, x2).ReplaceStyle(style1, style2);
         }
 
         static public void _ClearStyleInColumnRange(this ISheet sheet, ICellStyle style, int x1, int? x2 = null)

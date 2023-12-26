@@ -181,7 +181,7 @@ namespace Cliver
             }
 
             /// <summary>
-            /// (!)Re-reads the sheet on every call which can be slow. When possible, use FindRows() instead.
+            /// (!)Re-reads the sheet on every call which can be slow. Consider using FindRows() instead.
             /// </summary>
             /// <param name="rowKeys"></param>
             /// <returns></returns>

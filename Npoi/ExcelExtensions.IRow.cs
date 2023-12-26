@@ -15,10 +15,10 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
             var styleCache = row.Sheet.Workbook._Excel().OneWorkbookStyleCache;
-            foreach (ICell cell in row.Cells)
+            foreach (ICell cell in row._GetCells(cellScope))
                 cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
@@ -177,42 +177,7 @@ namespace Cliver
         static public IEnumerable<ICell> _GetCellsInRange(this IRow row, CellScope cellScope, int x1 = 1, int? x2 = null)
         {
             _ = row ?? throw new ArgumentNullException(nameof(row));
-            if (x2 == null)
-                x2 = row.LastCellNum + 1;
-            switch (cellScope)
-            {
-                case CellScope.NotEmpty:
-                    for (int x = x1; x <= x2; x++)
-                    {
-                        var c = row._GetCell(x, false);
-                        if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
-                            yield return c;
-                    }
-                    break;
-                case CellScope.NotNull:
-                    for (int x = x1; x <= x2; x++)
-                    {
-                        var c = row._GetCell(x, false);
-                        if (c != null)
-                            yield return c;
-                    }
-                    break;
-                case CellScope.IncludeNull:
-                    for (int x = x1; x <= x2; x++)
-                    {
-                        var c = row._GetCell(x, false);
-                        yield return c;
-                    }
-                    break;
-                case CellScope.CreateIfNull:
-                    for (int x = x1; x <= x2; x++)
-                    {
-                        var c = row._GetCell(x, true);
-                        yield return c;
-                    }
-                    break;
-                default: throw new Exception("Unknown option: " + cellScope.ToString());
-            }
+            return row.Sheet._GetRange(row._Y(), x1, row._Y(), x2).GetCells(cellScope);
         }
 
         /// <summary>

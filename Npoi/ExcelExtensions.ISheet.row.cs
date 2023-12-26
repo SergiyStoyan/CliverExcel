@@ -452,12 +452,6 @@ namespace Cliver
 
         static public void _ShiftRowsDown(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
-            //for (int y0 = sheet.LastRowNum; y0 >= y; y0--)
-            //{
-            //    IRow row = sheet.GetRow(y0);
-            //    row._Move(y0 + shift, false, moveRegionMode);
-            //}
-
             for (int y0 = sheet.LastRowNum; y0 >= y - 1; y0--)
             {
                 IRow r2 = sheet.GetRow(y0 + shift);
@@ -493,12 +487,6 @@ namespace Cliver
 
         static public void _ShiftRowsUp(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
-            //for (int y0 = y; y0 <= sheet.LastRowNum; y0++)
-            //{
-            //    IRow row = sheet.GetRow(y0);
-            //    row._Move(y0 - shift, false, moveRegionMode);
-            //}
-
             for (int y0 = y - 1; y0 <= sheet.LastRowNum; y0++)
             {
                 IRow r2 = sheet.GetRow(y0 - shift);
@@ -559,12 +547,12 @@ namespace Cliver
 
         static public void _SetStyleInRowRange(this ISheet sheet, ICellStyle style, bool createCells, int y1, int? y2 = null)
         {
-            sheet._NewRange(y1, 1, y2, null).SetStyle(style, createCells);
+            sheet._GetRange(y1, 1, y2, null).SetStyle(style, createCells);
         }
 
         static public void _ReplaceStyleInRowRange(this ISheet sheet, ICellStyle style1, ICellStyle style2, int y1, int? y2 = null)
         {
-            sheet._NewRange(y1, 1, y2, null).ReplaceStyle(style1, style2);
+            sheet._GetRange(y1, 1, y2, null).ReplaceStyle(style1, style2);
         }
 
         static public void _ClearStyleInRowRange(this ISheet sheet, ICellStyle style, int y1, int? y2 = null)
@@ -584,7 +572,7 @@ namespace Cliver
 
         static public void _ClearMergingInRow(this ISheet sheet, int y)
         {
-            sheet._NewRange(y, 1, y, null).ClearMerging();
+            sheet._GetRange(y, 1, y, null).ClearMerging();
         }
 
         static public int _GetLastColumnInRowRange(this ISheet sheet, bool includeMerged, int y1 = 1, int? y2 = null)

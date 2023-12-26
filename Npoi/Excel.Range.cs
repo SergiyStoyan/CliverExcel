@@ -5,6 +5,8 @@
 //********************************************************************************************
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using System.Collections.Generic;
+using System;
 
 namespace Cliver
 {
@@ -20,7 +22,7 @@ namespace Cliver
             public int Y1 = 1;
             public int? Y2 = null;
 
-            public Range(ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
+            internal Range(ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
             {
                 Sheet = sheet;
                 Y1 = y1;
@@ -31,7 +33,7 @@ namespace Cliver
 
             public ISheet Sheet;
 
-            public ICell GetMainCell(bool createCell)
+            public ICell GetFirstCell(bool createCell)
             {
                 return Sheet._GetCell(Y1, X1, createCell);
             }
@@ -49,36 +51,6 @@ namespace Cliver
             {
                 return new CellRangeAddress(Y1 - 1, Y2 != null ? Y2.Value - 1 : Sheet.Workbook.SpreadsheetVersion.MaxRows - 1, X1 - 1, X2 != null ? X2.Value - 1 : Sheet.Workbook.SpreadsheetVersion.LastColumnIndex);
             }
-
-            ///// <summary>
-            ///// (!)When createOnlyUniqueStyles, it is slower. Otherwise, each call registers a new style for non-styled cells.
-            ///// </summary>
-            //public void Highlight(Range range, bool createOnlyUniqueStyles, Color color, FillPattern fillPattern = FillPattern.SolidForeground)
-            //{
-            //    ICellStyle newStyle = null;
-            //    int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
-            //    for (int y = Y1; y <= maxY; y++)
-            //    {
-            //        IRow row = GetRow(y, color != null);
-            //        if (row == null)
-            //            continue;
-            //        int maxX = X2 != null ? X2.Value : row.LastCellNum;
-            //        for (int x = X1; x <= maxX; x++)
-            //        {
-            //            ICell c = row.GetCell(x, true);
-            //            if (c.CellStyle == null)
-            //            {
-            //                if (color != null)
-            //                {
-            //                    if (newStyle == null)
-            //                        newStyle = highlight(this, null, createOnlyUniqueStyles, color, fillPattern);
-            //                    c.CellStyle = newStyle;
-            //                }
-            //            }
-            //            c.CellStyle = highlight(this, c.CellStyle, createOnlyUniqueStyles, color, fillPattern);
-            //        }
-            //    }
-            //}
 
             public void Clear(bool clearMerging, bool removeComment = true)
             {
@@ -157,6 +129,99 @@ namespace Cliver
             public void UnsetStyle(ICellStyle style)
             {
                 ReplaceStyle(style, null);
+            }
+
+            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+            {
+                foreach (var c in GetCells(cellScope))
+                    c?._SetAlteredStyle(alterationKey, alterStyle, reuseUnusedStyle);
+            }
+
+            public IEnumerable<ICell> GetCells(CellScope cellScope)
+            {
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                int maxX;
+                switch (cellScope)
+                {
+                    case CellScope.NotEmpty:
+                        for (int y = Y1; y <= maxY; y++)
+                        {
+                            var r = Sheet._GetRow(y, false);
+                            if (r == null)
+                                continue;
+                            maxX = X2 < r.LastCellNum ? X2.Value : r.LastCellNum;
+                            for (int x = X1; x <= maxX; x++)
+                            {
+                                var c = r._GetCell(x, false);
+                                if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
+                                    yield return c;
+                            }
+                        }
+                        break;
+                    case CellScope.NotNull:
+                        for (int y = Y1; y <= maxY; y++)
+                        {
+                            var r = Sheet._GetRow(y, false);
+                            if (r == null)
+                                continue;
+                            maxX = X2 < r.LastCellNum ? X2.Value : r.LastCellNum;
+                            for (int x = X1; x <= maxX; x++)
+                            {
+                                var c = r._GetCell(x, false);
+                                if (c != null)
+                                    yield return c;
+                            }
+                        }
+                        break;
+                    case CellScope.IncludeNull:
+                        if (X2 != null)
+                            maxX = X2.Value;
+                        else
+                        {
+                            maxX = 0;
+                            for (int y = Y1; y <= maxY; y++)
+                            {
+                                var r = Sheet._GetRow(y, false);
+                                if (r != null && maxX < r.LastCellNum)
+                                    maxX = r.LastCellNum;
+                            }
+                        }
+                        for (int y = Y1; y <= maxY; y++)
+                        {
+                            var r = Sheet._GetRow(y, false);
+                            for (int x = X1; x <= maxX; x++)
+                            {
+                                var c = r?._GetCell(x, false);
+                                yield return c;
+                            }
+                        }
+                        break;
+                    case CellScope.CreateIfNull:
+                        if (X2 != null)
+                            maxX = X2.Value;
+                        else
+                        {
+                            maxX = 0;
+                            for (int y = Y1; y <= maxY; y++)
+                            {
+                                var r = Sheet._GetRow(y, false);
+                                if (r != null && maxX < r.LastCellNum)
+                                    maxX = r.LastCellNum;
+                            }
+                        }
+                        for (int y = Y1; y <= maxY; y++)
+                        {
+                            var r = Sheet._GetRow(y, true);
+                            for (int x = X1; x <= maxX; x++)
+                            {
+                                var c = r._GetCell(x, true);
+                                yield return c;
+                            }
+                        }
+                        break;
+                    default:
+                        throw new Exception("Unknown option: " + cellScope.ToString());
+                }
             }
 
             ICell[][] copyCutRange(bool cut)

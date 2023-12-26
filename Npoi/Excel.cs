@@ -109,26 +109,6 @@ namespace Cliver
             FileSystemRoutines.MoveFile(tempFile, File, true);
         }
 
-        ///// <summary> 
-        ///// (!)Never returns NULL. Row is created if does not exist.
-        ///// </summary>
-        ///// <param name="y">1-based</param>
-        ///// <returns></returns>
-        //public IRow this[int y]!!!do not do that: it is ambiguous: row or column?
-        //{
-        //    get
-        //    {
-        //        return Sheet._GetRow(y, true);
-        //    }
-        //}
-        //public Column this[string columnName]//!!!do not do that: it is used for Sheet
-        //{
-        //    get
-        //    {
-        //        return Sheet._GetColumn(columnName);
-        //    }
-        //}
-
         public class Image
         {
             //public IClientAnchor Anchor;
@@ -215,7 +195,7 @@ namespace Cliver
         //    /// </summary>
         //    IncludeNull,
         //    /// <summary>
-        //    /// Returns all the rows withing the range with non-existing rows having been created.
+        //    /// Returns all the rows withing the range with non-existing rows having being created.
         //    /// </summary>
         //    CreateIfNull
         //}
@@ -241,7 +221,7 @@ namespace Cliver
             /// </summary>
             IncludeNull,
             /// <summary>
-            /// Returns all the rows withing the range with non-existing rows having been created.
+            /// Returns all the rows withing the range with non-existing rows being created.
             /// </summary>
             CreateIfNull
         }
@@ -262,7 +242,7 @@ namespace Cliver
             /// </summary>
             IncludeNull,
             /// <summary>
-            /// Returns all the cells withing the range with non-existing cells having been created.
+            /// Returns all the cells withing the range with non-existing cells being created.
             /// </summary>
             CreateIfNull
         }
@@ -283,26 +263,11 @@ namespace Cliver
             NotNull,
         }
 
-        //public enum RowStyleMode
-        //{
-        //    /// <summary>
-        //    /// Set the row default style.
-        //    /// </summary>
-        //    Row = 1,
-        //    /// <summary>
-        //    /// Set style to the existing cells.
-        //    /// </summary>
-        //    ExistingCells = 2,
-        //    /// <summary>
-        //    /// Set style to all the cells with no gaps. When need, blank cells are created.
-        //    /// </summary>
-        //    NoGapCells = 4,
-        //}
-
         public class CopyCellMode
         {
             public bool CopyComment { get; set; } = false;
             public bool CopyLink { get; set; } = true;
+            public bool CopyImage { get; set; } = false;
             public OnFormulaCellMoved OnFormulaCellMoved { get; set; } = null;
 
             public CopyCellMode Clone()
@@ -311,7 +276,8 @@ namespace Cliver
                 {
                     OnFormulaCellMoved = OnFormulaCellMoved,
                     CopyComment = CopyComment,
-                    CopyLink = CopyLink
+                    CopyLink = CopyLink,
+                    CopyImage = CopyImage
                 };
                 return ccm;
             }
@@ -333,6 +299,7 @@ namespace Cliver
                         font = Workbook._CreateUnregisteredFont();
                         font.FontName = DefaultFontName;
                         font.FontHeight = DefaultFontSize * 20;
+                        font.Color = DefaultFontColor;
                         font = Workbook._GetRegisteredFont(font);
                     }
                     return font;
@@ -378,6 +345,7 @@ namespace Cliver
             /// Size in points which means IFont.FontHeight/20
             /// </summary>
             public int DefaultFontSize = 9;
+            public short DefaultFontColor = IndexedColors.Automatic.Index;
 
             public IWorkbook Workbook { get; private set; }
 

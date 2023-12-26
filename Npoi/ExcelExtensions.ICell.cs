@@ -384,13 +384,7 @@ namespace Cliver
             foreach (object v in values)
                 vs.Add(v?.ToString());
 
-            IDataValidationHelper dvh;
-            if (cell.Sheet is XSSFSheet)
-                dvh = new XSSFDataValidationHelper((XSSFSheet)cell.Sheet);
-            else if (cell.Sheet is HSSFSheet)
-                dvh = new HSSFDataValidationHelper((HSSFSheet)cell.Sheet);
-            else
-                throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
+            IDataValidationHelper dvh = cell.Sheet.GetDataValidationHelper();
             //string dvs = string.Join(",", vs);
             //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
             //if (dvc == null)
@@ -403,6 +397,13 @@ namespace Cliver
             ((XSSFSheet)cell.Sheet).AddValidationData(dv);
 
             cell.SetCellValue(value?.ToString());
+        }
+
+        static public void _RemoveDropdown<T>(this ICell cell)
+        {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
+            throw new NotImplementedException();
         }
 
         static public IEnumerable<Excel.Image> _GetImages(this ICell cell)

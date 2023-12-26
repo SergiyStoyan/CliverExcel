@@ -101,8 +101,9 @@ namespace Cliver
             ICell cell1 = sheet._GetCell(y1, x1, false);
             if (cell1 == null)
             {
-                var comment = sheet.GetCellComment(new CellAddress(x1 - 1, y1 - 1));
-                sheet2._RemoveCell(y2, x2, comment == null && copyCellMode?.CopyComment == true);
+                bool removeComment = copyCellMode?.CopyComment == true && sheet.GetCellComment(new CellAddress(y1 - 1, x1 - 1)) != null;
+                //bool removeImage = copyCellMode?.CopyImage == true && sheet._GetImages(y1, x1).Any();
+                sheet2._RemoveCell(y2, x2, removeComment/*, removeImage*/);
                 return null;
             }
 
@@ -184,6 +185,17 @@ namespace Cliver
 
             if (!(copyCellMode?.CopyLink == false))
                 cell2.Hyperlink = cell1.Hyperlink;
+
+            if (copyCellMode?.CopyImage == true)
+            {
+                var i = sheet._GetImages(y1, x1).FirstOrDefault();
+                if (i != null)
+                {
+                    i.Y = y1;
+                    i.X = x1;
+                    sheet2._AddImage(i);
+                }
+            }
 
             if (cell2?.CellType == CellType.Formula)
                 copyCellMode?.OnFormulaCellMoved?.Invoke(cell1, cell2);
@@ -281,6 +293,43 @@ namespace Cliver
             //p.Resize(1, 1);
         }
 
+        /// <summary>
+        /// !!!NOT TESTED
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="x"></param>
+        /// <exception cref="Exception"></exception>
+        static public void _RemoveImages(this ISheet sheet, int y, int x)
+        {
+            IDrawing drawing = sheet.CreateDrawingPatriarch();
+            if (drawing is XSSFDrawing xssfDrawing)
+            {
+                var ps = xssfDrawing.GetShapes().Where(a => a is XSSFPicture p && p.ClientAnchor.Row1 + 1 == y && p.ClientAnchor.Col1 + 1 == x);
+                foreach (XSSFPicture p in ps)
+                {
+                    XSSFDrawing d = p.GetDrawing();
+                    var ctP = p.GetCTPicture();
+                    var rId = ctP?.blipFill?.blip.embed;
+                    if (rId != null)
+                    {
+                        var pp = d.GetPackagePart();
+                        pp.RemoveRelationship(rId);
+                        pp.Package.DeletePartRecursive(d.GetRelationById(rId).GetPackagePart().PartName);
+                    }
+
+                    d.GetCTDrawing().CellAnchors = null;
+                }
+            }
+            else if (drawing is HSSFPatriarch hssfDrawing)
+            {
+                var ps = hssfDrawing.Children.Where(a => a is HSSFPicture p && p.ClientAnchor.Row1 + 1 == y && p.ClientAnchor.Col1 + 1 == x).ToList();
+                ps.ForEach(a => hssfDrawing.RemoveShape(a));
+            }
+            else
+                throw new Exception("Unsupported type: " + drawing.GetType());
+        }
+
         static public Range _GetMergedRange(this ISheet sheet, int y, int x)
         {
             foreach (var mr in sheet.MergedRegions)
@@ -299,30 +348,29 @@ namespace Cliver
         /// <exception cref="Exception"></exception>
         static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x)
         {
+            IEnumerable<IPicture> pictures;
             if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
             {
                 XSSFDrawing dp = (XSSFDrawing)sheet.CreateDrawingPatriarch();
-                foreach (XSSFShape s in dp.GetShapes())
-                {
-                    XSSFPicture p = s as XSSFPicture;
-                    if (p == null)
-                        continue;
-                    var a = p.ClientAnchor;
-                    if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
-                    {
-                        IPictureData pictureData = p.PictureData;
-                        yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
-                    }
-                }
+                pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
             }
             else if (sheet.Workbook is HSSFWorkbook hSSFWorkbook)
             {
-                //HSSFPatriarch g;
-                throw new Exception("TBD for: " + sheet.Workbook.GetType().FullName);
+                HSSFPatriarch dp = (HSSFPatriarch)sheet.CreateDrawingPatriarch();
+                pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
             }
             else
                 throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);
-        }
 
+            foreach (IPicture p in pictures)
+            {
+                var a = p.ClientAnchor;
+                if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
+                {
+                    IPictureData pictureData = p.PictureData;
+                    yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
+                }
+            }
+        }
     }
 }

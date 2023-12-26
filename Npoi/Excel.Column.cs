@@ -30,10 +30,10 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
             {
                 var styleCache = Sheet.Workbook._Excel().OneWorkbookStyleCache;
-                foreach (ICell cell in GetCells(CellScope.CreateIfNull))
+                foreach (ICell cell in GetCells(cellScope))
                     cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
             }
 
@@ -78,42 +78,7 @@ namespace Cliver
 
             public IEnumerable<ICell> GetCellsInRange(CellScope cellScope, int y1 = 1, int? y2 = null)
             {
-                if (y2 == null)
-                    y2 = Sheet.LastRowNum + 1; //GetLastRow(LastRowCondition.HasCells, false);
-                switch (cellScope)
-                {
-                    case CellScope.NotEmpty:
-                        for (int y = y1; y <= y2; y++)
-                        {
-                            var c = GetCell(y, false);
-                            if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
-                                yield return c;
-                        }
-                        break;
-                    case CellScope.NotNull:
-                        for (int y = y1; y <= y2; y++)
-                        {
-                            var c = GetCell(y, false);
-                            if (c != null)
-                                yield return c;
-                        }
-                        break;
-                    case CellScope.IncludeNull:
-                        for (int y = y1; y <= y2; y++)
-                        {
-                            var c = GetCell(y, false);
-                            yield return c;
-                        }
-                        break;
-                    case CellScope.CreateIfNull:
-                        for (int y = y1; y <= y2; y++)
-                        {
-                            var c = GetCell(y, true);
-                            yield return c;
-                        }
-                        break;
-                    default: throw new Exception("Unknown option: " + cellScope.ToString());
-                }
+                return Sheet._GetRange(y1, X, y2, X).GetCells(cellScope);
             }
 
             public void SetStyles(int y1, IEnumerable<ICellStyle> styles)

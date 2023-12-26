@@ -97,54 +97,6 @@ namespace Cliver
             {
                 SetAlteredStyle(Sheet._GetRow(y, true), column, alterationKey, alterStyle);
             }
-
-            //public void BlendStyles(IRow row, List<FieldInfo> styleProperties, ICellStyle style2, RowStyleMode rowStyleMode)
-            //{
-            //    if (rowStyleMode.HasFlag(RowStyleMode.Row))
-            //    {
-            //        ICellStyle style;
-            //        if (row.RowStyle == null)
-            //            style = Excel.Workbook._CreateUnregisteredStyle();
-            //        else
-            //            style = Excel.Workbook._CloneUnregisteredStyle(row.RowStyle);
-            //        void alterStyle_(ICellStyle s, out StyleCache.Key alterationKey)
-            //        {
-            //            alterStyle(style, styleProperties, style2);
-
-            //        };
-            //        row.RowStyle = Excel.OneWorkbookStyleCache.GetAlteredStyle(style, alterStyle_);
-            //    }
-            //    if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
-            //        foreach (Column column in Columns)
-            //            row._GetCell(column, true).CellStyle = style;
-            //    else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
-            //        for (int? x = Columns.LastOrDefault()?.X; x > 0; x--)
-            //            row._GetCell(x.Value, true).CellStyle = style;
-            //}
-            //ICellStyle alterStyle(ICellStyle style, Dictionary<FieldInfo, object> styleProperties2Value, ICellStyle style2, StyleCache.Key alterationKey)
-            //{
-            //    void alterStyle_(ICellStyle s, StyleCache.Key ak)
-            //    {
-            //        foreach (var fi2v in styleProperties2Value)
-            //            fi2v.Key.SetValue(style, fi2v.Value);
-            //    };
-            //    Excel.OneWorkbookStyleCache.GetAlteredStyle(style, alterationKey, alterStyle_);
-            //}
-            //ICellStyle alterStyle(ICellStyle style, List<FieldInfo> styleProperties, ICellStyle style2, out StyleCache.Key alterationKey)
-            //{
-            //    void alterStyle_(ICellStyle s, StyleCache.Key alterationKey)
-            //    {
-
-            //    };
-            //    alterationKey = new StyleCache.Key();
-            //    foreach (FieldInfo fi in styleProperties)
-            //    {
-            //        object pv = fi.GetValue(style2);
-            //        alterationKey.Add(pv.ToString());
-            //        fi.SetValue(style, pv);
-            //    }
-            //    Excel.OneWorkbookStyleCache.GetAlteredStyle(style, alterStyle_);
-            //}
         }
     }
 }

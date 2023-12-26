@@ -83,12 +83,12 @@ namespace Cliver
         /// </summary>
         /// <param name="sheet"></param>
         /// <param name="name"></param>
-        static public void _Rename(this ISheet sheet, string name)
+        static public void _SetName(this ISheet sheet, string name)
         {
             sheet.Workbook.SetSheetName(sheet._GetIndex() - 1, Excel.GetSafeSheetName(name));
         }
 
-        static public string _Name(this ISheet sheet)
+        static public string _GetName(this ISheet sheet)
         {
             return sheet.SheetName;
         }
@@ -113,7 +113,7 @@ namespace Cliver
             new Range(sheet).UnsetStyle(style);
         }
 
-        static public Range _NewRange(this ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
+        static public Range _GetRange(this ISheet sheet, int y1 = 1, int x1 = 1, int? y2 = null, int? x2 = null)
         {
             return new Range(sheet, y1, x1, y2, x2);
         }
