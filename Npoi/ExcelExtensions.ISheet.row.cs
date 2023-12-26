@@ -9,16 +9,18 @@ using System.Collections.Generic;
 using NPOI.SS.UserModel;
 using static Cliver.Excel;
 using System.Linq;
+using NPOI.HSSF.UserModel;
+using NPOI.XSSF.UserModel;
 
 namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _RemoveRow(this ISheet sheet, int y)
-        {
-            sheet._GetRow(y, false)?._Remove();
-        }
-
+        /// <summary>
+        /// Last row existing as an object. It still can be empty as the previous ones.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <returns></returns>
         public static int _LastRowY(this ISheet sheet)
         {
             return sheet.LastRowNum + 1;
@@ -190,24 +192,23 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public IRow _AppendRow(this ISheet sheet, params string[] values)
+        static public IRow _AppendRow<T>(this ISheet sheet, params T[] values)
         {
-            return sheet._AppendRow(values);
+            return sheet._AppendRow((IEnumerable<T>)values);
         }
 
         /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="sheet"></param>
         /// <param name="y"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public IRow _InsertRow<T>(this ISheet sheet, int y, IEnumerable<T> values = null)
+        static public IRow _InsertRow<T>(this ISheet sheet, int y, IEnumerable<T> values = null, MoveRegionMode moveRegionMode = null)
         {
             int lastRowY = sheet._GetLastRow(LastRowCondition.HasCells, false);
             if (y <= lastRowY)
-                sheet.ShiftRows(y - 1, lastRowY - 1, 1);
+                sheet._ShiftRowsDown(y, 1, moveRegionMode);
             return sheet._WriteRow(y, values);
         }
 
@@ -218,9 +219,27 @@ namespace Cliver
         /// <param name="y"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        static public IRow _InsertRow(this ISheet sheet, int y, params string[] values)
+        static public IRow _InsertRow<T>(this ISheet sheet, int y, params T[] values)
         {
-            return sheet._InsertRow(y, (IEnumerable<string>)values);
+            return sheet._InsertRow(y, (IEnumerable<T>)values);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        static public IRow _AddRow<T>(this ISheet sheet, int? y, IEnumerable<T> values, MoveRegionMode moveRegionMode = null)
+        {
+            return y == null ? sheet._AppendRow(values) : sheet._InsertRow(y.Value, values, moveRegionMode);
+        }
+
+        /// <summary>
+        /// (!)It does not care about formulas and links. Shift*() does.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        static public IRow _AddRow<T>(this ISheet sheet, int? y, params T[] values)
+        {
+            return sheet._AddRow(y, (IEnumerable<T>)values);
         }
 
         static public IRow _WriteRow<T>(this ISheet sheet, int y, IEnumerable<T> values)
@@ -235,17 +254,192 @@ namespace Cliver
             return sheet._WriteRow(y, (IEnumerable<string>)values);
         }
 
-        static public IRow _RemoveRow(this ISheet sheet, int y, bool shiftRowsBelow)
+        /// <summary>
+        /// Remove the row from its sheet and (!)shift rows below which can be slow. Not to shift, use Clear()
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="moveRegionMode"></param>
+        /// <param name="preserveCells">
+        /// (!)Done in a hacky way through Reflection so might change with POI update.
+        /// (!)GetCell() might work incorrectly on such rows.
+        /// </param>
+        static public IRow _RemoveRow(this ISheet sheet, int y, MoveRegionMode moveRegionMode = null, bool preserveCells = false)
         {
-            IRow r = sheet.GetRow(y - 1);
-            if (r != null)
-                sheet.RemoveRow(r);
-            if (shiftRowsBelow)
-                sheet.ShiftRows(r.RowNum + 1, sheet.LastRowNum, -1);
-            return r;
+            IRow row = sheet.GetRow(y - 1);
+            if (row == null)
+            {
+                if (moveRegionMode?.CopyComment == true)
+                {//!!!TO DO remove comments                    
+                    //sheet.GetCellComment()
+                }
+                return null;
+            }
+
+            if (moveRegionMode?.UpdateMergedRegions == true)
+            {
+                for (int i = row.Sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = row.Sheet.GetMergedRegion(i);
+                    if (a.FirstRow < row.RowNum)
+                    {
+                        if (a.LastRow >= row.RowNum)
+                            a.LastRow -= 1;
+                    }
+                    else if (a.FirstRow == row.RowNum && a.LastRow == row.RowNum)
+                        row.Sheet.RemoveMergedRegion(i);
+                    else
+                    {
+                        a.FirstRow -= 1;
+                        a.LastRow -= 1;
+                    }
+                }
+            }
+
+            if (preserveCells
+                && row is XSSFRow xSSFRow//in HSSFRow Cells remain after removing the row
+                )
+            {
+                SortedDictionary<int, ICell> cells = new SortedDictionary<int, ICell>();
+                row.Cells.Select((a, i) => (a, i)).ForEach(a => cells.Add(a.i, a.a));
+                if (XSSFRow_cells_FI == null)
+                    XSSFRow_cells_FI = xSSFRow.GetType().GetField("_cells", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                //cells = (SortedDictionary<int, ICell>)XSSFRow_cells_FI.GetValue(xSSFRow);!!!will be NULLed when removing
+
+                row.Sheet.RemoveRow(row);
+
+                XSSFRow_cells_FI.SetValue(row, cells);
+            }
+            else
+                row.Sheet.RemoveRow(row);
+
+            row.Sheet._ShiftRowsUp(row.RowNum + 2, 1, moveRegionMode);
+
+            return row;
+        }
+        static System.Reflection.FieldInfo XSSFRow_cells_FI = null;
+
+        static public void _RemoveRowRange(this ISheet sheet, int y1, int y2, MoveRegionMode moveRegionMode = null)
+        {
+            for (int y = y1; y <= y2; y++)
+                sheet._RemoveRow(y, moveRegionMode);
         }
 
-        static public void _MoveRow(this ISheet sheet, int y1, int y2)
+        /// <summary>
+        /// Delete the row as an object but not shift rows below.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y"></param>
+        /// <param name="clearMerging"></param>
+        static public void _ClearRow(this ISheet sheet, int y, bool clearMerging)
+        {
+            var r = sheet._GetRow(y, false);
+            if (r != null)
+                r._Clear(clearMerging);
+            else
+                sheet._ClearMergingInRow(y);
+        }
+
+        static public void _ClearRowRange(this ISheet sheet, int y1, int y2, bool clearMerging)
+        {
+            for (int y = y1; y <= y2; y++)
+                sheet._ClearRow(y, clearMerging);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public IRow _MoveRow(this ISheet sheet, int y1, int y2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            var row1 = sheet._GetRow(y1, false);
+            if (insert)
+            {
+                row1.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
+
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    row1.Sheet.MergedRegions.ForEach(a =>
+                    {
+                        if (a.FirstRow < y2 - 1)
+                        {
+                            if (a.LastRow >= y2 - 1)
+                                a.LastRow += 1;
+                        }
+                        else
+                        {
+                            a.FirstRow += 1;
+                            a.LastRow += 1;
+                        }
+                    });
+                }
+            }
+            else
+                row1.Sheet._RemoveRow(y2, moveRegionMode);
+            IRow row2 = sheet._CopyRow(row1._Y(), y2, moveRegionMode, sheet2, styleMap);
+            row1._Remove(moveRegionMode);
+            return row2;
+        }
+
+        static public IRow _CopyRow(this ISheet sheet, int y1, int y2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            IRow r1 = sheet._GetRow(y1, false);
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && y1 == y2)
+                return r1;
+            sheet2._ClearRow(y2, false);
+            if (r1 == null)
+                return null;
+            IRow r2 = sheet2._GetRow(y2, true);
+            r2.Height = r1.Height;
+            foreach (ICell c1 in r1.Cells)
+                c1._Copy(y2, c1._X(), copyCellMode, sheet2, styleMap);
+            return r2;
+        }
+
+        /// <summary>
+        /// Based on ISheet.CopyRow()
+        /// (!)It seems to be slower than _CopyRow()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _CopyRow2(this ISheet sheet, int y1, int y2)
+        {
+            if (y1 == y2)
+                return;
+            var r1 = sheet._GetRow(y1, false);
+            if (r1 == null)
+            {
+                sheet._RemoveRow(y2);
+                return;
+            }
+            sheet.CopyRow(y1 - 1, y2 - 1);
+            sheet._RemoveRow(y2);
+        }
+
+        /// <summary>
+        /// Based on ISheet.CopyRow()
+        /// (!)It seems to be slower than _MoveRow()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _MoveRow2(this ISheet sheet, int y1, int y2)
+        {
+            sheet._CopyRow2(y1, y2);
+            sheet._RemoveRow(y1);
+        }
+
+        /// <summary>
+        /// Based on ISheet.ShiftRows(). 
+        /// (!)On big sheets it is slower than _MoveRow()
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        static public void _MoveRow3(this ISheet sheet, int y1, int y2)
         {
             if (y1 == y2)
                 return;
@@ -264,19 +458,106 @@ namespace Cliver
             }
         }
 
-        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowsDown(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, onFormulaCellMoved);
+            //for (int y0 = sheet.LastRowNum; y0 >= y; y0--)
+            //{
+            //    IRow row = sheet.GetRow(y0);
+            //    row._Move(y0 + shift, false, moveRegionMode);
+            //}
+
+            for (int y0 = sheet.LastRowNum; y0 >= y - 1; y0--)
+            {
+                IRow r2 = sheet.GetRow(y0 + shift);
+                IRow r1 = sheet.GetRow(y0);
+                r2?._Remove();
+                if (r1 == null)
+                    continue;
+                r2 = sheet.CreateRow(y0 + shift);
+                r2.Height = r1.Height;
+                foreach (ICell c1 in r1.Cells)
+                    c1._Copy(c1._Y() + shift, c1._X(), moveRegionMode);
+                sheet.RemoveRow(r1);
+            }
+
+            if (moveRegionMode?.UpdateMergedRegions == true)
+                for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = sheet.GetMergedRegion(i);
+                    if (a.FirstRow < y - 1)
+                    {
+                        if (a.LastRow < y - 1)
+                        { }
+                        else
+                            a.LastRow += shift;
+                    }
+                    else
+                    {
+                        a.FirstColumn += shift;
+                        a.LastColumn += shift;
+                    }
+                }
         }
 
-        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowsUp(this ISheet sheet, int y, int shift, MoveRegionMode moveRegionMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, onFormulaCellMoved);
+            //for (int y0 = y; y0 <= sheet.LastRowNum; y0++)
+            //{
+            //    IRow row = sheet.GetRow(y0);
+            //    row._Move(y0 - shift, false, moveRegionMode);
+            //}
+
+            for (int y0 = y - 1; y0 <= sheet.LastRowNum; y0++)
+            {
+                IRow r2 = sheet.GetRow(y0 - shift);
+                IRow r1 = sheet.GetRow(y0);
+                r2?._Remove();
+                if (r1 == null)
+                    continue;
+                r2 = sheet.CreateRow(y0 - shift);
+                r2.Height = r1.Height;
+                foreach (ICell c1 in r1.Cells)
+                    c1._Copy(c1._Y() - shift, c1._X(), moveRegionMode);
+                sheet.RemoveRow(r1);
+            }
+
+            if (moveRegionMode?.UpdateMergedRegions == true)
+                for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = sheet.GetMergedRegion(i);
+                    if (a.FirstRow < y - 1)
+                    {
+                        if (a.LastRow < y - 1)
+                        { }
+                        else if (a.LastRow <= y - 1 + shift)
+                            a.LastRow = y - 1;
+                        else
+                            a.LastRow -= shift;
+                        a.LastRow -= 1;
+                    }
+                    else if (a.LastRow <= y - 1 + shift)
+                        sheet.RemoveMergedRegion(i);
+                    else
+                    {
+                        a.FirstRow -= shift;
+                        a.LastRow -= shift;
+                    }
+                }
         }
 
-        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftRowCellsRight(this ISheet sheet, int y, int x1, int shift, CopyCellMode copyCellMode = null)
         {
-            sheet._GetRow(y, false)?._ShiftCells(x1, shift, onFormulaCellMoved);
+            sheet._GetRow(y, false)?._ShiftCellsRight(x1, shift, copyCellMode);
+        }
+
+        static public void _ShiftRowCellsLeft(this ISheet sheet, int y, int x1, int shift, CopyCellMode copyCellMode = null)
+        {
+            sheet._GetRow(y, false)?._ShiftCellsLeft(x1, shift, copyCellMode);
+        }
+
+        static public void _ShiftRowCells(this ISheet sheet, int y, int x1, int shift, CopyCellMode copyCellMode = null)
+        {
+            sheet._GetRow(y, false)?._ShiftCells(x1, shift, copyCellMode);
         }
 
         static public void _SetStyleInRow(this ISheet sheet, ICellStyle style, bool createCells, int y)
@@ -307,15 +588,6 @@ namespace Cliver
         static public void _AutosizeRows(this ISheet sheet)
         {
             sheet._AutosizeRowsInRange();
-        }
-
-        static public void _ClearRow(this ISheet sheet, int y, bool clearMerging)
-        {
-            if (clearMerging)
-                sheet._ClearMergingInRow(y);
-            var r = sheet._GetRow(y, false);
-            if (r != null)
-                sheet.RemoveRow(r);
         }
 
         static public void _ClearMergingInRow(this ISheet sheet, int y)

@@ -3,6 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using EnumsNET;
 using NPOI.HSSF.UserModel;
 using NPOI.OpenXml4Net.OPC;
 using NPOI.SS.Extractor;
@@ -11,6 +12,7 @@ using NPOI.SS.Formula.Functions;
 using NPOI.SS.Formula.PTG;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.Util;
 using NPOI.XSSF.Extractor;
 using NPOI.XSSF.UserModel;
 using NPOI.XWPF.Extractor;
@@ -24,67 +26,10 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public IClientAnchor _SetComment(this ICell cell, string comment, string author = null, IClientAnchor anchor = null)
+        static public void _SetAlteredStyle<T>(this ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
         {
-            cell.RemoveCellComment();//!!!adding multiple comments brings to error
-            if (string.IsNullOrWhiteSpace(comment))
-                return null;
-
-            //if (anchor == null)
-            //{
-            //    anchor = creationHelper.CreateClientAnchor();
-            //    anchor.Col1 = cell.ColumnIndex;
-            //    anchor.Col2 = cell.ColumnIndex + 3;
-            //    anchor.Row1 = cell.RowIndex;
-            //    anchor.Row2 = cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3;
-            //}
-            var drawingPatriarch = cell.Sheet.DrawingPatriarch != null ? cell.Sheet.DrawingPatriarch : cell.Sheet.CreateDrawingPatriarch();
-            if (anchor == null)
-                anchor = drawingPatriarch.CreateAnchor(0, 0, 0, 0, cell.ColumnIndex, cell.RowIndex, cell.ColumnIndex + 3, cell.RowIndex + Regex.Matches(comment, @"^", RegexOptions.Multiline).Count + 3);
-            IComment iComment = null;
-            //try
-            //{
-            iComment = drawingPatriarch.CreateCellComment(anchor);
-            //}
-            //catch (Exception e)//!!!sometimes occured for unknown reason
-            //{
-            //    //var cs = cell.Sheet.GetCellComments(); //!!!this throws an exception too
-            //}
-            if (author != null)
-                iComment.Author = author;
-            comment = addCommentAuthor(comment, author);
-            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(comment);
-            cell.CellComment = iComment;
-
-            return cell.CellComment.ClientAnchor;
-        }
-        static string addCommentAuthor(string comment, string author)
-        {
-            if (!string.IsNullOrWhiteSpace(author))
-                comment = "[" + author + "]:\r\n" + comment;
-            return comment;
-        }
-
-        static public IClientAnchor _AppendOrSetComment(this ICell cell, string comment, string author = null, string delimiter = "\r\n\r\n", IClientAnchor anchor = null)
-        {
-            if (string.IsNullOrWhiteSpace(comment))
-                return cell?.CellComment?.ClientAnchor;
-
-            if (string.IsNullOrEmpty(cell?.CellComment?.String?.String))
-                return cell._SetComment(comment, author, anchor);
-
-            IComment iComment = cell.CellComment;
-            comment = delimiter + addCommentAuthor(comment, author);
-            iComment.String = cell.Sheet.Workbook.GetCreationHelper().CreateRichTextString(iComment.String.String + comment);
-            int r2 = iComment.ClientAnchor.Row2;
-            iComment.ClientAnchor.Row2 += Regex.Matches(comment, @"^", RegexOptions.Multiline).Count - 1;
-            if (iComment.ClientAnchor.Row2 <= r2)
-            {//!!!sometimes happens for unknown reason
-                //throw new Exception("Could not increase ClientAnchor");
-                return cell._SetComment(iComment.String.String);
-            }
-            cell.CellComment = iComment;
-            return cell.CellComment.ClientAnchor;
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+            cell.CellStyle = cell.Sheet.Workbook._Excel().OneWorkbookStyleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
         }
 
         static public string _GetAddress(this ICell cell)
@@ -92,83 +37,36 @@ namespace Cliver
             return cell?.Address.ToString();
         }
 
-        /// Remove the cell from its row.
-        static public void _Remove(this ICell cell)
+        static public void _Remove(this ICell cell, bool removeComment)
         {
-            cell.Row.RemoveCell(cell);
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+            cell.Sheet._RemoveCell(cell._Y(), cell._X(), removeComment);
         }
 
-        static public ICell _Move(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _Move(this ICell cell1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            ICell toCell = _Copy(fromCell, toCellY, toCellX, onFormulaCellMoved, toSheet);
-            fromCell?._Remove();
-            return toCell;
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            return cell1.Sheet._MoveCell(cell1._Y(), cell1._X(), y2, x2, copyCellMode, sheet2, styleMap);
         }
 
-        static public void _Move(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _Move(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
-            _Copy(fromCell, toCell, onFormulaCellMoved);
-            fromCell?._Remove();
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            _ = cell2 ?? throw new ArgumentNullException(nameof(cell2));
+            cell1.Sheet._MoveCell(cell1._Y(), cell1._X(), cell2._Y(), cell2._X(), copyCellMode, cell2.Sheet, styleMap);
         }
 
-        static public ICell _Copy(this ICell fromCell, int toCellY, int toCellX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public ICell _Copy(this ICell cell1, int y2, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            if (toSheet == null)
-                toSheet = fromCell.Sheet;
-            if (fromCell == null)
-            {
-                ICell toCell = toSheet._GetCell(toCellY, toCellX, false);
-                toCell?._Remove();
-                return null;
-            }
-            else
-            {
-                ICell toCell = toSheet._GetCell(toCellY, toCellX, true);
-                _Copy(fromCell, toCell, onFormulaCellMoved);
-                return toCell;
-            }
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            return cell1.Sheet._CopyCell(cell1._Y(), cell1._X(), y2, x2, copyCellMode, sheet2, styleMap);
         }
 
-        static public void _Copy(this ICell fromCell, ICell toCell, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _Copy(this ICell cell1, ICell cell2, CopyCellMode copyCellMode = null, StyleMap styleMap = null)
         {
-            if (fromCell == null)
-            {
-                toCell?._Remove();
-                return;
-            }
-
-            toCell.SetBlank();
-            toCell.SetCellType(fromCell.CellType);
-            toCell.CellStyle = fromCell.CellStyle;
-            toCell.RemoveCellComment();
-            toCell.CellComment = fromCell.CellComment;
-            //toCell._SetLink(fromCell.Hyperlink?.Address);
-            toCell.Hyperlink = fromCell.Hyperlink;
-            switch (fromCell.CellType)
-            {
-                case CellType.Formula:
-                    toCell.CellFormula = fromCell.CellFormula;
-                    break;
-                case CellType.Numeric:
-                    toCell.SetCellValue(fromCell.NumericCellValue);
-                    break;
-                case CellType.String:
-                    toCell.SetCellValue(fromCell.StringCellValue);
-                    break;
-                case CellType.Boolean:
-                    toCell.SetCellValue(fromCell.BooleanCellValue);
-                    break;
-                case CellType.Error:
-                    toCell.SetCellErrorValue(fromCell.ErrorCellValue);
-                    break;
-                case CellType.Blank:
-                    toCell.SetBlank();
-                    break;
-                default:
-                    throw new Exception("Unknown cell type: " + fromCell.CellType);
-            }
-            if (toCell?.CellType == CellType.Formula)
-                onFormulaCellMoved?.Invoke(fromCell, toCell);
+            _ = cell1 ?? throw new ArgumentNullException(nameof(cell1));
+            _ = cell2 ?? throw new ArgumentNullException(nameof(cell2));
+            cell1.Sheet._CopyCell(cell1._Y(), cell1._X(), cell2._Y(), cell2._X(), copyCellMode, cell2.Sheet, styleMap);
         }
 
         /// <summary>
@@ -177,20 +75,26 @@ namespace Cliver
         /// <param name="cell"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this ICell cell, bool allowNull = false)
+        static public string _GetValueAsString(this ICell cell, StringMode stringMode = DefaultStringMode)
         {
             object o = cell?._GetValue();
             if (o == null)
-                return allowNull ? null : string.Empty;
+                return stringMode.HasFlag(StringMode.NotNull) ? string.Empty : null;
             if (o is DateTime dt)
                 return dt.ToString("yyyy-MM-dd hh:mm:ss");
-            return o?.ToString();
+            string s = o?.ToString();
+            if (s == null && stringMode.HasFlag(StringMode.NotNull))
+                s = string.Empty;
+            if (stringMode.HasFlag(StringMode.Trim))
+                return s?.Trim();
+            return s;
         }
 
         static public object _GetValue(this ICell cell)
         {
             if (cell == null)
                 return null;
+
             switch (cell.CellType)
             {
                 case CellType.Unknown:
@@ -260,6 +164,8 @@ namespace Cliver
         /// <param name="value"></param>
         static public void _SetValue(this ICell cell, object value)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             if (value == null)
                 cell.SetBlank();
             else if (value is sbyte
@@ -274,7 +180,7 @@ namespace Cliver
                         || value is double
                         || value is decimal
                 )
-                cell.SetCellValue((double)value);
+                cell.SetCellValue(Convert.ToDouble(value));
             else if (value is bool b)
                 cell.SetCellValue(b);
             else if (value is DateTime dt)
@@ -283,23 +189,57 @@ namespace Cliver
                 cell.SetCellValue(value?.ToString());
         }
 
+        ///// <summary>
+        ///// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel gets the last one which is considered correct.
+        ///// This methods gets the last one.
+        ///// </summary>
+        ///// <param name="cell"></param>
+        ///// <returns></returns>
+        //static public string _GetLink(this ICell cell)
+        //{
+        //    return cell?.Sheet.GetHyperlinkList()
+        //            .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
+        //            ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
+        //}
+
+        /// <summary>
+        /// (!)Some cells (made by a thrid-part app?) can have multiple links. NPOI gets the first one, while Excel seems to get the last one which is considered correct.
+        /// (!)This method follows NPOI routine because it is faster. To get links corrected once, call ISheet._FixLinks().
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
         static public string _GetLink(this ICell cell)
         {
             return cell?.Hyperlink?.Address;
+            //return cell?.Sheet.GetHyperlinkList()
+            //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
+            //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
         }
 
+        /// <summary>
+        /// (!)Removes all the old links for the cell, if any.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="link"></param>
+        /// <param name="hyperlinkType"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
         static public void _SetLink(this ICell cell, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
-            while (cell.Hyperlink != null)//it might be more than 1 link in the table
-                cell.RemoveHyperlink();//(!)seems to be necessary in any case to get rid of the old link. Otherwise sometimes the old link is not overriden by the new one.
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
+            while (cell.Hyperlink != null)//(!)BUG: there can be multiple links per cell
+                cell.RemoveHyperlink();//(!)necessary to get rid of all the old links if any. Otherwise sometimes the old link is not overriden by the new one.
+
             if (link == null)
             {
                 //if (cell.GetValueAsString() == LinkEmptyValueFiller)
                 //    cell.SetCellValue("");
                 return;
             }
-            if (string.IsNullOrEmpty(cell._GetValueAsString()))
-                cell.SetCellValue(Excel.LinkEmptyValueFiller);
+
+            if (string.IsNullOrWhiteSpace(cell._GetValueAsString()))
+                cell.SetCellValue(cell.Sheet.Workbook._Excel().LinkEmptyValueFiller);
 
             if (hyperlinkType == HyperlinkType.Unknown)
             {
@@ -319,6 +259,12 @@ namespace Cliver
                 cell.Hyperlink = new HSSFHyperlink(hyperlinkType) { Address = link };
             else
                 throw new Exception("Unsupported workbook type: " + cell.Sheet.Workbook.GetType().FullName);
+
+            //if (link != cell.Hyperlink.Address)
+            //{
+            //    var ls2 = cell.Sheet.GetHyperlinkList().Where(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex).ToList();
+            //    throw new Exception("Could not set link: " + link);
+            //}
         }
 
         /// <summary>
@@ -389,16 +335,24 @@ namespace Cliver
                 //else
                 //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
             }
-            formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+            try
+            {
+                formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         static public Excel.Range _GetMergedRange(this ICell cell)
         {
-            return cell.Sheet._GetMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
+            return cell?.Sheet._GetMergedRange(cell.RowIndex + 1, cell.ColumnIndex + 1);
         }
 
         static public void _ClearMerging(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             for (int i = cell.Sheet.MergedRegions.Count - 1; i >= 0; i--)
                 if (cell.Sheet.MergedRegions[i].IsInRange(cell.RowIndex, cell.ColumnIndex))
                 {
@@ -414,6 +368,7 @@ namespace Cliver
         /// <returns>1-based</returns>
         static public int _Y(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             return cell.RowIndex + 1;
         }
 
@@ -424,11 +379,14 @@ namespace Cliver
         /// <returns>1-based</returns>
         static public int _X(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
             return cell.ColumnIndex + 1;
         }
 
         static public void _CreateDropdown<T>(this ICell cell, IEnumerable<T> values, T value, bool allowBlank = true)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             List<string> vs = new List<string>();
             foreach (object v in values)
                 vs.Add(v?.ToString());
@@ -456,6 +414,8 @@ namespace Cliver
 
         static public IEnumerable<Excel.Image> _GetImages(this ICell cell)
         {
+            _ = cell ?? throw new ArgumentNullException(nameof(cell));
+
             return cell.Sheet._GetImages(cell._Y(), cell._X());
         }
     }

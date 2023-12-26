@@ -8,6 +8,7 @@ using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -17,42 +18,29 @@ namespace Cliver
     {
         public partial class Table
         {
-            public Table(Excel excel)
+            public Table(ISheet sheet)
             {
-                Excel = excel;
-                Sheet = Excel.Sheet;
-                IRow headersRow = Sheet._GetRow(1, true);
-                //empty-header columns are passed through
-                List<Column> columns = headersRow._GetCells(true)
-                    .Select(a => (header: a._GetValueAsString(), x: a._X()))
-                    .Where(a => !string.IsNullOrEmpty(a.header))
-                    .Select(a =>
-                    {
-                        Column c = new Column(a.header);
-                        c.X = a.x;
-                        c.Table = this;
-                        return c;
-                    })
-                    .ToList();
-                Columns = new ReadOnlyCollection<Column>(columns);
+                Excel = sheet.Workbook._Excel();
+                if (Excel == null)
+                    throw new Exception("The passed in sheet has no Cliver.Excel attached. Most likely it was created outside of Cliver.Excel.");
+                Sheet = sheet;
+                loadColumns();
             }
 
-            //public Table(Excel excel, SetColumnMode setColumnMode, params string[] headers) : this(excel, setColumnMode, (IEnumerable<string>)headers) { }
+            public Table(ISheet sheet, SetColumnMode setColumnMode, params Column[] columns) : this(sheet, setColumnMode, (IEnumerable<Column>)columns) { }
 
-            //public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<string> headers) : this(excel)
-            //{
-            //    SetColumns(setColumnMode, headers);
-            //}
-
-            public Table(Excel excel, SetColumnMode setColumnMode, params Column[] columns) : this(excel, setColumnMode, (IEnumerable<Column>)columns) { }
-
-            public Table(Excel excel, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(excel)
+            public Table(ISheet sheet, SetColumnMode setColumnMode, IEnumerable<Column> columns) : this(sheet)
             {
                 SetColumns(setColumnMode, columns);
             }
 
             readonly public ISheet Sheet;
             readonly public Excel Excel;
+
+            /// <summary>
+            /// Sheet (alias). (For easy writing/reading code because the scope of Excel.Table is ISheet.)
+            /// </summary>
+            public ISheet _ { get { return Sheet; } }
 
             /// <summary>
             /// Looks among the passed rows.
@@ -99,7 +87,7 @@ namespace Cliver
                 static Func<ICell, bool> getIsValueMatch(object value)
                 {
                     string v = value.ToString();
-                    return (c) => { return c?._GetValueAsString() == v; };
+                    return (c) => { return c._GetValueAsString() == v; };
                 }
 
                 /// <summary>
@@ -137,44 +125,35 @@ namespace Cliver
 
             public class Cell
             {
-                public Column Column { get; internal set; }
-                public object Value { get; internal set; }
+                public Column Column { get; set; }
+                public object Value { get; set; }
                 public int X { get { return Column.X; } }
+                public ICellStyle Style { get; set; } = null;
+                public CellType? Type { get; set; } = null;
+                public string Link { get; set; } = null;
 
                 /// <summary>
+                /// (!)Unregistered style will be registered.
                 /// (!)Column must be listed in Table.Columns
                 /// </summary>
                 /// <param name="column"></param>
                 /// <param name="value"></param>
+                /// <param name="style"></param>
                 /// <exception cref="Exception"></exception>
-                public Cell(Column column, object value)
+                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null, string link = null)
                 {
                     if (column.Table == null)
                         throw new Exception("Column is not initialized: Table is not set.");
                     Column = column;
                     Value = value;
+                    Style = style;
+                    Type = type;
+                    Link = link;
                 }
 
-                //public NamedValue(Table table, string header, object value, Func<ICell, bool> isValueMatch = null)
-                //{
-                //    Column = table.GetColumn(header);
-                //    Value = value;
-                //    IsValueMatch = isValueMatch;
-                //}
-
-                //public NamedValue(Table table, Func<string, bool> isHeaderMatch, object value, Func<ICell, bool> isValueMatch = null)
-                //{
-                //    Column = table.GetColumn(isHeaderMatch);
-                //    Value = value;
-                //    IsValueMatch = isValueMatch;
-                //}
-
-                //public NamedValue(Table table, Regex headerRegex, object value, Func<ICell, bool> isValueMatch = null)
-                //{
-                //    Column = table.GetColumn(headerRegex);
-                //    Value = value;
-                //    IsValueMatch = isValueMatch;
-                //}
+                public Cell(Style style, object value, CellType? type = null, string link = null) : this(style.Column, value, style.Value, type, link)
+                {
+                }
             }
 
             /// <summary>
@@ -216,35 +195,6 @@ namespace Cliver
                 return Sheet._GetRows(rowScope).Skip(1);
             }
 
-            //public IRow AppendRow<T>(IEnumerable<T> values)
-            //{
-            //    IRow r = Sheet._AppendRow(values);
-            //    setColumnStyles(r);
-
-            //    //if (cachedDataRows != null)
-            //    //    cachedDataRows.Add(r);
-
-            //    return r;
-            //}
-
-            void setColumnStyles(IRow row)
-            {
-                foreach (Column c in Columns)
-                    row._GetCell(c.X, true).CellStyle = c.DataStyle;
-            }
-
-            void setColumnTypes(IRow row)
-            {
-                foreach (Column c in Columns)
-                    if (c.DataType != null)
-                        row._GetCell(c.X, true).SetCellType(c.DataType.Value);
-            }
-
-            //public IRow AppendRow(params string[] values)
-            //{
-            //    return AppendRow((IEnumerable<string>)values);
-            //}
-
             public IRow AppendRow(IEnumerable<Cell> cells)
             {
                 IRow r = WriteRow(Sheet._GetLastRow(LastRowCondition.HasCells, false) + 1, cells);
@@ -256,27 +206,6 @@ namespace Cliver
                 return AppendRow((IEnumerable<Cell>)cells);
             }
 
-            //public IRow InsertRow<T>(int y, IEnumerable<T> values = null)
-            //{
-            //    IRow r = Sheet._InsertRow(y, values);
-            //    setColumnStyles(r);
-
-            //    //if (cachedDataRows != null)
-            //    //    cachedDataRows.Insert(r.RowNum, r);
-
-            //    return r;
-            //}
-
-            //public IRow InsertRow(int y, params string[] values)
-            //{
-            //    return InsertRow(y, (IEnumerable<string>)values);
-            //}
-
-            public IRow InsertRow(int y, params Cell[] cells)
-            {
-                return InsertRow(y, (IEnumerable<Cell>)cells);
-            }
-
             public IRow InsertRow(int y, IEnumerable<Cell> cells)
             {
                 int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
@@ -286,32 +215,37 @@ namespace Cliver
                 return r;
             }
 
-            //public IRow WriteRow<T>(int y, IEnumerable<T> values = null)
-            //{
-            //    IRow r = Sheet._WriteRow(y, values);
-            //    return r;
-            //}
+            public IRow InsertRow(int y, params Cell[] cells)
+            {
+                return InsertRow(y, (IEnumerable<Cell>)cells);
+            }
 
-            //public IRow WriteRow(int y, params string[] values)
-            //{
-            //    return WriteRow(y, (IEnumerable<string>)values);
-            //}
+            public IRow AddRow(int? y, IEnumerable<Cell> cells)
+            {
+                return y == null ? AppendRow(cells) : InsertRow(y.Value, cells);
+            }
+
+            public IRow AddRow(int? y, params Cell[] cells)
+            {
+                return AddRow(y, (IEnumerable<Cell>)cells);
+            }
 
             public IRow WriteRow(int y, IEnumerable<Cell> cells)
             {
-                IRow r = Sheet.GetRow(y - 1);
-                if (r == null)
-                {
-                    r = Sheet.CreateRow(y - 1);
-                    setColumnStyles(r);
-                    setColumnTypes(r);
-                }
+                IRow r = Sheet._GetRow(y, true);
                 foreach (var cell in cells)
                 {
                     //if (r.Sheet != cell.Column.Table.Sheet)
                     //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
                     var c = r._GetCell(cell.X, true);
+                    var type = cell.Type != null ? cell.Type : cell.Column.Type;
+                    if (type != null)
+                        c.SetCellType(type.Value);
                     c._SetValue(cell.Value);
+                    var style = cell.Style != null ? cell.Style : cell.Column.Style;
+                    if (style != null)
+                        c.CellStyle = style;
+                    c._SetLink(cell.Link);
                 }
                 return r;
             }
@@ -321,27 +255,10 @@ namespace Cliver
                 return WriteRow(y, (IEnumerable<Cell>)cells);
             }
 
-            public IRow RemoveRow(int y, bool shiftRowsBelow)
+            public IRow RemoveRow(int y, MoveRegionMode moveRegionMode = null)
             {
-                return Sheet._RemoveRow(y, shiftRowsBelow);
+                return Sheet._RemoveRow(y, moveRegionMode);
             }
-
-            public void MoveRow(int y1, int y2)
-            {
-                Sheet._MoveRow(y1, y2);
-            }
-
-            ///// <summary>
-            ///// (!)Seeks the column each call.
-            ///// </summary>
-            ///// <param name="row"></param>
-            ///// <param name="header"></param>
-            ///// <param name="create"></param>
-            ///// <returns></returns>
-            //public ICell GetCell(IRow row, string header, bool create)
-            //{
-            //    return row._GetCell(GetColumn(header).X, create);
-            //}
 
             public ICell GetCell(IRow row, Column column, bool create)
             {
@@ -351,21 +268,6 @@ namespace Cliver
             public ICell GetCell(int y, Column column, bool create)
             {
                 return Sheet._GetCell(y, column.X, create);
-            }
-
-            public void SetStyles(IRow row, params ICellStyle[] styles)
-            {
-                row._SetStyles(1, styles);
-            }
-
-            public void SetStyles(IRow row, IEnumerable<ICellStyle> styles)
-            {
-                SetStyles(row, styles.ToArray());
-            }
-
-            virtual public void Save(string file = null)
-            {
-                Excel.Save(file);
             }
         }
     }

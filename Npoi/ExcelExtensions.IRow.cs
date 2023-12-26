@@ -3,7 +3,9 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
+using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,23 +15,43 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
+        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+        {
+            var styleCache = row.Sheet.Workbook._Excel().OneWorkbookStyleCache;
+            foreach (ICell cell in row.Cells)
+                cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
+        }
+
+        static public IRow _Copy(this IRow row1, int y2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            _ = row1 ?? throw new ArgumentNullException(nameof(row1));
+            return row1.Sheet._CopyRow(row1._Y(), y2, copyCellMode, sheet2, styleMap);
+        }
+
+        static public IRow _Move(this IRow row1, int y2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            _ = row1 ?? throw new ArgumentNullException(nameof(row1));
+            return row1.Sheet._MoveRow(row1._Y(), y2, insert, moveRegionMode, sheet2, styleMap);
+        }
+
         /// <summary>
-        /// Remove the row from its sheet.
+        /// Remove the row from its sheet and (!)shift rows below which can be slow. Not to shift, use Clear()
         /// </summary>
         /// <param name="row"></param>
-        static public void _Remove(this IRow row)
+        /// <param name="moveRegionMode"></param>
+        /// <param name="preserveCells">
+        /// (!)Done in a hacky way through Reflection so might change with POI update.
+        /// (!)GetCell() might work incorrectly on such rows.
+        /// </param>
+        static public void _Remove(this IRow row, MoveRegionMode moveRegionMode = null, bool preserveCells = false)
         {
-            row.Sheet.RemoveRow(row);
+            _ = row ?? throw new ArgumentNullException(nameof(row));
+            row.Sheet._RemoveRow(row._Y(), moveRegionMode, preserveCells);
         }
 
-        public static int _LastCellY(this IRow row)
+        public static int _LastCellX(this IRow row)
         {
             return row.LastCellNum + 1;
-        }
-
-        static public void _Move(this IRow row, int y2)
-        {
-            row.Sheet._MoveRow(row._Y(), y2);
         }
 
         static public void _RemoveCell(this IRow row, int x)
@@ -46,36 +68,27 @@ namespace Cliver
                 row.MoveCell(c, x2 - 1);
         }
 
-        static public void _SetStyle(this IRow row, ICellStyle style, Excel.RowStyleMode rowStyleMode)
-        {
-            switch (rowStyleMode)
-            {
-                case Excel.RowStyleMode.RowOnly:
-                    row.RowStyle = style;
-                    break;
-                case Excel.RowStyleMode.RowAndCells:
-                    row.RowStyle = style;
-                    foreach (ICell c in row.Cells)
-                        c.CellStyle = style;
-                    break;
-                case Excel.RowStyleMode.CellsOnly:
-                    foreach (ICell c in row.Cells)
-                        c.CellStyle = style;
-                    break;
-                default:
-                    throw new Exception("Unknown option: " + rowStyleMode);
-            }
-        }
+        //static public void _SetStyle(this IRow row, ICellStyle style, RowStyleMode rowStyleMode)
+        //{
+        //    if (rowStyleMode.HasFlag(RowStyleMode.Row))
+        //        row.RowStyle = style;
+        //    if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
+        //        foreach (ICell c in row.Cells)
+        //            c.CellStyle = style;
+        //    else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
+        //        for (int x = row.LastCellNum; x > 0; x--)
+        //            row._GetCell(x, true).CellStyle = style;
+        //}
 
-        static public void _ShiftCellsRight(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
             for (int x = row._GetLastColumn(true); x >= x1; x--)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, onFormulaCellMoved, row.Sheet);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x + shift, copyCellMode);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift < 0)
                 throw new Exception("Shift cannot be < 0: " + shift);
@@ -83,15 +96,15 @@ namespace Cliver
                 throw new Exception("Shifting left before the first column: shift=" + shift + ", x1=" + x1);
             int x2 = row._GetLastColumn(true) + 1;
             for (int x = x1; x <= x2; x++)
-                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, onFormulaCellMoved, row.Sheet);
+                row.Sheet._MoveCell(row._Y(), x, row._Y(), x - shift, copyCellMode);
         }
 
-        static public void _ShiftCells(this IRow row, int x1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCells(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {
             if (shift >= 0)
-                _ShiftCellsRight(row, x1, shift, onFormulaCellMoved);
+                _ShiftCellsRight(row, x1, shift, copyCellMode);
             else
-                _ShiftCellsLeft(row, x1, -shift, onFormulaCellMoved);
+                _ShiftCellsLeft(row, x1, -shift, copyCellMode);
         }
 
         static public ICell _GetCell(this IRow row, int x, bool createCell)
@@ -115,7 +128,7 @@ namespace Cliver
             for (int i = row.Cells.Count - 1; i >= 0; i--)
             {
                 var c = row.Cells[i];
-                if (!string.IsNullOrWhiteSpace(c?._GetValueAsString()))
+                if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
                 {
                     if (includeMerged)
                     {
@@ -156,19 +169,50 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="createCells"></param>
         /// <returns></returns>
-        static public IEnumerable<ICell> _GetCells(this IRow row, bool createCells)
+        static public IEnumerable<ICell> _GetCells(this IRow row, CellScope cellScope)
         {
-            return _GetCellsInRange(row, createCells);
+            return _GetCellsInRange(row, cellScope);
         }
 
-        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, bool createCells, int x1 = 1, int? x2 = null)
+        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, CellScope cellScope, int x1 = 1, int? x2 = null)
         {
-            if (row == null)
-                yield break;
+            _ = row ?? throw new ArgumentNullException(nameof(row));
             if (x2 == null)
-                x2 = row.LastCellNum;
-            for (int x = x1; x <= x2; x++)
-                yield return row._GetCell(x, createCells);
+                x2 = row.LastCellNum + 1;
+            switch (cellScope)
+            {
+                case CellScope.NotEmpty:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        if (!string.IsNullOrWhiteSpace(c._GetValueAsString()))
+                            yield return c;
+                    }
+                    break;
+                case CellScope.NotNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        if (c != null)
+                            yield return c;
+                    }
+                    break;
+                case CellScope.IncludeNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, false);
+                        yield return c;
+                    }
+                    break;
+                case CellScope.CreateIfNull:
+                    for (int x = x1; x <= x2; x++)
+                    {
+                        var c = row._GetCell(x, true);
+                        yield return c;
+                    }
+                    break;
+                default: throw new Exception("Unknown option: " + cellScope.ToString());
+            }
         }
 
         /// <summary>
@@ -200,12 +244,15 @@ namespace Cliver
 
         static public void _SetStyles(this IRow row, int x1, params ICellStyle[] styles)
         {
-            var cs = row._GetCellsInRange(true, x1, styles.Length).ToList();
             for (int i = x1 - 1; i < styles.Length; i++)
-                cs[i].CellStyle = styles[i];
+                row._GetCell(i + 1, true).CellStyle = styles[i];
         }
 
-
+        /// <summary>
+        /// Delete the row as an object but not shift rows below.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="clearMerging"></param>
         static public void _Clear(this IRow row, bool clearMerging)
         {
             if (clearMerging)
@@ -247,12 +294,10 @@ namespace Cliver
         /// <param name="x"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this IRow row, int x, bool allowNull = false)
+        static public string _GetValueAsString(this IRow row, int x, StringMode stringMode = DefaultStringMode)
         {
             ICell c = row._GetCell(x, false);
-            if (c == null)
-                return allowNull ? null : string.Empty;
-            return c._GetValueAsString(allowNull);
+            return c._GetValueAsString(stringMode);
         }
 
         /// <summary>

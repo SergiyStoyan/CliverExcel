@@ -17,24 +17,11 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <param name="sheet"></param>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        static public Column _AppendColumn(this ISheet sheet, params string[] values)
+        static public Column _AppendColumn<T>(this ISheet sheet, params T[] values)
         {
-            return sheet._AppendColumn(values);
+            return sheet._AppendColumn((IEnumerable<T>)values);
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sheet"></param>
-        /// <param name="values"></param>
-        /// <returns></returns>
         static public Column _AppendColumn<T>(this ISheet sheet, IEnumerable<T> values)
         {
             int x = sheet._GetLastColumn(false) + 1;
@@ -43,32 +30,22 @@ namespace Cliver
             return c;
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sheet"></param>
-        /// <param name="x"></param>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        static public Column _InsertColumn<T>(this ISheet sheet, int x, IEnumerable<T> values = null)
+        static public Column _InsertColumn<T>(this ISheet sheet, int x, IEnumerable<T> values = null, MoveRegionMode moveRegionMode = null)
         {
-            sheet._ShiftColumnsRight(x, 1);
+            sheet._ShiftColumnsRight(x, 1, moveRegionMode);
             Column c = new Column(sheet, x);
             c._Write(values);
             return c;
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <param name="sheet"></param>
-        /// <param name="x"></param>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        static public Column _InsertColumn(this ISheet sheet, int x, params string[] values)
+        static public Column _InsertColumn<T>(this ISheet sheet, int x, params T[] values)
         {
-            return sheet._InsertColumn(x, (IEnumerable<string>)values);
+            return sheet._InsertColumn(x, (IEnumerable<T>)values);
+        }
+
+        static public void _InsertColumnRange(this ISheet sheet, int x, int count, MoveRegionMode moveRegionMode = null)
+        {
+            sheet._ShiftColumnsRight(x, count, moveRegionMode);
         }
 
         static public Column _WriteColumn<T>(this ISheet sheet, int x, IEnumerable<T> values)
@@ -78,32 +55,21 @@ namespace Cliver
             return c;
         }
 
-        static public Column _WriteColumn(this ISheet sheet, int x, params string[] values)
+        static public Column _WriteColumn<T>(this ISheet sheet, int x, params T[] values)
         {
-            return sheet._WriteColumn(x, (IEnumerable<string>)values);
+            return sheet._WriteColumn(x, (IEnumerable<T>)values);
         }
 
-        /// <summary>
-        /// (!)It does not care about formulas and links. Shift*() does.
-        /// </summary>
-        /// <param name="sheet"></param>
-        /// <param name="x"></param>
-        /// <param name="shiftRemainingColumns"></param>
-        static public void _RemoveColumn(this ISheet sheet, int x, bool shiftRemainingColumns)
+        static public void _RemoveColumn(this ISheet sheet, int x, MoveRegionMode moveRegionMode = null)
         {
-            if (shiftRemainingColumns)
-                sheet._GetRows(RowScope.NotNull).ForEach(a => a._RemoveCell(x));
-            else
-                sheet._GetRows(RowScope.NotNull).ForEach(a => a.GetCell(x - 1)?.SetBlank());
+            sheet._RemoveColumnRange(x, x, moveRegionMode);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="includeMerged"></param>
-        /// <param name="x1"></param>
-        /// <param name="x2"></param>
-        /// <returns>1-based, otherwise 0</returns>
+        static public void _RemoveColumnRange(this ISheet sheet, int x1, int x2, MoveRegionMode moveRegionMode = null)
+        {
+            sheet._ShiftColumnsLeft(x2 + 1, x2 - x1 + 1, moveRegionMode);
+        }
+
         static public int _GetLastNotEmptyRowInColumnRange(this ISheet sheet, bool includeMerged, int x1 = 1, int? x2 = null)
         {
             if (x2 == null)
@@ -114,7 +80,7 @@ namespace Cliver
                 if (row == null)
                     continue;
                 var c = row.Cells.Find(a => a.ColumnIndex + 1 >= x1 && a.ColumnIndex < x2 && !string.IsNullOrEmpty(a._GetValueAsString()));
-                if (string.IsNullOrEmpty(c?._GetValueAsString()))
+                if (string.IsNullOrEmpty(c._GetValueAsString()))
                     continue;
                 if (includeMerged)
                 {
@@ -141,7 +107,7 @@ namespace Cliver
                 if (row == null)
                     continue;
                 var c = row.Cells.Find(a => xs.Contains(a.ColumnIndex + 1) && !string.IsNullOrEmpty(a._GetValueAsString()));
-                if (string.IsNullOrEmpty(c?._GetValueAsString()))
+                if (string.IsNullOrEmpty(c._GetValueAsString()))
                     continue;
                 if (includeMerged)
                 {
@@ -177,23 +143,18 @@ namespace Cliver
             if (row == null)
                 return 0;
             for (int x = 1; x <= row.Cells.Count; x++)
-                if (cellValueRegex.IsMatch(sheet._GetValueAsString(cellY, x, false)))
+                if (cellValueRegex.IsMatch(sheet._GetValueAsString(cellY, x)))
                     return x;
             return 0;
         }
 
-        static public void _ShiftColumnsRight(this ISheet sheet, int x, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftColumnsRight(this ISheet sheet, int x, int shift, MoveRegionMode moveRegionMode = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
             int lastColumnX = x;
             columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
-            //var rows = Sheet._GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //while (rows.MoveNext())
-            for (int y0 = sheet.LastRowNum; y0 >= 0; y0--)
+            foreach (IRow row in sheet._GetRows(RowScope.NotNull))
             {
-                IRow row = sheet.GetRow(y0);
-                if (row == null)
-                    continue;
                 int columnX = row._GetLastColumn(false);
                 if (lastColumnX < columnX)
                 {
@@ -202,25 +163,38 @@ namespace Cliver
                     lastColumnX = columnX;
                 }
                 for (int i = columnX; i >= x; i--)
-                    sheet._MoveCell(row._Y(), i, row._Y(), i + shift, onFormulaCellMoved, sheet);
+                    sheet._MoveCell(row._Y(), i, row._Y(), i + shift, moveRegionMode);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 sheet._SetColumnWidth(columnX + shift, columnXs2width[columnX]);
+
+            if (moveRegionMode?.UpdateMergedRegions == true)
+                for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = sheet.GetMergedRegion(i);
+                    if (a.FirstColumn < x - 1)
+                    {
+                        if (a.LastColumn < x - 1)
+                        { }
+                        else
+                            a.LastColumn += shift;
+                    }
+                    else
+                    {
+                        a.FirstColumn += shift;
+                        a.LastColumn += shift;
+                    }
+                }
         }
 
-        static public void _ShiftColumnsLeft(this ISheet sheet, int x, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftColumnsLeft(this ISheet sheet, int x, int shift, MoveRegionMode moveRegionMode = null)
         {
             Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
             int lastColumnX = x;
             columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
-            //var rows = Sheet._GetRowEnumerator();//!!!buggy: sometimes misses added rows
-            //while (rows.MoveNext())
-            for (int y0 = sheet.LastRowNum; y0 >= 0; y0--)
+            foreach (IRow row in sheet._GetRows(RowScope.NotNull))
             {
-                IRow row = sheet.GetRow(y0);
-                if (row == null)
-                    continue;
-                int columnX = row._GetLastColumn(true);
+                int columnX = row._GetLastColumn(false);
                 if (lastColumnX < columnX)
                 {
                     for (int i = lastColumnX; i < columnX; i++)
@@ -228,10 +202,32 @@ namespace Cliver
                     lastColumnX = columnX;
                 }
                 for (int i = x; i <= columnX; i++)
-                    sheet._MoveCell(row._Y(), i, row._Y(), i - shift, onFormulaCellMoved, sheet);
+                    sheet._MoveCell(row._Y(), i, row._Y(), i - shift, moveRegionMode);
             }
             foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
                 sheet._SetColumnWidth(columnX - shift, columnXs2width[columnX]);
+
+            if (moveRegionMode?.UpdateMergedRegions == true)
+                for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
+                {
+                    NPOI.SS.Util.CellRangeAddress a = sheet.GetMergedRegion(i);
+                    if (a.FirstColumn < x - 1)
+                    {
+                        if (a.LastColumn < x - 1)
+                        { }
+                        else if (a.LastColumn <= x - 1 + shift)
+                            a.LastColumn = x - 1;
+                        else
+                            a.LastColumn -= shift;
+                    }
+                    else if (a.LastColumn <= x - 1 + shift)
+                        sheet.RemoveMergedRegion(i);
+                    else
+                    {
+                        a.FirstColumn -= shift;
+                        a.LastColumn -= shift;
+                    }
+                }
         }
 
         /// <summary>
@@ -244,14 +240,59 @@ namespace Cliver
             return sheet._GetLastNotEmptyColumnInRowRange(includeMerged, 1, null);
         }
 
-        static public void _CopyColumn(this ISheet sheet, string fromColumnName, ISheet toSheet, string toColumnName = null)
+        static public Column _CopyColumn(this ISheet sheet, string column1Name, string column2Name, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet._GetColumn(fromColumnName).Copy(toSheet, toColumnName);
+            return sheet._CopyColumn(GetX(column1Name), GetX(column2Name), copyCellMode, sheet2, styleMap);
         }
 
-        static public void _CopyColumn(this ISheet sheet, int fromX, ISheet toSheet, int toX)
+        static public Column _CopyColumn(this ISheet sheet, int x1, int x2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            sheet._GetColumn(fromX).Copy(toSheet, toX);
+            Column column1 = new Column(sheet, x1);
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && x1 == x2)
+                return column1;
+            Column column2 = new Column(sheet2, x2);
+            column2.Clear(false);
+            column2.SetWidth(column1.GetWidth());
+            foreach (ICell c1 in column1.GetCells(CellScope.NotNull))
+                c1._Copy(x2, c1._X(), copyCellMode, sheet2, styleMap);
+            return column2;
+        }
+
+        static public Column _MoveColumn(this ISheet sheet, string column1Name, string column2Name, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            return sheet._MoveColumn(GetX(column1Name), GetX(column2Name), insert, moveRegionMode, sheet2, styleMap);
+        }
+
+        static public Column _MoveColumn(this ISheet sheet, int x1, int x2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        {
+            sheet2 = sheet2 ?? sheet;
+            if (sheet2 == sheet && x1 == x2)//(!)otherwise it will be removed
+                return sheet._GetColumn(x1);
+            if (insert)
+            {
+                sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
+
+                if (moveRegionMode?.UpdateMergedRegions == true)
+                {
+                    sheet.MergedRegions.ForEach(a =>
+                    {
+                        if (a.FirstColumn < x2 - 1)
+                        {
+                            if (a.LastColumn >= x2 - 1)
+                                a.LastColumn += 1;
+                        }
+                        else
+                        {
+                            a.FirstColumn += 1;
+                            a.LastColumn += 1;
+                        }
+                    });
+                }
+            }
+            var column2 = sheet._CopyColumn(x1, x2, moveRegionMode, sheet2, styleMap);
+            sheet._RemoveColumn(x1, moveRegionMode);
+            return column2;
         }
 
         static public int _GetLastNotEmptyRowInColumn(this ISheet sheet, bool includeMerged, int x)
@@ -297,19 +338,19 @@ namespace Cliver
             return sheet._GetLastNotEmptyRowInColumnRange(includeMerged, 1, null);
         }
 
-        static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftColumnCellsDown(this ISheet sheet, int x, int y1, int shift, CopyCellMode copyCellMode = null)
         {
-            sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, onFormulaCellMoved);
+            sheet._GetColumn(x)?.ShiftCellsDown(y1, shift, copyCellMode);
         }
 
-        static public void _ShiftColumnCellsUp(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftColumnCellsUp(this ISheet sheet, int x, int y1, int shift, CopyCellMode copyCellMode = null)
         {
-            sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, onFormulaCellMoved);
+            sheet._GetColumn(x)?.ShiftCellsUp(y1, shift, copyCellMode);
         }
 
-        static public void _ShiftColumnCells(this ISheet sheet, int x, int y1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftColumnCells(this ISheet sheet, int x, int y1, int shift, CopyCellMode copyCellMode = null)
         {
-            sheet._GetColumn(x)?.ShiftCells(y1, shift, onFormulaCellMoved);
+            sheet._GetColumn(x)?.ShiftCells(y1, shift, copyCellMode);
         }
 
         /// <summary>
@@ -319,6 +360,12 @@ namespace Cliver
         static public void _AutosizeColumns(this ISheet sheet, float padding = 0)
         {
             sheet._AutosizeColumnsInRange(1, null, padding);
+        }
+
+        static public void _ClearColumnRange(this ISheet sheet, int x1, int x2, bool clearMerging)
+        {
+            for (int x = x1; x <= x2; x++)
+                sheet._ClearColumn(x, clearMerging);
         }
 
         static public void _ClearColumn(this ISheet sheet, int x, bool clearMerging)
@@ -386,9 +433,9 @@ namespace Cliver
             sheet._GetColumn(x).Autosize(padding);
         }
 
-        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x, RowScope rowScope)
+        static public IEnumerable<ICell> _GetCellsInColumn(this ISheet sheet, int x, CellScope cellScope)
         {
-            return sheet._GetColumn(x).GetCells(rowScope);
+            return sheet._GetColumn(x).GetCells(cellScope);
         }
 
         /// <summary>

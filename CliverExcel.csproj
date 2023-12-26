@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>6.2.1</Version>
+	  <Version>7.5.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,36 +17,13 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v6.0 =&gt; v6.2
-- unregistered Style and Font.Index=-1;
-- AreColorsEqual() fixed;
-- _AreStylesEqual() added;
-- _FindEqualStyles() fixed;
-- _GetFont() added;
-
-v5.8 =&gt; v6.0
-Minor API changes, including the following:
-- LastRowY(), GetLastNotEmptyRow() added;
-- _LastCellY(), _Move() added;
-- SetColumns() fixed;
-- _MoveRow() fixed;
-- _SetComment() added;
-- _OpenSheet() updated;
-- IWorkbook.Author added;
-- SetDataStyle() =&gt; ApplyDataStyle();
-- SetDataType() =&gt; ApplyDataType();
-- ShiftCells*() fixed;
-- _MoveCell() fixed;
-
-v5.7 =&gt; v5.8
-- SetRowStyleMode changed to RowStyleMode;
-- ShiftCells*() fixed;
-- ShiftCells() added;
-
-v5.6 =&gt; v5.7
-- _MoveRow() added;
-- SetColumnMode changed;
-- SetRowStyleMode changed;</PackageReleaseNotes>
+	  <PackageReleaseNotes>v6 =&gt; v7
+- Sheet is removed from Cliver.Excel;
+- Cliver.Excel stripped off almost all methods;
+- many extension methods were removed, changed, added;
+- Excel.StyleCache added;
+- Excel.Table updated;
+</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

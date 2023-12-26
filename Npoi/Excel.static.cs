@@ -7,12 +7,29 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.Util;
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using NPOI.HSSF.UserModel;
+using NPOI.HSSF.Util;
 
 namespace Cliver
 {
     public partial class Excel
     {
+        static internal Excel Get(IWorkbook workbook)
+        {
+            return workbooks2Excel.GetValue(workbook, (IWorkbook w) =>
+            {
+                return new Excel(null);
+            });
+        }
+
+        /// <summary>
+        /// Set it to make Excel keep links absolute
+        /// </summary>
+        public const string AbsoluteLinksHyperlinkBase = "x";
+
         static public string GetSafeSheetName(string name)
         {
             name = Regex.Replace(name, @"\:", "-");//npoi does not accept :
@@ -70,8 +87,10 @@ namespace Cliver
             return c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        static public void PasteRange(ICell[][] rangeCells, int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+        static public void PasteRange(ICell[][] rangeCells, int y2, int x2, CopyCellMode copyCellMode, ISheet sheet2 = null, StyleMap styleMap2 = null)
         {
+            if (sheet2 == null)
+                throw new Exception("sheet2 must not be NULL.");
             for (int yi = rangeCells.Length - 1; yi >= 0; yi--)
             {
                 ICell[] rowCells = rangeCells[yi];
@@ -79,11 +98,97 @@ namespace Cliver
                 {
                     var c = rowCells[xi];
                     if (c != null)
-                        c._Copy(toY + yi, toX + xi, onFormulaCellMoved, toSheet);
+                        c._Copy(y2 + yi, x2 + xi, copyCellMode, sheet2, styleMap2);
                     else
-                        toSheet._RemoveCell(toY + yi, toX + xi);
+                        sheet2._RemoveCell(y2 + yi, x2 + xi, copyCellMode?.CopyComment == true);
                 }
             }
+        }
+
+        static public bool AreFontsEqual(IFont font1, IFont font2)
+        {
+            return font1.Charset == font2.Charset
+                && font1.Color == font2.Color
+                && font1.FontHeight == font2.FontHeight
+                && font1.FontName == font2.FontName
+                && font1.IsBold == font2.IsBold
+                && font1.IsItalic == font2.IsItalic
+                && font1.IsStrikeout == font2.IsStrikeout
+                && font1.TypeOffset == font2.TypeOffset
+                && font1.Underline == font2.Underline;
+        }
+
+        static public IEnumerable<IFont> FindEqualFonts(IFont font, IEnumerable<IFont> searchFonts)
+        {
+            foreach (IFont font2 in searchFonts)
+                if (AreFontsEqual(font, font2))
+                    yield return font2;
+        }
+
+        /// <summary>
+        /// Find or resgister the color. (!)It may be not exact match.
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public static HSSFColor GetRegisteredHSSFColor(HSSFWorkbook workbook, Excel.Color color, bool allowSimilarColor = true)
+        {
+            HSSFPalette palette = workbook.GetCustomPalette();
+            HSSFColor hssfColor = palette.FindColor(color.R, color.G, color.B);
+            if (hssfColor != null)
+                return hssfColor;
+            try
+            {
+                hssfColor = palette.AddColor(color.R, color.G, color.B);
+            }
+            catch
+            {//pallete is full
+                bool isIndexedColorUsed(short c/*, List<ICellStyle> unusedStyles, List<IFont> unusedFonts*/)
+                {
+                    for (int i = workbook.NumCellStyles - 1; i >= 0; i--)
+                    {
+                        ICellStyle s = workbook.GetCellStyleAt(i);
+                        if (s.BorderDiagonalColor == c
+                            || s.BottomBorderColor == c
+                            || s.FillBackgroundColor == c
+                            || s.FillForegroundColor == c
+                            || s.LeftBorderColor == c
+                            || s.RightBorderColor == c
+                            || s.TopBorderColor == c
+                            )
+                            //if (!unusedStyles.Contains(s))
+                            return true;
+                    }
+                    for (short i = (short)(workbook.NumberOfFonts - 1); i >= 0; i--)
+                    {
+                        IFont f = workbook.GetFontAt(i);
+                        if (f.Color == c)
+                            //if (!unusedFonts.Contains(f))
+                            return true;
+                    }
+                    return false;
+                }
+                short? findUnusedColorIndex()
+                {
+                    //workbook._OptimizeStylesAndFonts(out List<ICellStyle> unusedStyles, out List<IFont> unusedFonts);
+                    for (short j = 0x8; j <= 0x40; j++)//the first color in the palette has the index 0x8, the second has the index 0x9, etc. through 0x40
+                    {
+                        if (!isIndexedColorUsed(j))
+                            return j;
+                    }
+                    return null;
+                }
+                short? ci = findUnusedColorIndex();
+                if (ci == null)
+                {
+                    if (!allowSimilarColor)
+                        throw new Exception("The palette of indexed colors is full and all the colors are in use. Consider optimizing styles and fonts.");
+                    ci = palette.FindSimilarColor(color.R, color.G, color.B).Indexed;
+                }
+                palette.SetColorAtIndex(ci.Value, color.R, color.G, color.B);
+                hssfColor = palette.GetColor(ci.Value);
+            }
+            return hssfColor;
         }
     }
 }

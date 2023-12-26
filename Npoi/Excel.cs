@@ -9,46 +9,19 @@ using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Cliver
 {
     /// <summary>
-    /// It can have only one sheet active at time. Changing the active sheet is done by OpenSheet().
     /// (!)Row and column numbers, indexes of objects like sheets, are 1-based, when native NPOI objects tend to use 0-based indexes.
     /// </summary>
     public partial class Excel : IDisposable
     {
-        static Excel()
-        {
-        }
-
-        /// <summary>
-        /// (!)No sheet auto-created. If the given sheetIndex does not exist, Sheet will be NULL.
-        /// </summary>
-        /// <param name="file"></param>
-        /// <param name="sheetIndex"></param>
-        public Excel(string file, int sheetIndex = 1)
+        public Excel(string file = null)
         {
             File = file;
-            init();
-            OpenSheet(sheetIndex);
-        }
 
-        /// <summary>
-        /// Use it when you need the sheet auto-created. If the given sheetName does not exist and createSheet=TRUE, the sheet will be created.
-        /// </summary>
-        /// <param name="file"></param>
-        /// <param name="sheetName"></param>
-        /// <param name="createSheet"></param>
-        public Excel(string file, string sheetName, bool createSheet = true)
-        {
-            File = file;
-            init();
-            OpenSheet(sheetName, createSheet);
-        }
-
-        void init()
-        {
             if (System.IO.File.Exists(File))
                 using (FileStream fs = new FileStream(File, FileMode.Open, FileAccess.Read))
                 {
@@ -70,11 +43,27 @@ namespace Cliver
                 else
                     Workbook = new HSSFWorkbook();
             }
+
+            OneWorkbookStyleCache = new StyleCache(Workbook);
+            DefaultCommentStyle = new CommentStyle(Workbook);
+
+            //workbooks2Excel[Workbook] = new WeakReference<Excel>(this);
+            workbooks2Excel.Add(Workbook, this);
         }
+        //readonly static Dictionary<IWorkbook, WeakReference<Excel>> workbooks2Excel = new Dictionary<IWorkbook, WeakReference<Excel>>();
+        static System.Runtime.CompilerServices.ConditionalWeakTable<IWorkbook, Excel> workbooks2Excel = new System.Runtime.CompilerServices.ConditionalWeakTable<IWorkbook, Excel>();
 
         public IWorkbook Workbook { get; private set; }
 
+        /// <summary>
+        /// Workbook (alias). (For easy writing/reading code because the scope of Excel is IWorkbook.)
+        /// </summary>
+        public IWorkbook _ { get { return Workbook; } }
+
         public string File { get; private set; }
+        readonly internal StyleCache OneWorkbookStyleCache;
+        public string LinkEmptyValueFiller = "           ";
+        public CommentStyle DefaultCommentStyle;
 
         ~Excel()
         {
@@ -89,6 +78,7 @@ namespace Cliver
                 {
                     Workbook.Close();
                     Workbook.Dispose();
+                    workbooks2Excel.Remove(Workbook);
                     Workbook = null;
                 }
             }
@@ -96,39 +86,34 @@ namespace Cliver
 
         public bool Disposed { get { return Workbook == null; } }
 
-        /// <summary>         
-        /// NULL- and type-safe.
-        /// (!)Never returns NULL.
-        /// </summary>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public string this[int y, int x]
+        public void Save(string file = null)
         {
-            get
-            {
-                return GetValueAsString(y, x, false);
-            }
-            set
-            {
-                GetCell(y, x, true).SetCellValue(value);
-            }
+            if (file != null)
+                File = file;
+            Workbook._Save(File);
         }
 
         /// <summary>
-        /// NULL- and type-safe.
-        /// (!)Never returns NULL.
+        /// Makes sure that the file is not mangled in the case of a error.
         /// </summary>
-        public string this[string cellAddress]
+        /// <param name="file"></param>
+        public void SafeSave(string file = null)
         {
-            get
+            if (file != null)
+                File = file;
+
+            string tempFile = PathRoutines.InsertSuffixBeforeFileExtension(File, "_TEMP");
+            try
             {
-                return Sheet._GetValueAsString(cellAddress, false);
+                Workbook._Save(tempFile);
             }
-            set
+            catch
             {
-                Sheet._SetValue(cellAddress, value);
+                if (System.IO.File.Exists(File))
+                    System.IO.File.Delete(tempFile);
+                throw;
             }
+            FileSystemRoutines.MoveFile(tempFile, File, true);
         }
 
         ///// <summary> 
@@ -136,14 +121,14 @@ namespace Cliver
         ///// </summary>
         ///// <param name="y">1-based</param>
         ///// <returns></returns>
-        //public IRow this[int y]!!!do not do it: it is ambiguous: row or column?
+        //public IRow this[int y]!!!do not do that: it is ambiguous: row or column?
         //{
         //    get
         //    {
         //        return Sheet._GetRow(y, true);
         //    }
         //}
-        //public Column this[string columnName]//!!!do not do it: it is used for Sheet
+        //public Column this[string columnName]//!!!do not do that: it is used for Sheet
         //{
         //    get
         //    {
@@ -200,5 +185,221 @@ namespace Cliver
             {
             }
         }
+
+        public class RichTextStringFormattingRun
+        {
+            public int Start;
+            public int ExcludedEnd;
+            public IFont Font;
+            public RichTextStringFormattingRun(int start, int excludedEnd, IFont font)
+            {
+                Start = start;
+                ExcludedEnd = excludedEnd;
+                Font = font;
+            }
+        }
+
+        public delegate void OnFormulaCellMoved(ICell fromCell, ICell toCell);
+
+        //public enum ColumnScope
+        //{
+        //    /// <summary>
+        //    /// Returns only columns with at least one not empty cell.
+        //    /// (!)Slow due to checking all the cells' values.
+        //    /// </summary>
+        //    NotEmpty,
+        //    /// <summary>
+        //    /// Returns only columns with cells.
+        //    /// </summary>
+        //    WithCells,
+        //    /// <summary>
+        //    /// Returns only rows existing as objects.
+        //    /// </summary>
+        //    NotNull,
+        //    /// <summary>
+        //    /// Returns all the rows withing the range with non-existing rows represented as NULL. 
+        //    /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
+        //    /// </summary>
+        //    IncludeNull,
+        //    /// <summary>
+        //    /// Returns all the rows withing the range with non-existing rows having been created.
+        //    /// </summary>
+        //    CreateIfNull
+        //}
+
+        public enum RowScope
+        {
+            /// <summary>
+            /// Returns only rows with at least one not empty cell.
+            /// (!)Slow due to checking all the cells' values.
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Returns only rows with cells.
+            /// </summary>
+            WithCells,
+            /// <summary>
+            /// Returns only rows existing as objects.
+            /// </summary>
+            NotNull,
+            /// <summary>
+            /// Returns all the rows withing the range with non-existing rows represented as NULL. 
+            /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
+            /// </summary>
+            IncludeNull,
+            /// <summary>
+            /// Returns all the rows withing the range with non-existing rows having been created.
+            /// </summary>
+            CreateIfNull
+        }
+
+        public enum CellScope
+        {
+            /// <summary>
+            /// Returns only not empty cells.
+            /// (!)Slow due to checking all the cells' values.
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Returns only cells existing as objects.
+            /// </summary>
+            NotNull,
+            /// <summary>
+            /// Returns all the cells withing the range with non-existing rows represented as NULL.
+            /// </summary>
+            IncludeNull,
+            /// <summary>
+            /// Returns all the cells withing the range with non-existing cells having been created.
+            /// </summary>
+            CreateIfNull
+        }
+
+        public enum LastRowCondition
+        {
+            /// <summary>
+            /// (!)Considerably slow due to checking all the cells' values
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Row with cells.
+            /// </summary>
+            HasCells,
+            /// <summary>
+            /// Row existing as an object.
+            /// </summary>
+            NotNull,
+        }
+
+        //public enum RowStyleMode
+        //{
+        //    /// <summary>
+        //    /// Set the row default style.
+        //    /// </summary>
+        //    Row = 1,
+        //    /// <summary>
+        //    /// Set style to the existing cells.
+        //    /// </summary>
+        //    ExistingCells = 2,
+        //    /// <summary>
+        //    /// Set style to all the cells with no gaps. When need, blank cells are created.
+        //    /// </summary>
+        //    NoGapCells = 4,
+        //}
+
+        public class CopyCellMode
+        {
+            public bool CopyComment { get; set; } = false;
+            public bool CopyLink { get; set; } = true;
+            public OnFormulaCellMoved OnFormulaCellMoved { get; set; } = null;
+
+            public CopyCellMode Clone()
+            {
+                CopyCellMode ccm = new CopyCellMode
+                {
+                    OnFormulaCellMoved = OnFormulaCellMoved,
+                    CopyComment = CopyComment,
+                    CopyLink = CopyLink
+                };
+                return ccm;
+            }
+        }
+
+        public class MoveRegionMode : CopyCellMode
+        {
+            public bool UpdateMergedRegions { get; set; } = false;
+        }
+
+        public class CommentStyle
+        {
+            public IFont Font
+            {
+                get
+                {
+                    if (font == null)
+                    {
+                        font = Workbook._CreateUnregisteredFont();
+                        font.FontName = DefaultFontName;
+                        font.FontHeight = DefaultFontSize * 20;
+                        font = Workbook._GetRegisteredFont(font);
+                    }
+                    return font;
+                }
+                set
+                {
+                    font = Workbook._GetRegisteredFont(value);
+                }
+            }
+            IFont font = null;
+
+            public IFont AuthorFont
+            {
+                get
+                {
+                    if (authorFont == null)
+                    {
+                        authorFont = Workbook._CloneUnregisteredFont(Font);
+                        authorFont.IsBold = !Font.IsBold;
+                        authorFont = Workbook._GetRegisteredFont(authorFont);
+                    }
+                    return authorFont;
+                }
+                set
+                {
+                    authorFont = Workbook._GetRegisteredFont(value);
+                }
+            }
+            IFont authorFont = null;
+
+            public string Author;
+            public string AuthorDelimiter = "\r\n";
+
+            public Excel.Color Background;
+
+            public int PaddingRows = 2;
+            public int AppendPaddingRows = 0;
+            public int Columns = 3;
+            public string AppendDelimiter = "\r\n";
+
+            public string DefaultFontName = "Tahoma";
+            /// <summary>
+            /// Size in points which means IFont.FontHeight/20
+            /// </summary>
+            public int DefaultFontSize = 9;
+
+            public IWorkbook Workbook { get; private set; }
+
+            public CommentStyle(IWorkbook workbook)
+            {
+                Workbook = workbook;
+            }
+        }
+
+        public enum StringMode
+        {
+            AsIs = 0,
+            NotNull = 1,
+            Trim = 2,
+        }
+        internal const StringMode DefaultStringMode = StringMode.NotNull | StringMode.Trim;
     }
 }

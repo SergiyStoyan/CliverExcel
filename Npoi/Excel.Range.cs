@@ -80,6 +80,23 @@ namespace Cliver
             //    }
             //}
 
+            public void Clear(bool clearMerging, bool removeComment = true)
+            {
+                if (clearMerging)
+                    ClearMerging();
+
+                int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
+                for (int y = Y1; y <= maxY; y++)
+                {
+                    IRow row = Sheet._GetRow(y, false);
+                    if (row == null)
+                        continue;
+                    int maxX = X2 != null ? X2.Value : row.LastCellNum;
+                    for (int x = X1; x <= maxX; x++)
+                        row._GetCell(x, false)?._Remove(removeComment);
+                }
+            }
+
             public void ClearMerging()
             {
                 CellRangeAddress cra = GetCellRangeAddress();
@@ -177,14 +194,14 @@ namespace Cliver
                 return copyCutRange(true);
             }
 
-            public void Move(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+            public void Move(int toY, int toX, Excel.CopyCellMode copyCellMode = null)
             {
-                PasteRange(Cut(), toY, toX, onFormulaCellMoved, toSheet);
+                PasteRange(Cut(), toY, toX, copyCellMode);
             }
 
-            public void Copy(int toY, int toX, OnFormulaCellMoved onFormulaCellMoved = null, ISheet toSheet = null)
+            public void Copy(int toY, int toX, Excel.CopyCellMode copyCellMode = null)
             {
-                PasteRange(Copy(), toY, toX, onFormulaCellMoved, toSheet);
+                PasteRange(Copy(), toY, toX, copyCellMode);
             }
 
             public void SetComment(string comment, string author = null)

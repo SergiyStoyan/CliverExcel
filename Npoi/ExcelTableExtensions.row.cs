@@ -13,14 +13,14 @@ namespace Cliver
 {
     static public partial class ExcelTableExtensions
     {
-        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsRight(this IRow row, Excel.Table.Column c1, int shift, CopyCellMode copyCellMode = null)
         {
-            row._ShiftCellsRight(c1.X, shift, onFormulaCellMoved);
+            row._ShiftCellsRight(c1.X, shift, copyCellMode);
         }
 
-        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, OnFormulaCellMoved onFormulaCellMoved = null)
+        static public void _ShiftCellsLeft(this IRow row, Excel.Table.Column c1, int shift, CopyCellMode copyCellMode = null)
         {
-            row._ShiftCellsLeft(c1.X, shift, onFormulaCellMoved);
+            row._ShiftCellsLeft(c1.X, shift, copyCellMode);
         }
 
         static public ICell _GetCell(this IRow row, Excel.Table.Column c, bool createCell)
@@ -28,11 +28,11 @@ namespace Cliver
             return row._GetCell(c.X, createCell);
         }
 
-        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, bool createCells, Excel.Table.Column c1, Excel.Table.Column c2)
+        static public IEnumerable<ICell> _GetCellsInRange(this IRow row, CellScope cellScope, Excel.Table.Column c1, Excel.Table.Column c2)
         {
             if (c1 == null)
-                return c2 == null ? row._GetCellsInRange(createCells) : row._GetCellsInRange(createCells, 1, c2.X);
-            return c2 == null ? row._GetCellsInRange(createCells, c1.X) : row._GetCellsInRange(createCells, c1.X, c2.X);
+                return c2 == null ? row._GetCellsInRange(cellScope) : row._GetCellsInRange(cellScope, 1, c2.X);
+            return c2 == null ? row._GetCellsInRange(cellScope, c1.X) : row._GetCellsInRange(cellScope, c1.X, c2.X);
         }
 
         /// <summary> 
@@ -64,9 +64,9 @@ namespace Cliver
         /// <param name="c"></param>
         /// <param name="allowNull"></param>
         /// <returns></returns>
-        static public string _GetValueAsString(this IRow row, Excel.Table.Column c, bool allowNull = false)
+        static public string _GetValueAsString(this IRow row, Excel.Table.Column c, StringMode stringMode = DefaultStringMode)
         {
-            return row._GetValueAsString(c.X, allowNull);
+            return row._GetValueAsString(c.X, stringMode);
         }
 
         /// <summary>
@@ -88,6 +88,17 @@ namespace Cliver
         static public void _SetLink(this IRow row, Excel.Table.Column c, string link)
         {
             row._SetLink(c.X, link);
+        }
+
+        static public void _SetStyles(this IRow row, IEnumerable<Excel.Table.Style> styles)
+        {
+            foreach (Excel.Table.Style s in styles.Where(a => a.Value != null))
+                row._GetCell(s.Column.X, true).CellStyle = s.Value;
+        }
+
+        static public void _SetStyles(this IRow row, params Excel.Table.Style[] styles)
+        {
+            _SetStyles(row, (IEnumerable<Excel.Table.Style>)styles);
         }
     }
 }
