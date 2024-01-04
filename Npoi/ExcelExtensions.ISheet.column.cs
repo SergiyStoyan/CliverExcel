@@ -315,12 +315,35 @@ namespace Cliver
             return sheet._GetColumnsInRange();
         }
 
-        static public IEnumerable<Column> _GetColumnsInRange(this ISheet sheet, int x1 = 1, int? x2 = null)
+        static public IEnumerable<Column> _GetColumnsInRange(this ISheet sheet/*, ColumnScope columnScope*/, int x1 = 1, int? x2 = null)
         {
             if (x2 == null)
                 x2 = sheet._GetLastColumn(false);
             for (int x = x1; x <= x2; x++)
                 yield return new Column(sheet, x);
+            //switch (columnScope)
+            //{
+            //    case ColumnScope.IncludeNoCells:
+            //        for (int x = x1; x <= x2; x++)
+            //            yield return new Column(sheet, x);
+            //        break;
+            //    case ColumnScope.WithCells:
+            //        for (int x = x1; x <= x2; x++)
+            //            for (int y = 1; y < y2; i++)
+            //            {
+            //                var r = sheet.GetRow(i);
+            //                if (r != null && r._GetLastNotEmptyColumn(false) > 0)
+            //                    yield return r;
+            //            }
+            //        yield return new Column(sheet, x);
+            //        break;
+            //    case ColumnScope.NotEmpty:
+            //        for (int x = x1; x <= x2; x++)
+            //            yield return new Column(sheet, x);1
+            //        break;
+            //    default:
+            //        throw new Exception("Unknown option: " + columnScope.ToString());
+            //}
         }
 
         static public int _GetLastColumn(this ISheet sheet, bool includeMerged)

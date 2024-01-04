@@ -174,31 +174,31 @@ namespace Cliver
 
         public delegate void OnFormulaCellMoved(ICell fromCell, ICell toCell);
 
-        //public enum ColumnScope
-        //{
-        //    /// <summary>
-        //    /// Returns only columns with at least one not empty cell.
-        //    /// (!)Slow due to checking all the cells' values.
-        //    /// </summary>
-        //    NotEmpty,
-        //    /// <summary>
-        //    /// Returns only columns with cells.
-        //    /// </summary>
-        //    WithCells,
-        //    /// <summary>
-        //    /// Returns only rows existing as objects.
-        //    /// </summary>
-        //    NotNull,
-        //    /// <summary>
-        //    /// Returns all the rows withing the range with non-existing rows represented as NULL. 
-        //    /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
-        //    /// </summary>
-        //    IncludeNull,
-        //    /// <summary>
-        //    /// Returns all the rows withing the range with non-existing rows having being created.
-        //    /// </summary>
-        //    CreateIfNull
-        //}
+        public enum ColumnScope
+        {
+            /// <summary>
+            /// Returns only columns with at least one not empty cell.
+            /// (!)Slow due to checking all the cells' values.
+            /// </summary>
+            NotEmpty,
+            /// <summary>
+            /// Returns only columns with cells.
+            /// </summary>
+            WithCells,
+            ///// <summary>
+            ///// Returns only rows existing as objects.
+            ///// </summary>
+            //NotNull,
+            /// <summary>
+            /// Returns all the rows withing the range with non-existing rows represented as NULL. 
+            /// (!)Might return a huge pile of null and no-cell rows after the last not empty row.  
+            /// </summary>
+            IncludeNoCells,
+            ///// <summary>
+            ///// Returns all the rows withing the range with non-existing rows having being created.
+            ///// </summary>
+            //CreateIfNull
+        }
 
         public enum RowScope
         {
