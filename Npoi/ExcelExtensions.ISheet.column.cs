@@ -346,9 +346,25 @@ namespace Cliver
             //}
         }
 
+        /// <summary>
+        /// (!)Slow as iterates through all the rows.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="includeMerged"></param>
+        /// <returns></returns>
         static public int _GetLastColumn(this ISheet sheet, bool includeMerged)
         {
             return sheet._GetLastColumnInRowRange(includeMerged, 1, null);
+        }
+
+        /// <summary>
+        /// (!)Slow as iterates through all the rows.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <returns></returns>
+        static public int _GetLastColumnY(this ISheet sheet)
+        {
+            return sheet._GetLastColumnInRowRange(false, 1, null);
         }
 
         /// <summary>

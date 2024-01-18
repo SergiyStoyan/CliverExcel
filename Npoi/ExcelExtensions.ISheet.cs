@@ -117,5 +117,29 @@ namespace Cliver
         {
             return new Range(sheet, y1, x1, y2, x2);
         }
+
+        /// <summary>
+        /// It automatically updates all the formula cells in the sheet when moving a range of cells.
+        /// It is expected to work properly for trivial formulas.
+        /// (!)Check carefully if it does what you need. If does not, copy this method and customize.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="rangeY1"></param>
+        /// <param name="rangeX1"></param>
+        /// <param name="rangeY2"></param>
+        /// <param name="rangeX2"></param>
+        /// <param name="excludeRange">set it TRUE if formula cells within the moving range has been updated already by the shifting method</param>
+        /// <param name="yShift"></param>
+        /// <param name="xShift"></param>
+        static public void _UpdateFormulasOnMovingCellRange(this ISheet sheet, int rangeY1, int rangeX1, int rangeY2, int rangeX2, bool excludeRange, int yShift, int xShift)
+        {
+            foreach (IRow r in sheet._GetRows(RowScope.NotNull))
+                foreach (ICell c in r.Cells.Where(a => a.CellType == CellType.Formula))
+                {
+                    if (excludeRange && c._Y() >= rangeY1 && c._Y() <= rangeY2 && c._X() >= rangeX1 && c._X() <= rangeX2)
+                        continue;
+                    c._UpdateFormulaOnMovingCellRange(rangeY1, rangeX1, rangeY2, rangeX2, yShift, xShift);
+                }
+        }
     }
 }

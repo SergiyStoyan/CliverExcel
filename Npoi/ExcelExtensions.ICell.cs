@@ -3,7 +3,7 @@
 //        s.y.stoyan@gmail.com, sergiy.stoyan@outlook.com, stoyan@cliversoft.com
 //        http://www.cliversoft.com
 //********************************************************************************************
-using EnumsNET;
+
 using NPOI.HSSF.UserModel;
 using NPOI.OpenXml4Net.OPC;
 using NPOI.SS.Extractor;
@@ -268,72 +268,94 @@ namespace Cliver
         }
 
         /// <summary>
-        /// It automatically updates the ranges in the cell formula.
-        /// It is expected to work properly for trivial formulas. 
-        /// (!)You have to check if it works as you need. 
+        /// It automatically updates the cell formula when moving a range of cells.
+        /// It is expected to work properly for trivial formulas.
+        /// (!)Check carefully if it does what you need. If does not, copy this method and customize.
         /// </summary>
         /// <param name="formulaCell"></param>
-        /// <param name="rangeY1Shift"></param>
-        /// <param name="rangeX1Shift"></param>
-        /// <param name="rangeY2Shift"></param>
-        /// <param name="rangeX2Shift"></param>
+        /// <param name="rangeY1"></param>
+        /// <param name="rangeX1"></param>
+        /// <param name="rangeY2"></param>
+        /// <param name="rangeX2"></param>
+        /// <param name="yShift"></param>
+        /// <param name="xShift"></param>
         /// <exception cref="Exception"></exception>
-        static public void _UpdateFormulaRange(this ICell formulaCell, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
+        static public void _UpdateFormulaOnMovingCellRange(this ICell formulaCell, int rangeY1, int rangeX1, int rangeY2, int rangeX2, int yShift, int xShift)
         {
             if (formulaCell?.CellType != CellType.Formula)
                 return;
-
-            if (rangeY2Shift == null)
-                rangeY2Shift = rangeY1Shift;
-            if (rangeX2Shift == null)
-                rangeX2Shift = rangeX1Shift;
 
             IFormulaParsingWorkbook evaluationWorkbook;
             if (formulaCell.Sheet.Workbook is XSSFWorkbook)
                 evaluationWorkbook = XSSFEvaluationWorkbook.Create(formulaCell.Sheet.Workbook);
             else if (formulaCell.Sheet.Workbook is HSSFWorkbook)
                 evaluationWorkbook = HSSFEvaluationWorkbook.Create(formulaCell.Sheet.Workbook);
-            //else if (sheet is SXSSFWorkbook)
-            //{
-            //    evaluationWorkbook = SXSSFEvaluationWorkbook.Create((SXSSFWorkbook)Workbook);
             else
                 throw new Exception("Unsupported workbook type: " + formulaCell.Sheet.Workbook.GetType().FullName);
+
+            int r1 = rangeY1 - 1;
+            int c1 = rangeX1 - 1;
+            int r2 = rangeY2 - 1;
+            int c2 = rangeX2 - 1;
 
             var ptgs = FormulaParser.Parse(formulaCell.CellFormula, evaluationWorkbook, FormulaType.Cell, formulaCell.Sheet.Workbook.GetSheetIndex(formulaCell.Sheet));
             foreach (Ptg ptg in ptgs)
             {
                 if (ptg is RefPtgBase rpb)
                 {
-                    if (rpb.IsRowRelative)
-                        rpb.Row = rpb.Row + rangeY1Shift;
-                    if (rpb.Row < 0)
-                        rpb.Row = 0;
-                    if (rpb.IsColRelative)
-                        rpb.Column = rpb.Column + rangeX1Shift;
-                    if (rpb.Column < 0)
-                        rpb.Column = 0;
+                    if (rpb.Row >= r1 && rpb.Row <= r2 && rpb.Column >= c1 && rpb.Column <= c2)
+                    {
+                        if (rpb.IsRowRelative)
+                        {
+                            rpb.Row = rpb.Row + yShift;
+                            if (rpb.Row < 0)
+                                rpb.Row = 0;
+                        }
+                        if (rpb.IsColRelative)
+                        {
+                            rpb.Column = rpb.Column + xShift;
+                            if (rpb.Column < 0)
+                                rpb.Column = 0;
+                        }
+                    }
                 }
                 else if (ptg is AreaPtgBase apb)
                 {
-                    if (apb.IsFirstRowRelative)
-                        apb.FirstRow += rangeY1Shift;
-                    if (apb.FirstRow < 0)
-                        apb.FirstRow = 0;
-                    if (apb.IsLastRowRelative)
-                        apb.LastRow += rangeY2Shift.Value;
-                    if (apb.LastRow < 0)
-                        apb.LastRow = 0;
-                    if (apb.IsFirstColRelative)
-                        apb.FirstColumn += rangeX1Shift;
-                    if (apb.FirstColumn < 0)
-                        apb.FirstColumn = 0;
-                    if (apb.IsLastColRelative)
-                        apb.LastColumn += rangeX2Shift.Value;
-                    if (apb.LastColumn < 0)
-                        apb.LastColumn = 0;
+                    if (apb.FirstRow >= r1 && apb.FirstRow <= r2 && apb.FirstColumn >= c1 && apb.FirstColumn <= c2)
+                    {
+                        if (apb.IsFirstRowRelative)
+                        {
+                            apb.FirstRow += yShift;
+                            if (apb.FirstRow < 0)
+                                apb.FirstRow = 0;
+                        }
+                        if (apb.IsFirstColRelative)
+                        {
+                            apb.FirstColumn += xShift;
+                            if (apb.FirstColumn < 0)
+                                apb.FirstColumn = 0;
+                        }
+                    }
+                    if (apb.LastRow >= r1 && apb.LastRow <= r2 && apb.LastColumn >= c1 && apb.LastColumn <= c2)
+                    {
+                        if (apb.IsLastRowRelative)
+                        {
+                            apb.LastRow += yShift;
+                            if (apb.LastRow < 0)
+                                apb.LastRow = 0;
+                        }
+                        if (apb.IsLastColRelative)
+                        {
+                            apb.LastColumn += xShift;
+                            if (apb.LastColumn < 0)
+                                apb.LastColumn = 0;
+                        }
+                    }
                 }
-                //else
-                //    throw new Exception("Unexpected ptg type: " + ptg.GetType());
+                else
+                {
+                    //throw new Exception("Unexpected ptg type: " + ptg.GetType());
+                }
             }
             formulaCell.CellFormula = FormulaRenderer.ToFormulaString((IFormulaRenderingWorkbook)evaluationWorkbook, ptgs);
         }

@@ -263,11 +263,6 @@ namespace Cliver
             return sheet._GetCell(cellAddress.Row + 1, cellAddress.Column + 1, createCell);
         }
 
-        static public void _UpdateFormulaRange(this ISheet sheet, int y, int x, int rangeY1Shift, int rangeX1Shift, int? rangeY2Shift = null, int? rangeX2Shift = null)
-        {
-            sheet._GetCell(y, x, false)?._UpdateFormulaRange(rangeY1Shift, rangeX1Shift, rangeY2Shift, rangeX2Shift);
-        }
-
         static public void _ClearMerging(this ISheet sheet, int y, int x)
         {
             sheet._GetCell(y, x, false)?._ClearMerging();
