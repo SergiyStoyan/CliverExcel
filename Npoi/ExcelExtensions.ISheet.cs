@@ -68,7 +68,7 @@ namespace Cliver
                         return;
                     }
                     if (c.Hyperlink?.Address != lastLink.Address || cellLinkCount > 1)
-                        c._SetLink(lastLink.Address);
+                        c._SetLink(lastLink.Address, lastLink.Type);
                 }
             }
         }

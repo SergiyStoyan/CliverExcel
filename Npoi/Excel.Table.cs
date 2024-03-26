@@ -131,6 +131,7 @@ namespace Cliver
                 public ICellStyle Style { get; set; } = null;
                 public CellType? Type { get; set; } = null;
                 public string Link { get; set; } = null;
+                public HyperlinkType LinkType { get; set; } = HyperlinkType.Unknown;
 
                 /// <summary>
                 /// (!)Unregistered style will be registered.
@@ -140,7 +141,7 @@ namespace Cliver
                 /// <param name="value"></param>
                 /// <param name="style"></param>
                 /// <exception cref="Exception"></exception>
-                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null, string link = null)
+                public Cell(Column column, object value, ICellStyle style = null, CellType? type = null, string link = null, HyperlinkType linkType = HyperlinkType.Unknown)
                 {
                     if (column.Table == null)
                         throw new Exception("Column is not initialized: Table is not set.");
@@ -149,9 +150,10 @@ namespace Cliver
                     Style = style;
                     Type = type;
                     Link = link;
+                    linkType = linkType;
                 }
 
-                public Cell(Style style, object value, CellType? type = null, string link = null) : this(style.Column, value, style.Value, type, link)
+                public Cell(Style style, object value, CellType? type = null, string link = null, HyperlinkType linkType = HyperlinkType.Unknown) : this(style.Column, value, style.Value, type, link, linkType)
                 {
                 }
             }
@@ -245,7 +247,7 @@ namespace Cliver
                     var style = cell.Style != null ? cell.Style : cell.Column.Style;
                     if (style != null)
                         c.CellStyle = style;
-                    c._SetLink(cell.Link);
+                    c._SetLink(cell.Link, cell.LinkType);
                 }
                 return r;
             }

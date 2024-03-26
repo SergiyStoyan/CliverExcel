@@ -281,9 +281,9 @@ namespace Cliver
             return row?._GetCell(x, false)?._GetLink();
         }
 
-        static public void _SetLink(this IRow row, int x, string link)
+        static public void _SetLink(this IRow row, int x, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
-            row._GetCell(x, true)._SetLink(link);
+            row._GetCell(x, true)._SetLink(link, hyperlinkType);
         }
     }
 }

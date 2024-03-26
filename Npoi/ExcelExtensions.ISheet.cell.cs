@@ -30,9 +30,9 @@ namespace Cliver
             sheet._GetCell(y, x, true)._AppendOrSetComment(comment, commentStyle);
         }
 
-        static public void _SetLink(this ISheet sheet, int y, int x, string link)
+        static public void _SetLink(this ISheet sheet, int y, int x, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
-            sheet._GetCell(y, x, true)._SetLink(link);
+            sheet._GetCell(y, x, true)._SetLink(link, hyperlinkType);
         }
 
         static public string _GetLink(this ISheet sheet, int y, int x)

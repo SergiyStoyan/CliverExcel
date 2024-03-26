@@ -245,7 +245,7 @@ namespace Cliver
             {
                 if (Regex.IsMatch(link, @"^\s*(https?|ftps?)\:", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.Url;
-                else if (Regex.IsMatch(link, @"^\s*[a-z]\:", RegexOptions.IgnoreCase))
+                else if (Regex.IsMatch(link, @"^\s*(file\:\/\/\/)?[a-z]\:", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.File;
                 else if (Regex.IsMatch(link, @"\@", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.Email;
