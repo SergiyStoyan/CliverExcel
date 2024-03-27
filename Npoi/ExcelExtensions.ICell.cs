@@ -221,7 +221,7 @@ namespace Cliver
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="link"></param>
-        /// <param name="hyperlinkType"></param>
+        /// <param name="hyperlinkType">by default the type is detected by the method</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
         static public void _SetLink(this ICell cell, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)

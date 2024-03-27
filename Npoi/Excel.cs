@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Cliver
 {
@@ -60,7 +61,15 @@ namespace Cliver
         /// </summary>
         public IWorkbook _ { get { return Workbook; } }
 
-        public string File { get; private set; }
+        public string File
+        {
+            get { return file; }
+            private set
+            {
+                file = (Regex.IsMatch(value, @"\:") ? null : /*Log.AppDir*/System.IO.Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar) + value;
+            }
+        }
+        string file;
         readonly internal StyleCache OneWorkbookStyleCache;
         public string LinkEmptyValueFiller = "           ";
         public CommentStyle DefaultCommentStyle;
