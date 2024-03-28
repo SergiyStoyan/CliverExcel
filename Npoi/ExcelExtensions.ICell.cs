@@ -208,12 +208,22 @@ namespace Cliver
         /// </summary>
         /// <param name="cell"></param>
         /// <returns></returns>
-        static public string _GetLink(this ICell cell)
+        static public string _GetLink(this ICell cell, bool urlUnescapeFileType = false)
         {
-            return cell?.Hyperlink?.Address;
+            var h = cell?.Hyperlink;
+            string link = h?.Address;
             //return cell?.Sheet.GetHyperlinkList()
             //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
             //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
+
+            //!!!unfortunately it is impossible to say if a path is url-escaped with 100% confidence. So, decision is made by the caller.  
+            if (urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links so such paths are url-escaped.
+            {
+                string link2 = Uri.UnescapeDataString(link);
+                if (link != link2)
+                    link = link2;
+            }
+            return link;
         }
 
         /// <summary>
@@ -246,7 +256,13 @@ namespace Cliver
                 if (Regex.IsMatch(link, @"^\s*(https?|ftps?)\:", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.Url;
                 else if (Regex.IsMatch(link, @"^\s*(file\:\/\/\/)?[a-z]\:", RegexOptions.IgnoreCase))
+                {
                     hyperlinkType = HyperlinkType.File;
+                    //https://support.microsoft.com/en-gb/topic/you-cannot-use-a-pound-character-in-a-file-name-for-a-hyperlink-in-an-office-program-3dc41767-a82e-fc9b-c405-de8b1166be92
+                    if (link.Contains('#'))//(!)# cannot be used in excel links. As escaped links look wrong in the popup, escape only when necessary.
+                        link = Uri.EscapeDataString(link);
+                    //link = Regex.Replace(link, @"\#", "%23");!!!does not work if there are spaces
+                }
                 else if (Regex.IsMatch(link, @"\@", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.Email;
                 else

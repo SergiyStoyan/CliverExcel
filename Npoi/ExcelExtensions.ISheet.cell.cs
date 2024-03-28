@@ -35,9 +35,9 @@ namespace Cliver
             sheet._GetCell(y, x, true)._SetLink(link, hyperlinkType);
         }
 
-        static public string _GetLink(this ISheet sheet, int y, int x)
+        static public string _GetLink(this ISheet sheet, int y, int x, bool urlUnescapeFileType = false)
         {
-            return sheet?._GetCell(y, x, false)?._GetLink();
+            return sheet?._GetCell(y, x, false)?._GetLink(urlUnescapeFileType);
         }
 
         static public void _ShiftCellsRight(this ISheet sheet, int x1, int y1, int y2, int shift, CopyCellMode copyCellMode = null)
