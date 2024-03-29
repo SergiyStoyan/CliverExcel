@@ -207,22 +207,25 @@ namespace Cliver
         /// (!)This method follows NPOI routine because it is faster. To get links corrected once, call ISheet._FixLinks().
         /// </summary>
         /// <param name="cell"></param>
+        /// <param name="urlUnescapeFileType">
+        /// Usually you expect that file links are url-escaped and need to be unescaped.
+        /// It is TRUE by default because _SetLink() does url-escape and Excel too does so.
+        /// However, some app can set links as they are, dave the file and then retrieve them as they are.
+        /// Also, Excel still might treat unescaped links properly but then it will url-escape them when saving the file.
+        /// So, links can be either encoded or not encoded!
+        /// Unfortunately it is impossible to say if a link is url-escaped with 100% confidence. So, decision is left to the caller. 
+        ///</param>
         /// <returns></returns>
-        static public string _GetLink(this ICell cell, bool urlUnescapeFileType = false)
+        static public string _GetLink(this ICell cell, bool urlUnescapeFileType = true)
         {
             var h = cell?.Hyperlink;
             string link = h?.Address;
             //return cell?.Sheet.GetHyperlinkList()
             //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
             //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
-
-            //!!!unfortunately it is impossible to say if a path is url-escaped with 100% confidence. So, decision is made by the caller.  
-            if (urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links so such paths are url-escaped.
-            {
-                string link2 = Uri.UnescapeDataString(link);
-                if (link != link2)
-                    link = link2;
-            }
+ 
+            if (urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links (too, unescaped % may lead to confusion) so such paths are url-escaped.
+                link = Uri.UnescapeDataString(link);
             return link;
         }
 
@@ -258,10 +261,23 @@ namespace Cliver
                 else if (Regex.IsMatch(link, @"^\s*(file\:\/\/\/)?[a-z]\:", RegexOptions.IgnoreCase))
                 {
                     hyperlinkType = HyperlinkType.File;
+
+                    if (link.Contains('%')//(!)Testing showed that Excel can properly treat non-url-encoded links with % but when it saves the file, it url-encodes them. So, GetLink() gets them url-encoded!
+                         || link.Contains('#')//(!)# cannot be used in excel links. As escaped links look wrong in the popup, escape only when necessary.
                     //https://support.microsoft.com/en-gb/topic/you-cannot-use-a-pound-character-in-a-file-name-for-a-hyperlink-in-an-office-program-3dc41767-a82e-fc9b-c405-de8b1166be92
-                    if (link.Contains('#'))//(!)# cannot be used in excel links. As escaped links look wrong in the popup, escape only when necessary.
+                        )
+                    {
+                        //string[] ps = Regex.Split(link, Regex.Escape(System.IO.Path.DirectorySeparatorChar.ToString()));
+                        //for (int i = 0; i < ps.Length; i++)
+                        //{
+                        //    string p = ps[i];
+                        //    if (p.Contains('%') || p.Contains('#'))
+                        //        ps[i] = Uri.EscapeDataString(p);
+                        //}
+                        //link = string.Join(System.IO.Path.DirectorySeparatorChar.ToString(), ps);
                         link = Uri.EscapeDataString(link);
-                    //link = Regex.Replace(link, @"\#", "%23");!!!does not work if there are spaces
+                        //link = Regex.Replace(link, @"\#", "%23");!!!does not work if there are spaces
+                    }
                 }
                 else if (Regex.IsMatch(link, @"\@", RegexOptions.IgnoreCase))
                     hyperlinkType = HyperlinkType.Email;

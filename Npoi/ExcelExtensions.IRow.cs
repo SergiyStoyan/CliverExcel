@@ -276,7 +276,7 @@ namespace Cliver
             return row.Sheet._GetImages(row._Y(), x);
         }
 
-        static public string _GetLink(this IRow row, int x, bool urlUnescapeFileType = false)
+        static public string _GetLink(this IRow row, int x, bool urlUnescapeFileType = true)
         {
             return row?._GetCell(x, false)?._GetLink(urlUnescapeFileType);
         }

@@ -150,7 +150,7 @@ namespace Cliver
                     Style = style;
                     Type = type;
                     Link = link;
-                    linkType = linkType;
+                    LinkType = linkType;
                 }
 
                 public Cell(Style style, object value, CellType? type = null, string link = null, HyperlinkType linkType = HyperlinkType.Unknown) : this(style.Column, value, style.Value, type, link, linkType)
