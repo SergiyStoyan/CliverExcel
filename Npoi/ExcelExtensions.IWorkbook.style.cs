@@ -59,7 +59,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
+        /// Looks for the equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
         /// <param name="unregisteredStyle">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
@@ -83,7 +83,7 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Comparison is performed by actual parameters. Therefore:
+        /// Comparison is performed by actual parameters. Hence:
         /// - styles with different indexes and font indexes can be equal;
         /// - styles can be unregistered;
         /// - styles can be of different types;
