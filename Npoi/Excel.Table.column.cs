@@ -441,7 +441,27 @@ namespace Cliver
                 /// </summary>
                 /// <param name="header"></param>
                 /// <param name="style"></param>
-                public Column(string header, ICellStyle style = null, CellType? type = null, ICellStyle headerStyle = null)
+                /// <param name="type"></param>
+                /// <param name="headerStyle"></param>
+                public Column(string header, ICellStyle style = null, CellType? type = null, ICellStyle headerStyle = null/*???headerStyle is used only once so it seems to be pretty useless in constructor*/)
+                {
+                    if (string.IsNullOrWhiteSpace(header))
+                        throw new Exception("Header cannot be empty or space.");
+                    Header = header;
+                    Style = style;
+                    Type = type;
+                    HeaderStyle = headerStyle;
+                }
+
+                /// <summary>
+                /// (!)Until a created column is registered in Excel.Table.Columns, it is not initialized and cannot be used in most methods.
+                /// </summary>
+                /// <param name="headerStyle"></param>
+                /// <param name="header"></param>
+                /// <param name="style"></param>
+                /// <param name="type"></param>
+                /// <exception cref="Exception"></exception>
+                public Column(ICellStyle headerStyle/*???headerStyle is used only once so it seems to be pretty useless in constructor*/, string header, ICellStyle style = null, CellType? type = null)
                 {
                     if (string.IsNullOrWhiteSpace(header))
                         throw new Exception("Header cannot be empty or space.");
