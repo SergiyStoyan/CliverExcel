@@ -20,7 +20,7 @@
 ///
 
 //!!!works but very slow!!!
-//namespace Cliver.HawkeyeInvoiceParser
+//namespace Cliver
 //{
 //    public class Excel : IDisposable
 //    {

@@ -16,7 +16,7 @@
 //using SpreadsheetLight.Drawing;
 
 //!!!old, bad supported
-//namespace Cliver.HawkeyeInvoiceParser
+//namespace Cliver
 //{
 //    public class Excel : IDisposable
 //    {

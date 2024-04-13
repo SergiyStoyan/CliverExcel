@@ -253,7 +253,7 @@ namespace Cliver
                         if (cj.X == c.X)
                             throw new Exception("Columns have the same X: '" + c.Header + "'[X=" + c.X + "] == '" + cj.Header + "'[X=" + cj.X + "]");
                         if (cj.Header == c.Header)
-                            throw new Exception("Columns are equal by headers: '" + c.Header + "'[X=" + c.X + "] == '" + cj.Header + "'[X=" + cj.X + "]");
+                            throw new Exception("Columns have the same headers: '" + c.Header + "'[X=" + c.X + "] == '" + cj.Header + "'[X=" + cj.X + "]");
                     }
                 }
 

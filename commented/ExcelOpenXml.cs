@@ -17,7 +17,7 @@
 //using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 
 //!!!To be developed!!!
-//namespace Cliver.HawkeyeInvoiceParser
+//namespace Cliver
 //{
 //    public class Excel : IDisposable
 //    {

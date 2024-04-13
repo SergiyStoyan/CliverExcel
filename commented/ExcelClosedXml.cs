@@ -12,7 +12,7 @@
 //using ClosedXML.Excel;
 //using ClosedXML.Excel.Drawings;
 
-//namespace Cliver.HawkeyeInvoiceParser
+//namespace Cliver
 //{
 //    public class Excel : IDisposable
 //    {

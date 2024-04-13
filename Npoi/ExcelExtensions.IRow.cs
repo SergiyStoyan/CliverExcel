@@ -68,17 +68,11 @@ namespace Cliver
                 row.MoveCell(c, x2 - 1);
         }
 
-        //static public void _SetStyle(this IRow row, ICellStyle style, RowStyleMode rowStyleMode)
-        //{
-        //    if (rowStyleMode.HasFlag(RowStyleMode.Row))
-        //        row.RowStyle = style;
-        //    if (rowStyleMode.HasFlag(RowStyleMode.ExistingCells))
-        //        foreach (ICell c in row.Cells)
-        //            c.CellStyle = style;
-        //    else if (rowStyleMode.HasFlag(RowStyleMode.NoGapCells))
-        //        for (int x = row.LastCellNum; x > 0; x--)
-        //            row._GetCell(x, true).CellStyle = style;
-        //}
+        static public void _SetStyle(this IRow row, ICellStyle style, bool createCells)
+        {
+            int y = row._Y();
+            row.Sheet._SetStyleInRowRange(style, createCells, y, y);
+        }
 
         static public void _ShiftCellsRight(this IRow row, int x1, int shift, CopyCellMode copyCellMode = null)
         {

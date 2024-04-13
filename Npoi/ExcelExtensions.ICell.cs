@@ -81,7 +81,7 @@ namespace Cliver
             if (o == null)
                 return stringMode.HasFlag(StringMode.NotNull) ? string.Empty : null;
             if (o is DateTime dt)
-                return dt.ToString("yyyy-MM-dd hh:mm:ss");
+                return dt.ToString("yyyy-MM-dd HH:mm:ss");
             string s = o?.ToString();
             if (s == null && stringMode.HasFlag(StringMode.NotNull))
                 s = string.Empty;
