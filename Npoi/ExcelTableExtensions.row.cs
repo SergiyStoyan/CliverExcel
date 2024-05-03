@@ -62,7 +62,7 @@ namespace Cliver
         /// </summary>
         /// <param name="row"></param>
         /// <param name="c"></param>
-        /// <param name="allowNull"></param>
+        /// <param name="stringMode"></param>
         /// <returns></returns>
         static public string _GetValueAsString(this IRow row, Excel.Table.Column c, StringMode stringMode = DefaultStringMode)
         {

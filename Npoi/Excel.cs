@@ -97,6 +97,7 @@ namespace Cliver
 
         /// <summary>
         /// Safe saving that guarantees that the file is not corrupted in the case of a error.
+        /// (!)It accumulates delay so after 100-200 times it becomes considerably slow!
         /// </summary>
         /// <param name="file"></param>
         public void Save(string file = null)
