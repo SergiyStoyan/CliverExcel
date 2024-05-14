@@ -343,41 +343,53 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="y1"></param>
         /// <param name="y2"></param>
+        //static public IRow _MoveRow(this ISheet sheet, int y1, int y2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
+        //{
+        //    var row1 = sheet._GetRow(y1, false);
+        //    if (insert)
+        //    {
+        //        row1.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
+
+        //        if (moveRegionMode?.UpdateMergedRegions == true)
+        //        {
+        //            row1.Sheet.MergedRegions.ForEach(a =>
+        //            {
+        //                if (a.FirstRow < y2 - 1)
+        //                {
+        //                    if (a.LastRow >= y2 - 1)
+        //                        a.LastRow += 1;
+        //                }
+        //                else
+        //                {
+        //                    a.FirstRow += 1;
+        //                    a.LastRow += 1;
+        //                }
+        //            });
+        //        }
+        //    }
+        //    else
+        //        row1.Sheet._RemoveRow(y2, moveRegionMode);
+        //    IRow row2 = sheet._CopyRow(row1._Y(), y2, moveRegionMode, sheet2, styleMap);
+        //    row1._Remove(moveRegionMode);
+        //    return row2;
+        //}
         static public IRow _MoveRow(this ISheet sheet, int y1, int y2, bool insert, MoveRegionMode moveRegionMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            var row1 = sheet._GetRow(y1, false);
+            sheet2 = sheet2 ?? sheet;
+            IRow r1 = sheet._GetRow(y1, false);
+            if (sheet2 == sheet && y1 == y2)
+                return r1;
             if (insert)
-            {
-                row1.Sheet._ShiftRowsDown(y2, 1, moveRegionMode);
-
-                if (moveRegionMode?.UpdateMergedRegions == true)
-                {
-                    row1.Sheet.MergedRegions.ForEach(a =>
-                    {
-                        if (a.FirstRow < y2 - 1)
-                        {
-                            if (a.LastRow >= y2 - 1)
-                                a.LastRow += 1;
-                        }
-                        else
-                        {
-                            a.FirstRow += 1;
-                            a.LastRow += 1;
-                        }
-                    });
-                }
-            }
-            else
-                row1.Sheet._RemoveRow(y2, moveRegionMode);
-            IRow row2 = sheet._CopyRow(row1._Y(), y2, moveRegionMode, sheet2, styleMap);
-            row1._Remove(moveRegionMode);
-            return row2;
+                sheet2._ShiftRowsDown(y2, 1, moveRegionMode);
+            IRow r2 = sheet._CopyRow(r1._Y(), y2, moveRegionMode, sheet2, styleMap);
+            r1._Remove(moveRegionMode);
+            return r2;
         }
 
         static public IRow _CopyRow(this ISheet sheet, int y1, int y2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
         {
-            IRow r1 = sheet._GetRow(y1, false);
             sheet2 = sheet2 ?? sheet;
+            IRow r1 = sheet._GetRow(y1, false);
             if (sheet2 == sheet && y1 == y2)
                 return r1;
             sheet2._ClearRow(y2, false);
