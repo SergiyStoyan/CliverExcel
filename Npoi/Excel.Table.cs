@@ -235,20 +235,21 @@ namespace Cliver
             public IRow WriteRow(int y, IEnumerable<Cell> cells)
             {
                 IRow r = Sheet._GetRow(y, true);
-                foreach (var cell in cells)
-                {
-                    //if (r.Sheet != cell.Column.Table.Sheet)
-                    //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
-                    var c = r._GetCell(cell.X, true);
-                    var type = cell.Type != null ? cell.Type : cell.Column.Type;
-                    if (type != null)
-                        c.SetCellType(type.Value);
-                    c._SetValue(cell.Value);
-                    var style = cell.Style != null ? cell.Style : cell.Column.Style;
-                    if (style != null)
-                        c.CellStyle = style;
-                    c._SetLink(cell.Link, cell.LinkType);
-                }
+                if (cells != null)
+                    foreach (var cell in cells)
+                    {
+                        //if (r.Sheet != cell.Column.Table.Sheet)
+                        //    throw new Exception("Row[x=" + (r.RowNum + 1) + "] and cell[X='" + cell.X + "] belong to different sheets.");
+                        var c = r._GetCell(cell.X, true);
+                        var type = cell.Type != null ? cell.Type : cell.Column.Type;
+                        if (type != null)
+                            c.SetCellType(type.Value);
+                        c._SetValue(cell.Value);
+                        var style = cell.Style != null ? cell.Style : cell.Column.Style;
+                        if (style != null)
+                            c.CellStyle = style;
+                        c._SetLink(cell.Link, cell.LinkType);
+                    }
                 return r;
             }
 
