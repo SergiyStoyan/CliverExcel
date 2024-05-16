@@ -150,23 +150,19 @@ namespace Cliver
 
         static public void _ShiftColumnsRight(this ISheet sheet, int x, int shift, MoveRegionMode moveRegionMode = null)
         {
-            Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
-            int lastColumnX = x;
-            columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
+            int lastNotEmptyColumn = 1;
             foreach (IRow row in sheet._GetRows(RowScope.NotNull))
             {
                 int columnX = row._GetLastColumn(false);
-                if (lastColumnX < columnX)
-                {
-                    for (int i = lastColumnX; i < columnX; i++)
-                        columnXs2width[i + 1] = sheet.GetColumnWidth(i);
-                    lastColumnX = columnX;
-                }
-                for (int i = columnX; i >= x; i--)
+                if (lastNotEmptyColumn < columnX)
+                    lastNotEmptyColumn = columnX;
+                for (int i = columnX + shift; i >= x; i--)
                     sheet._MoveCell(row._Y(), i, row._Y(), i + shift, moveRegionMode);
             }
-            foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
-                sheet._SetColumnWidth(columnX + shift, columnXs2width[columnX]);
+
+            lastNotEmptyColumn += shift;
+            for (int i = lastNotEmptyColumn; i < x + shift; i--)
+                sheet._SetColumnWidth(i + 1, sheet.GetColumnWidth(i));
 
             if (moveRegionMode?.UpdateMergedRegions == true)
                 for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
@@ -189,23 +185,22 @@ namespace Cliver
 
         static public void _ShiftColumnsLeft(this ISheet sheet, int x, int shift, MoveRegionMode moveRegionMode = null)
         {
-            Dictionary<int, int> columnXs2width = new Dictionary<int, int>();
-            int lastColumnX = x;
-            columnXs2width[lastColumnX] = sheet.GetColumnWidth(lastColumnX - 1);
+            if (shift >= x)
+                throw new Exception2(nameof(shift) + "(" + shift + ") >= " + nameof(x) + "(" + x + ")");
+
+            int lastNotEmptyColumn = 1;
             foreach (IRow row in sheet._GetRows(RowScope.NotNull))
             {
                 int columnX = row._GetLastColumn(false);
-                if (lastColumnX < columnX)
-                {
-                    for (int i = lastColumnX; i < columnX; i++)
-                        columnXs2width[i + 1] = sheet.GetColumnWidth(i);
-                    lastColumnX = columnX;
-                }
-                for (int i = x; i <= columnX; i++)
-                    sheet._MoveCell(row._Y(), i, row._Y(), i - shift, moveRegionMode);
+                if (lastNotEmptyColumn < columnX)
+                    lastNotEmptyColumn = columnX;
+                for (int i = x - shift; i <= columnX; i++)
+                    sheet._MoveCell(row._Y(), i + shift, row._Y(), i, moveRegionMode);
             }
-            foreach (int columnX in columnXs2width.Keys.OrderByDescending(a => a))
-                sheet._SetColumnWidth(columnX - shift, columnXs2width[columnX]);
+
+            lastNotEmptyColumn -= shift;
+            for (int i = x - shift; i < lastNotEmptyColumn; i++)
+                sheet._SetColumnWidth(i, sheet.GetColumnWidth(i + 1));
 
             if (moveRegionMode?.UpdateMergedRegions == true)
                 for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
@@ -255,7 +250,7 @@ namespace Cliver
             column2.Clear(false);
             column2.SetWidth(column1.GetWidth());
             foreach (ICell c1 in column1.GetCells(CellScope.NotNull))
-                c1._Copy(x2, c1._X(), copyCellMode, sheet2, styleMap);
+                c1._Copy(c1._Y(), x2, copyCellMode, sheet2, styleMap);
             return column2;
         }
 
@@ -272,6 +267,9 @@ namespace Cliver
             if (insert)
             {
                 sheet._ShiftColumnsRight(x2, 1, moveRegionMode);
+
+                if (x1 > x2)
+                    x1++;
 
                 if (moveRegionMode?.UpdateMergedRegions == true)
                 {

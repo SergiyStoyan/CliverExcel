@@ -51,7 +51,7 @@ namespace Cliver
                 /// </summary>
                 Override,
                 /// <summary>
-                /// The listed columns, that are not found in the header row in any order, are added to the right.
+                /// The listed columns, that are not found in the header row in any order, are added to the right of the table.
                 /// </summary>
                 FindOrAppend,
                 ///// <summary>
@@ -59,7 +59,7 @@ namespace Cliver
                 ///// </summary>
                 //FindOrInsert,!!!auto-inserting/removing is not appreciated because of possibly damaging formulas and mergings
                 /// <summary>
-                /// The listed columns must exist in the header row in any order. The absent columns are added to the right of the table.
+                /// The listed columns must exist in the header row in any order.
                 /// </summary>
                 Find,
                 /// <summary>
@@ -163,7 +163,10 @@ namespace Cliver
                                 if (c0 == null)
                                     throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
                                 c0s.Remove(c0);
+                                c0s.Insert(c0.X - 1, c);
                             };
+
+                            setColumns(c0s, false);
                         }
                         break;
 
@@ -193,12 +196,18 @@ namespace Cliver
                                     {
                                         Column c0 = c0s[i0];
                                         if (c.Header == c0.Header)
+                                        {
+                                            c0s.Remove(c0);
+                                            c0s.Insert(c0.X - 1, c);
                                             break;
+                                        }
                                     }
                                     if (i0 >= c0s.Count)
                                         throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
                                 }
                             }
+
+                            setColumns(c0s, false);
                         }
                         break;
 
@@ -355,17 +364,88 @@ namespace Cliver
                 return c;
             }
 
+            /// <summary>
+            /// It is safe: never inserts if the column exists.
+            /// (!)column can be NULL. 
+            /// </summary>
+            /// <param name="x"></param>
+            /// <param name="column"></param>
+            /// <param name="moveRegionMode"></param>
             public void InsertColumn(int x, Column column, MoveRegionMode moveRegionMode)
             {
-                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
-                if (column == null)
+                if (column != null)
+                {
+                    var c = Columns.FirstOrDefault(a => a.Header == column.Header);
+                    if (c != null)
+                    {
+                        if (c.X != x)
+                            MoveColumn(c, x, moveRegionMode);
+                        return;
+                    }
+                }
+                else if (Columns.FirstOrDefault(a => a == null && a.X == x) != null)
                     return;
-                column.X = x;
-                Sheet._GetCell(1, x, true)._SetValue(column.Header);
-                var cs = Columns.ToList();
-                cs.Insert(column.X - 1, column);
+
+                if (column?.Table != null)
+                    throw new Exception2("Column " + column.Header + " is already initialized: Table is set.");
+                if (column != null && Columns.FirstOrDefault(a => a.Header == column.Header) != null)
+                    throw new Exception2("Column " + column.Header + " already exists.");
+                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
+                if (column != null)
+                    Sheet._GetCell(1, x, true)._SetValue(column.Header);
+                var registredCs = Columns.ToList();
+                registredCs.Insert(x - 1, column);
                 loadColumns();
-                SetColumns(SetColumnMode.FindOrdered, cs);
+                SetColumns(SetColumnMode.Find, registredCs);
+            }
+
+            /// <summary>
+            /// Always inserts one more empty column.
+            /// </summary>
+            /// <param name="x"></param>
+            /// <param name="moveRegionMode"></param>
+            public void InsertEmptyColumn(int x, MoveRegionMode moveRegionMode)
+            {
+                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
+                var registredCs = Columns.ToList();
+                registredCs.Insert(x - 1, null);
+                loadColumns();
+                SetColumns(SetColumnMode.Find, registredCs);
+            }
+
+            /// <summary>
+            /// It is safe: never moves if the column is already in the destination.
+            /// </summary>
+            /// <param name="column"></param>
+            /// <param name="beforeColumn"></param>
+            /// <param name="moveRegionMode"></param>
+            /// <exception cref="Exception"></exception>
+            public void MoveColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
+            {
+                if (beforeColumn.Table == null)
+                    throw new Exception("Column " + beforeColumn.Header + " is not initialized: Table is not set.");
+                if (column.X + 1 == beforeColumn.X)
+                    return;
+                MoveColumn(column, beforeColumn.X, moveRegionMode);
+            }
+
+            /// <summary>
+            /// It is safe: never moves if the column is already in the destination.
+            /// </summary>
+            /// <param name="column"></param>
+            /// <param name="x"></param>
+            /// <param name="moveRegionMode"></param>
+            /// <exception cref="Exception"></exception>
+            public void MoveColumn(Column column, int x, MoveRegionMode moveRegionMode)
+            {
+                if (column.Table == null)
+                    throw new Exception("Column " + column.Header + " is not initialized: Table is not set.");
+                if (column.X == x)
+                    return;
+                Sheet._MoveColumn(column.X, x, true, moveRegionMode);
+                var registredCs = Columns.ToList();
+                loadColumns();
+                SetColumns(SetColumnMode.Find, registredCs);
             }
 
             public void RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
@@ -373,10 +453,12 @@ namespace Cliver
                 if (column.Table == null)
                     throw new Exception("Column is not initialized: Table is not set.");
                 Sheet._ShiftColumnsLeft(column.X, 1, moveRegionMode);
-                var cs = Columns.ToList();
-                cs.RemoveAt(column.X - 1);
+                var registredCs = Columns.ToList();
+                registredCs.RemoveAt(column.X - 1);
+                column.X = -1;
+                column.Table = null;
                 loadColumns();
-                SetColumns(SetColumnMode.FindOrdered, cs);
+                SetColumns(SetColumnMode.Find, registredCs);
             }
 
             public class Column

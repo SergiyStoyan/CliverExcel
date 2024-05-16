@@ -208,6 +208,17 @@ namespace Cliver
                 return AppendRow((IEnumerable<Cell>)cells);
             }
 
+            public IRow AppendRow(LastRowCondition lastRowCondition, IEnumerable<Cell> cells)
+            {
+                IRow r = WriteRow(Sheet._GetLastRow(lastRowCondition, false) + 1, cells);
+                return r;
+            }
+
+            public IRow AppendRow(LastRowCondition lastRowCondition, params Cell[] cells)
+            {
+                return AppendRow(lastRowCondition, (IEnumerable<Cell>)cells);
+            }
+
             public IRow InsertRow(int y, IEnumerable<Cell> cells)
             {
                 int lastRowY = Sheet._GetLastRow(LastRowCondition.HasCells, false);
