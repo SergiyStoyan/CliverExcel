@@ -494,5 +494,22 @@ namespace Cliver
         {
             sheet._GetColumn(x).SetWidth(width);
         }
+
+        /// <summary>
+        /// Removes empty columns from the right.
+        /// </summary>
+        /// <param name="sheet"></param>
+        static public void _TrimRightColumns(this ISheet sheet)
+        {
+            for (int i = sheet.LastRowNum; i >= 0; i--)
+            {
+                var r = sheet.GetRow(i);
+                if (r == null)
+                    continue;
+                int lastNotEmptyX = r._GetLastNotEmptyColumn(true);
+                for (int x = r.LastCellNum; x > lastNotEmptyX; x--)
+                    r._RemoveCell(x);
+            }
+        }
     }
 }

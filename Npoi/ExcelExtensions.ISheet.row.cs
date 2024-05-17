@@ -631,5 +631,30 @@ namespace Cliver
         {
             return sheet._GetRowsInRange(RowScope.NotNull, y1, y2).Max(a => a._GetLastNotEmptyColumn(includeMerged));
         }
+
+        /// <summary>
+        /// Removes empty rows from the bottom
+        /// </summary>
+        /// <param name="sheet"></param>
+        static public void _TrimBottomRows(this ISheet sheet)
+        {
+            //int lastNotEmptyY = sheet._GetLastNotEmptyRow(true);
+            //for (int i = sheet.LastRowNum; i >= lastNotEmptyY; i--)
+            //{
+            //    var r = sheet.GetRow(i);
+            //    if (r != null)
+            //        sheet.RemoveRow(r);
+            //}
+
+            for (int i = sheet.LastRowNum; i >= 0; i--)
+            {
+                var r = sheet.GetRow(i);
+                if (r == null)
+                    continue;
+                if (r._GetLastNotEmptyColumn(true) > 0)
+                    break;
+                sheet.RemoveRow(r);
+            }
+        }
     }
 }
