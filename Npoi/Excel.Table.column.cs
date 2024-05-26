@@ -365,100 +365,141 @@ namespace Cliver
             }
 
             /// <summary>
-            /// It is safe: never inserts if the column exists.
+            /// Safe: if the column already exists, it is moved to the destination.
             /// (!)column can be NULL. 
             /// </summary>
-            /// <param name="x"></param>
-            /// <param name="column"></param>
-            /// <param name="moveRegionMode"></param>
-            public void InsertColumn(int x, Column column, MoveRegionMode moveRegionMode)
+            public bool InsertColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
             {
-                if (column != null)
-                {
-                    var c = Columns.FirstOrDefault(a => a.Header == column.Header);
-                    if (c != null)
-                    {
-                        if (c.X != x)
-                            MoveColumn(c, x, moveRegionMode);
-                        return;
-                    }
-                }
-                else if (Columns.FirstOrDefault(a => a == null && a.X == x) != null)
-                    return;
+                int columnX = GetColumnX(column, false);
+                if (columnX > 0)
+                    return MoveColumn(column, beforeColumn, moveRegionMode);
 
-                if (column?.Table != null)
-                    throw new Exception2("Column " + column.Header + " is already initialized: Table is set.");
-                if (column != null && Columns.FirstOrDefault(a => a.Header == column.Header) != null)
-                    throw new Exception2("Column " + column.Header + " already exists.");
-                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
+                int beforeColumnX = GetColumnX(beforeColumn, false);
+                if (beforeColumnX < 1)
+                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
+
+                Sheet._ShiftColumnsRight(beforeColumnX, 1, moveRegionMode);
                 if (column != null)
-                    Sheet._GetCell(1, x, true)._SetValue(column.Header);
-                var registredCs = Columns.ToList();
-                registredCs.Insert(x - 1, column);
-                loadColumns();
-                SetColumns(SetColumnMode.Find, registredCs);
+                    Sheet._GetCell(1, beforeColumnX, true)._SetValue(column.Header);
+                if (Columns.Count > 0)//if initialized, re-initialize
+                {
+                    var registredCs = Columns.ToList();
+                    registredCs.Insert(beforeColumnX - 1, column);
+                    loadColumns();
+                    SetColumns(SetColumnMode.Find, registredCs);
+                }
+                else
+                    loadColumns();
+                return true;
             }
 
             /// <summary>
             /// Always inserts one more empty column.
             /// </summary>
-            /// <param name="x"></param>
-            /// <param name="moveRegionMode"></param>
-            public void InsertEmptyColumn(int x, MoveRegionMode moveRegionMode)
+            public void InsertEmptyColumn(Column beforeColumn, MoveRegionMode moveRegionMode)
             {
-                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
-                var registredCs = Columns.ToList();
-                registredCs.Insert(x - 1, null);
-                loadColumns();
-                SetColumns(SetColumnMode.Find, registredCs);
+                int beforeColumnX = GetColumnX(beforeColumn, false);
+                if (beforeColumnX < 1)
+                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
+                Sheet._ShiftColumnsRight(beforeColumnX, 1, moveRegionMode);
+                if (Columns.Count > 0)//if initialized, re-initialize
+                {
+                    var registredCs = Columns.ToList();
+                    registredCs.Insert(beforeColumnX - 1, null);
+                    loadColumns();
+                    SetColumns(SetColumnMode.Find, registredCs);
+                }
+                else
+                    loadColumns();
             }
 
             /// <summary>
-            /// It is safe: never moves if the column is already in the destination.
+            /// Safe: if the column is already at the destination, just returns.
             /// </summary>
             /// <param name="column"></param>
             /// <param name="beforeColumn"></param>
             /// <param name="moveRegionMode"></param>
             /// <exception cref="Exception"></exception>
-            public void MoveColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
+            public bool MoveColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
             {
-                if (beforeColumn.Table == null)
-                    throw new Exception("Column " + beforeColumn.Header + " is not initialized: Table is not set.");
-                if (column.X + 1 == beforeColumn.X)
-                    return;
-                MoveColumn(column, beforeColumn.X, moveRegionMode);
+                int columnX = GetColumnX(column, false);
+                if (columnX < 1)
+                    throw new Exception2("Column '" + column?.Header + "' not found.");
+                int beforeColumnX = GetColumnX(beforeColumn, false);
+                if (beforeColumnX < 1)
+                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
+                if (columnX + 1 == beforeColumnX)
+                    return false;
+                Sheet._MoveColumn(columnX, beforeColumnX, true, moveRegionMode);
+                if (column.Table != null)//if initialized, re-initialize
+                {
+                    var registredCs = Columns.ToList();
+                    loadColumns();
+                    SetColumns(SetColumnMode.Find, registredCs);
+                }
+                else
+                    loadColumns();
+                return true;
             }
 
             /// <summary>
-            /// It is safe: never moves if the column is already in the destination.
+            /// Safe: if not column found, just returns.
             /// </summary>
             /// <param name="column"></param>
-            /// <param name="x"></param>
             /// <param name="moveRegionMode"></param>
-            /// <exception cref="Exception"></exception>
-            public void MoveColumn(Column column, int x, MoveRegionMode moveRegionMode)
+            public bool RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
             {
-                if (column.Table == null)
-                    throw new Exception("Column " + column.Header + " is not initialized: Table is not set.");
-                if (column.X == x)
-                    return;
-                Sheet._MoveColumn(column.X, x, true, moveRegionMode);
-                var registredCs = Columns.ToList();
-                loadColumns();
-                SetColumns(SetColumnMode.Find, registredCs);
+                int columnX = GetColumnX(column, false);
+                if (columnX < 1)
+                    return false;
+                ICell h = Sheet._GetCell(1, columnX, false);
+                Sheet._ShiftColumnsLeft(columnX, 1, moveRegionMode);
+                if (column.Table != null)//if initialized, re-initialize
+                {
+                    var registredCs = Columns.Where(a => a.X != columnX).ToList();
+                    loadColumns();
+                    SetColumns(SetColumnMode.Find, registredCs);
+                }
+                else
+                    loadColumns();
+                return true;
             }
 
-            public void RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
+            /// <summary>
+            /// Either finds by the header or returns column.X if set.
+            /// </summary>
+            /// <param name="column"></param>
+            /// <returns></returns>
+            int GetColumnX(Column column, bool ignoreColumnX)
             {
-                if (column.Table == null)
-                    throw new Exception("Column is not initialized: Table is not set.");
-                Sheet._ShiftColumnsLeft(column.X, 1, moveRegionMode);
-                var registredCs = Columns.ToList();
-                registredCs.RemoveAt(column.X - 1);
-                column.X = -1;
-                column.Table = null;
-                loadColumns();
-                SetColumns(SetColumnMode.Find, registredCs);
+                if (!ignoreColumnX && column?.X > 0)
+                    return column.X;
+                IRow r = Sheet._GetRow(1, true);
+                ICell c = r.FirstOrDefault(a => column != null ? a._GetValueAsString() == column.Header : string.IsNullOrWhiteSpace(a._GetValueAsString()));
+                return c != null ? c.RowIndex + 1 : -1;
+            }
+
+            /// <summary>
+            /// Safe: if not column found, just returns.
+            /// </summary>
+            /// <param name="column"></param>
+            /// <param name="name2"></param>
+            public bool RenameColumn(Column column, string name2)
+            {
+                int columnX = GetColumnX(column, false);
+                if (columnX < 1)
+                    return false;
+                ICell c = Sheet._GetCell(1, columnX, true);
+                c.SetCellValue(name2);
+                if (column.Table != null)//if initialized, re-initialize
+                {
+                    var registredCs = Columns.ToList();
+                    loadColumns();
+                    SetColumns(SetColumnMode.Find, registredCs);
+                }
+                else
+                    loadColumns();
+                return true;
             }
 
             public class Column
