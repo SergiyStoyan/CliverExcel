@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>7.22.0</Version>
+	  <Version>7.23.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,11 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v7.6 =&gt; v7.7
+	  <PackageReleaseNotes>v7.22 =&gt; v7.23
+- updated to NPOI-2.7.4;
+- _GetImages() upgraded;
+
+v7.6 =&gt; v7.7
 - _CopyCell() fixed;
 - CopyCellMode.CopyImage added;
 - _NewRange() =&gt; sheet._GetRange();
@@ -43,7 +47,7 @@ v6 =&gt; v7
 
   <ItemGroup>
     <PackageReference Include="CliverRoutines" Version="6.49.1" />
-    <PackageReference Include="NPOI" Version="2.6.2" />
+    <PackageReference Include="NPOI" Version="2.7.4" />
   </ItemGroup>
 
   <ItemGroup>

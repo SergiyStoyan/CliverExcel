@@ -188,7 +188,7 @@ namespace Cliver
 
             if (copyCellMode?.CopyImage == true)
             {
-                var i = sheet._GetImages(y1, x1).FirstOrDefault();
+                var i = sheet._GetImages(y1, x1, ImageLocationType.AnchorTopLeft).FirstOrDefault();
                 if (i != null)
                 {
                     i.Y = y1;
@@ -284,8 +284,10 @@ namespace Cliver
             IClientAnchor a = drawingPatriarch.CreateAnchor(0, 0, 0, 0, image.X - 1, image.Y - 1, image.X - 1, image.Y - 1);
             a.AnchorType = AnchorType.MoveDontResize;
             IPicture p = drawingPatriarch.CreatePicture(a, imageId);
-            p.Resize(1);
-            //p.Resize(1, 1);
+
+            p.Resize(1);//!!!it is a bug in NPOI-2.7 that Resize() changes picture's anchor ignoring AnchorType
+            //p.ClientAnchor.Row2 = image.Y - 1;!!!image becomes invisible
+            //p.ClientAnchor.Col2 = image.X - 1;
         }
 
         /// <summary>
@@ -339,9 +341,10 @@ namespace Cliver
         /// <param name="sheet"></param>
         /// <param name="y"></param>
         /// <param name="x"></param>
+        /// <param name="imageLocationType">!!!it is a bug in NPOI-2.7 that Resize() changes picture's anchor ignoring AnchorType. So, the pictures that belong to the cell should be rather filtered by the top-left anchor.</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x)
+        static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x, ImageLocationType imageLocationType)
         {
             IEnumerable<IPicture> pictures;
             if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
@@ -357,15 +360,44 @@ namespace Cliver
             else
                 throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);
 
-            foreach (IPicture p in pictures)
+            switch (imageLocationType)
             {
-                var a = p.ClientAnchor;
-                if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
-                {
-                    IPictureData pictureData = p.PictureData;
-                    yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
-                }
+                case ImageLocationType.AnchorTopLeft:
+                    foreach (IPicture p in pictures)
+                    {
+                        var a = p.ClientAnchor;
+                        if (y - 1 == a.Row1 && x - 1 == a.Col1)
+                        {
+                            IPictureData pictureData = p.PictureData;
+                            yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
+                        }
+                    }
+                    break;
+                case ImageLocationType.WithinAnchor:
+                    foreach (IPicture p in pictures)
+                    {
+                        var a = p.ClientAnchor;
+                        if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
+                        {
+                            IPictureData pictureData = p.PictureData;
+                            yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
+                        }
+                    }
+                    break;
+                default:
+                    throw new Exception("Unknown imageLocationType: " + imageLocationType);
             }
+        }
+        public enum ImageLocationType
+        {
+            /// <summary>
+            /// get pictures by their anchor's Top-Left (From) equals the cell
+            /// </summary>
+            AnchorTopLeft,
+            /// <summary>
+            /// get pictures if their anchor covers the cell
+            /// </summary>
+            WithinAnchor,
         }
     }
 }

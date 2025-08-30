@@ -37,7 +37,7 @@ namespace Cliver
                     cs.FillPattern = FillPattern.NoFill;
                     return;
                 }
-                cs.SetFillForegroundColor(new XSSFColor(color.RGB));
+                cs.SetFillForegroundColor(new XSSFColor(color.RGB, null));
                 cs.FillPattern = fillPattern;
                 return;
             }
@@ -367,7 +367,7 @@ namespace Cliver
                     {
                         if (color == 0)
                             return null;
-                        return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB);
+                        return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB, null);
                     }
                     xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(style.FillForegroundColor);
                     xcs2.FillBackgroundXSSFColor = getHSSFXSSFColor(style.FillBackgroundColor);
@@ -537,7 +537,7 @@ namespace Cliver
                     {
                         if (color == 0)
                             return null;
-                        return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB);
+                        return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB, null);
                     }
                     if (spns.Contains("FillForegroundColor"))
                         xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(maskStyle.FillForegroundColor);
@@ -668,7 +668,7 @@ namespace Cliver
         static public IFont _CreateUnregisteredFont(this IWorkbook workbook)
         {
             if (workbook is XSSFWorkbook)
-                return new XSSFFont(new NPOI.OpenXmlFormats.Spreadsheet.CT_Font(), -1);
+                return new XSSFFont(new NPOI.OpenXmlFormats.Spreadsheet.CT_Font(), -1, null);
             if (workbook is HSSFWorkbook)
                 return new HSSFFont(-1, new NPOI.HSSF.Record.FontRecord());
             throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);

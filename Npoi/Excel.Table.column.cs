@@ -549,7 +549,7 @@ namespace Cliver
 
                 public int GetWidth()
                 {
-                    return Table._.GetColumnWidth(X - 1);
+                    return (int)Table._.GetColumnWidth(X - 1);
                 }
 
                 public void SetWidth(int width)

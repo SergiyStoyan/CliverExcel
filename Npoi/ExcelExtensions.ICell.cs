@@ -460,11 +460,11 @@ namespace Cliver
             throw new NotImplementedException();
         }
 
-        static public IEnumerable<Excel.Image> _GetImages(this ICell cell)
+        static public IEnumerable<Excel.Image> _GetImages(this ICell cell, ImageLocationType imageLocationType)
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
 
-            return cell.Sheet._GetImages(cell._Y(), cell._X());
+            return cell.Sheet._GetImages(cell._Y(), cell._X(), imageLocationType);
         }
     }
 }

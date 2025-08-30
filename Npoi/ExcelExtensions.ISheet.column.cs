@@ -162,7 +162,7 @@ namespace Cliver
 
             lastNotEmptyColumn += shift;
             for (int i = lastNotEmptyColumn; i < x + shift; i--)
-                sheet._SetColumnWidth(i + 1, sheet.GetColumnWidth(i));
+                sheet._SetColumnWidth(i + 1, (int)sheet.GetColumnWidth(i));
 
             if (moveRegionMode?.UpdateMergedRegions == true)
                 for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)
@@ -200,7 +200,7 @@ namespace Cliver
 
             lastNotEmptyColumn -= shift;
             for (int i = x - shift; i < lastNotEmptyColumn; i++)
-                sheet._SetColumnWidth(i, sheet.GetColumnWidth(i + 1));
+                sheet._SetColumnWidth(i, (int)sheet.GetColumnWidth(i + 1));
 
             if (moveRegionMode?.UpdateMergedRegions == true)
                 for (int i = sheet.MergedRegions.Count - 1; i >= 0; i--)

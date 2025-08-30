@@ -186,7 +186,7 @@ namespace Cliver
 
             public int GetWidth()
             {
-                return Sheet.GetColumnWidth(X - 1);
+                return (int)Sheet.GetColumnWidth(X - 1);
             }
 
             /// <summary>
@@ -203,7 +203,7 @@ namespace Cliver
                 //sheet.setColumnWidth(i, width);
 
                 if (padding > 0)
-                    SetWidth(Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
+                    SetWidth((int)Sheet.GetColumnWidth(X - 1) + (int)(padding * 256));
             }
 
             public Column Copy(string column2Name, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
@@ -267,9 +267,9 @@ namespace Cliver
             /// <param name="row"></param>
             /// <param name="x"></param>
             /// <returns></returns>
-            public IEnumerable<Excel.Image> GetImages(int y)
+            public IEnumerable<Excel.Image> GetImages(int y, ExcelExtensions.ImageLocationType imageLocationType)
             {
-                return Sheet._GetImages(y, X);
+                return Sheet._GetImages(y, X, imageLocationType);
             }
 
             public void _Write<T>(IEnumerable<T> values)
