@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>7.23.0</Version>
+	  <Version>7.23.1</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -46,8 +46,8 @@ v6 =&gt; v7
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CliverRoutines" Version="6.49.1" />
-    <PackageReference Include="NPOI" Version="2.7.4" />
+    <PackageReference Include="CliverRoutines" Version="6.55.0" />
+    <PackageReference Include="NPOI" Version="2.7.5" />
   </ItemGroup>
 
   <ItemGroup>

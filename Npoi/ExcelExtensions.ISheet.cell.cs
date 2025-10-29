@@ -299,7 +299,7 @@ namespace Cliver
         /// <exception cref="Exception"></exception>
         static public void _RemoveImages(this ISheet sheet, int y, int x)
         {
-            IDrawing drawing = sheet.CreateDrawingPatriarch();
+            var drawing = sheet.CreateDrawingPatriarch();
             if (drawing is XSSFDrawing xssfDrawing)
             {
                 var ps = xssfDrawing.GetShapes().Where(a => a is XSSFPicture p && p.ClientAnchor.Row1 + 1 == y && p.ClientAnchor.Col1 + 1 == x);
