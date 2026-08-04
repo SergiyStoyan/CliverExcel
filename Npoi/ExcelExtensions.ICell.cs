@@ -210,7 +210,7 @@ namespace Cliver
         /// <param name="urlUnescapeFileType">
         /// Usually you expect that file links are url-escaped and need to be unescaped.
         /// It is TRUE by default because _SetLink() does url-escape and Excel too does so.
-        /// However, some app can set links as they are, dave the file and then retrieve them as they are.
+        /// However, some app can set links as they are, save the file and then retrieve them as they are.
         /// Also, Excel still might treat unescaped links properly but then it will url-escape them when saving the file.
         /// So, links can be either encoded or not encoded!
         /// Unfortunately it is impossible to say if a link is url-escaped with 100% confidence. So, decision is left to the caller. 
@@ -460,11 +460,11 @@ namespace Cliver
             throw new NotImplementedException();
         }
 
-        static public IEnumerable<Excel.Image> _GetImages(this ICell cell)
+        static public IEnumerable<Excel.Image> _GetImages(this ICell cell, ImageLocationType imageLocationType)
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
 
-            return cell.Sheet._GetImages(cell._Y(), cell._X());
+            return cell.Sheet._GetImages(cell._Y(), cell._X(), imageLocationType);
         }
     }
 }
