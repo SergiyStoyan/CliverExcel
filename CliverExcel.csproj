@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>7.23.2</Version>
+	  <Version>8.0.0</Version>
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -17,7 +17,12 @@
 	  <RootNamespace>Cliver</RootNamespace>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageReleaseNotes>v7.22 =&gt; v7.23
+	  <PackageReleaseNotes>v7.23 =&gt; v8.0
+- updated to NPOI-2.7.6;
+- (!) _GetRegisteredStyle() fixed;
+- from _GetRegisteredStyle() removed reuseUnusedStyle argument;
+
+v7.22 =&gt; v7.23
 - updated to NPOI-2.7.4;
 - _GetImages() upgraded;
 
@@ -47,7 +52,7 @@ v6 =&gt; v7
 
   <ItemGroup>
     <PackageReference Include="CliverRoutines" Version="6.56.0" />
-    <PackageReference Include="NPOI" Version="2.7.5" />
+    <PackageReference Include="NPOI" Version="2.7.6" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
   </ItemGroup>
 

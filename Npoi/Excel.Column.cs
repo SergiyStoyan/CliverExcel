@@ -30,11 +30,11 @@ namespace Cliver
                 return Sheet._GetCell(y, X, createCell);
             }
 
-            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope/*, bool reuseUnusedStyle = false*/) where T : Excel.StyleCache.IKey
             {
                 var styleCache = Sheet.Workbook._Excel().OneWorkbookStyleCache;
                 foreach (ICell cell in GetCells(cellScope))
-                    cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
+                    cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle/*, reuseUnusedStyle*/);
             }
 
             public int GetLastRow(LastRowCondition lastRowCondition, bool includeMerged)

@@ -58,9 +58,9 @@ namespace Cliver
             /// <param name="style">the style to be altered</param>
             /// <param name="alterationKey"></param>
             /// <param name="alterStyle">performs style alteration. (!)Style is unregistered and must remain so.</param>
-            /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
+            ///// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
             /// <returns></returns>T
-            public ICellStyle GetAlteredStyle<T>(ICellStyle style, T alterationKey, AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+            public ICellStyle GetAlteredStyle<T>(ICellStyle style, T alterationKey, AlterStyle<T> alterStyle/*, bool reuseUnusedStyle = false*/) where T : Excel.StyleCache.IKey
             {
                 long alteration_styleKey = (((long)alterationKey.Get()) << 16) + style.Index;
 
@@ -68,7 +68,7 @@ namespace Cliver
                 {
                     s2 = Workbook1._CloneUnregisteredStyle(style, Workbook2);
                     alterStyle(s2, alterationKey);
-                    s2 = Workbook1._GetRegisteredStyle(s2, reuseUnusedStyle, Workbook2);
+                    s2 = Workbook1._GetRegisteredStyle(s2/*, reuseUnusedStyle*/, Workbook2);
                     style1Keys2style2[alteration_styleKey] = s2;
                 }
                 return s2;

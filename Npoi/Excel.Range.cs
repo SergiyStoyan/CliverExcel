@@ -131,10 +131,10 @@ namespace Cliver
                 ReplaceStyle(style, null);
             }
 
-            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+            public void SetAlteredStyles<T>(T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope/*, bool reuseUnusedStyle = false*/) where T : Excel.StyleCache.IKey
             {
                 foreach (var c in GetCells(cellScope))
-                    c?._SetAlteredStyle(alterationKey, alterStyle, reuseUnusedStyle);
+                    c?._SetAlteredStyle(alterationKey, alterStyle/*, reuseUnusedStyle*/);
             }
 
             public IEnumerable<ICell> GetCells(CellScope cellScope)

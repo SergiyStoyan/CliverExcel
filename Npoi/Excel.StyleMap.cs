@@ -35,16 +35,16 @@ namespace Cliver
             /// Used for mappping styles between 2 workbooks
             /// </summary>
             /// <param name="style"></param>
-            /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
+            ///// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
             /// <returns></returns>
-            public ICellStyle GetMappedStyle(ICellStyle style, bool reuseUnusedStyle = false)
+            public ICellStyle GetMappedStyle(ICellStyle style/*, bool reuseUnusedStyle = false*/)
             {
                 const long d = 1 << 48 - 1;
                 long styleKey = (((long)style.Index) << 48) + d;//it uses octets not used by GetAlteredStyle()
 
                 if (!style1Keys2style2.TryGetValue(styleKey, out ICellStyle s2))
                 {
-                    s2 = Workbook1._GetRegisteredStyle(s2, reuseUnusedStyle, Workbook2);
+                    s2 = Workbook1._GetRegisteredStyle(s2/*, reuseUnusedStyle*/, Workbook2);
                     style1Keys2style2[styleKey] = s2;
                 }
                 return s2;

@@ -26,10 +26,10 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetAlteredStyle<T>(this ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+        static public void _SetAlteredStyle<T>(this ICell cell, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle/*, bool reuseUnusedStyle = false*/) where T : Excel.StyleCache.IKey
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
-            cell.CellStyle = cell.Sheet.Workbook._Excel().OneWorkbookStyleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
+            cell.CellStyle = cell.Sheet.Workbook._Excel().OneWorkbookStyleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle/*, reuseUnusedStyle*/);
         }
 
         static public string _GetAddress(this ICell cell)
@@ -97,7 +97,7 @@ namespace Cliver
 
             switch (cell.CellType)
             {
-                case CellType.Unknown:
+                case CellType._None:
                     //return cell.ToString();
                     throw new Exception("Needs debugging for this cell type: " + cell.CellType);
                 case CellType.Numeric:
@@ -131,7 +131,7 @@ namespace Cliver
                     var cv = formulaEvaluator.Evaluate(cell);
                     switch (cv.CellType)
                     {
-                        case CellType.Unknown:
+                        case CellType._None:
                             //return cv.ToString();
                             throw new Exception("Needs debugging for this cell type: " + cell.CellType);
                         case CellType.Numeric:
@@ -223,7 +223,7 @@ namespace Cliver
             //return cell?.Sheet.GetHyperlinkList()
             //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
             //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
- 
+
             if (urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links (too, unescaped % may lead to confusion) so such paths are url-escaped.
                 link = Uri.UnescapeDataString(link);
             return link;

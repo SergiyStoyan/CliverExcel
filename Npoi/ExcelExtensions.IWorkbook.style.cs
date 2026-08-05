@@ -59,27 +59,30 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Looks for the equal style in the workbook and, if it does not exists, creates a new one.
+        /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
-        /// <param name="unregisteredStyle">it is a style created by CreateUnregisteredStyle() and then modified as needed. But it can be a registered style, too.</param>
-        /// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
-        /// <param name="unregisteredStyleWorkbook"></param>
+        /// <param name="workbook1">workbook which style1 belongs to</param>
+        /// <param name="style1">it can be either a unregistered style created by CreateUnregisteredStyle() and modified as needed, or a registered style.</param>
+        ///// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
+        /// <param name="workbook2">workbook where an equivalent of style1 to be registered</param>
         /// <returns></returns>
-        static public ICellStyle _GetRegisteredStyle(this IWorkbook workbook, ICellStyle unregisteredStyle, bool reuseUnusedStyle = false, IWorkbook unregisteredStyleWorkbook = null)
+        static public ICellStyle _GetRegisteredStyle(this IWorkbook workbook1, ICellStyle style1/*, bool reuseUnusedStyle = false*/, IWorkbook workbook2 = null)
         {
-            ICellStyle style = workbook._FindEqualStyles(unregisteredStyle, unregisteredStyleWorkbook).FirstOrDefault();
-            if (style != null)
-                return style;
-            if (reuseUnusedStyle)
-            {
-                style = workbook._GetUnusedStyles().FirstOrDefault();
-                if (style == null)
-                    style = workbook.CreateCellStyle();
-            }
-            else
-                style = workbook.CreateCellStyle();
-            return workbook._CopyStyle(unregisteredStyle, style);
+            if (workbook2 == null)
+                workbook2 = workbook1;
+            ICellStyle style2 = workbook1._FindEqualStyles(style1, workbook2).FirstOrDefault();
+            if (style2 != null)
+                return style2;
+            //if (reuseUnusedStyle)
+            //{
+            //    style2 = workbook1._GetUnusedStyles().FirstOrDefault();
+            //    if (style2 == null)
+            //        style2 = workbook1.CreateCellStyle();
+            //}
+            //else
+            style2 = workbook2.CreateCellStyle();
+            return workbook1._CopyStyle(style1, style2, workbook2);
         }
 
         /// <summary>
@@ -90,16 +93,16 @@ namespace Cliver
         /// (!)Unregistered styles must have their fonts registerd in the workbooks.
         /// (!)Unregistered HSSF styles must have their colors registerd in the workbook palette.
         /// </summary>
-        /// <param name="workbook"></param>
-        /// <param name="style"></param>
-        /// <param name="searchWorkbook"></param>
+        /// <param name="workbook1">workbook which style1 belongs to</param>
+        /// <param name="style1">it can be either a unregistered style created by CreateUnregisteredStyle() and modified as needed, or a registered style.</param>
+        /// <param name="workbook2">workbook where equivalents of style1 to be searched</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static public IEnumerable<ICellStyle> _FindEqualStyles(this IWorkbook workbook, ICellStyle style, IWorkbook searchWorkbook = null)
+        static public IEnumerable<ICellStyle> _FindEqualStyles(this IWorkbook workbook1, ICellStyle style1, IWorkbook workbook2 = null)
         {
-            if (searchWorkbook == null)
-                searchWorkbook = workbook;
-            return _FindEqualStyles(workbook, style, searchWorkbook._GetStyles(), searchWorkbook);
+            if (workbook2 == null)
+                workbook2 = workbook1;
+            return _FindEqualStyles(workbook1, style1, workbook2._GetStyles(), workbook2);
         }
 
         /// <summary>
@@ -110,10 +113,10 @@ namespace Cliver
         /// (!)Unregistered styles must have their fonts registerd in the workbooks.
         /// (!)Unregistered HSSF styles must have their colors registerd in the workbook palette.
         /// </summary>
-        /// <param name="workbook1"></param>
-        /// <param name="style1"></param>
-        /// <param name="style2"></param>
-        /// <param name="workbook2"></param>
+        /// <param name="workbook1">workbook which style1 belongs to</param>
+        /// <param name="style1">it can be either a unregistered style created by CreateUnregisteredStyle() and modified as needed, or a registered style.</param>
+        /// <param name="style2">it can be either a unregistered style created by CreateUnregisteredStyle() and modified as needed, or a registered style.</param>
+        /// <param name="workbook2">workbook which style2 belongs to</param>
         /// <returns></returns>
         static public bool _AreStylesEqual(this IWorkbook workbook1, ICellStyle style1, ICellStyle style2, IWorkbook workbook2 = null)
         {
@@ -130,16 +133,16 @@ namespace Cliver
         /// (!)Unregistered styles must have their fonts registerd in the workbooks.
         /// (!)Unregistered HSSF styles must have their colors registerd in the workbook palette.
         /// </summary>
-        /// <param name="workbook">the workbook which the style belongs to</param>
-        /// <param name="style">the style to search for</param>
-        /// <param name="searchStyles">the styles to compare with</param>
-        /// <param name="searchWorkbook">the workbook which the style2s belong to</param>
+        /// <param name="workbook1">the workbook which style1 belongs to</param>
+        /// <param name="style1">the style to search for</param>
+        /// <param name="style2s">the styles to compare with</param>
+        /// <param name="workbook2">the workbook which the style2s belong to</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static public IEnumerable<ICellStyle> _FindEqualStyles(this IWorkbook workbook, ICellStyle style, IEnumerable<ICellStyle> searchStyles, IWorkbook searchWorkbook = null)
+        static public IEnumerable<ICellStyle> _FindEqualStyles(this IWorkbook workbook1, ICellStyle style1, IEnumerable<ICellStyle> style2s, IWorkbook workbook2 = null)
         {
-            if (searchWorkbook == null)
-                searchWorkbook = workbook;
+            if (workbook2 == null)
+                workbook2 = workbook1;
 
             HSSFPalette palette1 = null;
             HSSFPalette palette2 = null;
@@ -196,13 +199,13 @@ namespace Cliver
             {
                 HSSFCellStyle s1 = (HSSFCellStyle)s1_;
                 HSSFCellStyle s2 = (HSSFCellStyle)s2_;
-                return style.FillForegroundColor == s2.FillForegroundColor
-                 && style.FillBackgroundColor == s2.FillBackgroundColor
-                 && style.BorderDiagonalColor == s2.BorderDiagonalColor
-                 && style.BottomBorderColor == s2.BottomBorderColor
-                 && style.LeftBorderColor == s2.LeftBorderColor
-                 && style.RightBorderColor == s2.RightBorderColor
-                 && style.TopBorderColor == s2.TopBorderColor;
+                return style1.FillForegroundColor == s2.FillForegroundColor
+                 && style1.FillBackgroundColor == s2.FillBackgroundColor
+                 && style1.BorderDiagonalColor == s2.BorderDiagonalColor
+                 && style1.BottomBorderColor == s2.BottomBorderColor
+                 && style1.LeftBorderColor == s2.LeftBorderColor
+                 && style1.RightBorderColor == s2.RightBorderColor
+                 && style1.TopBorderColor == s2.TopBorderColor;
             }
             bool areHSSFHSSFStyleColorsEqualByValue(ICellStyle s1_, ICellStyle s2_)
             {
@@ -217,64 +220,64 @@ namespace Cliver
 
             Func<ICellStyle, ICellStyle, bool> areStyleColorsEqual;
 
-            if (workbook is XSSFWorkbook)
+            if (workbook1 is XSSFWorkbook)
             {
-                if (searchWorkbook is XSSFWorkbook)
+                if (workbook2 is XSSFWorkbook)
                     areStyleColorsEqual = areXSSFXSSFStyleColorsEqual;
-                else if (searchWorkbook is HSSFWorkbook)
+                else if (workbook2 is HSSFWorkbook)
                     areStyleColorsEqual = areXSSFHSSFStyleColorsEqual;
                 else
-                    throw new Exception("Unsupported workbook type: " + searchWorkbook.GetType().FullName);
+                    throw new Exception("Unsupported workbook type: " + workbook2.GetType().FullName);
             }
-            else if (workbook is HSSFWorkbook)
+            else if (workbook1 is HSSFWorkbook)
             {
-                if (searchWorkbook is XSSFWorkbook)
+                if (workbook2 is XSSFWorkbook)
                     areStyleColorsEqual = areHSSFXSSFStyleColorsEqual;
-                else if (searchWorkbook is HSSFWorkbook)
+                else if (workbook2 is HSSFWorkbook)
                 {
-                    if (searchWorkbook == workbook)
+                    if (workbook2 == workbook1)
                         areStyleColorsEqual = areHSSFHSSFStyleColorsEqualByIndex;
                     else
                     {
-                        palette1 = ((HSSFWorkbook)workbook).GetCustomPalette();
-                        palette2 = ((HSSFWorkbook)searchWorkbook).GetCustomPalette();
+                        palette1 = ((HSSFWorkbook)workbook1).GetCustomPalette();
+                        palette2 = ((HSSFWorkbook)workbook2).GetCustomPalette();
                         areStyleColorsEqual = areHSSFHSSFStyleColorsEqualByValue;
                     }
                 }
                 else
-                    throw new Exception("Unsupported workbook type: " + searchWorkbook.GetType().FullName);
+                    throw new Exception("Unsupported workbook type: " + workbook2.GetType().FullName);
             }
             else
-                throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+                throw new Exception("Unsupported workbook type: " + workbook1.GetType().FullName);
 
-            string dataFormat1String = workbook.CreateDataFormat().GetFormat(style.DataFormat);
-            IDataFormat dataFormat2 = searchWorkbook.CreateDataFormat();
-            IFont font1 = workbook._GetFont(style);
+            string dataFormat1String = workbook1.CreateDataFormat().GetFormat(style1.DataFormat);
+            IDataFormat dataFormat2 = workbook2.CreateDataFormat();
+            IFont font1 = workbook1._GetFont(style1);
 
-            foreach (ICellStyle style2 in searchStyles)
+            foreach (ICellStyle style2 in style2s)
             {
-                if (style.Alignment != style2.Alignment
-                || style.BorderBottom != style2.BorderBottom
-                || style.BorderDiagonal != style2.BorderDiagonal
-                || style.BorderDiagonalLineStyle != style2.BorderDiagonalLineStyle
-                || style.BorderLeft != style2.BorderLeft
-                || style.BorderRight != style2.BorderRight
-                || style.BorderTop != style2.BorderTop
-                || style.FillPattern != style2.FillPattern
-                || style.Indention != style2.Indention
-                || style.IsHidden != style2.IsHidden
-                || style.IsLocked != style2.IsLocked
-                || style.Rotation != style2.Rotation
-                || style.ShrinkToFit != style2.ShrinkToFit
-                || style.VerticalAlignment != style2.VerticalAlignment
-                || style.WrapText != style2.WrapText
+                if (style1.Alignment != style2.Alignment
+                || style1.BorderBottom != style2.BorderBottom
+                || style1.BorderDiagonal != style2.BorderDiagonal
+                || style1.BorderDiagonalLineStyle != style2.BorderDiagonalLineStyle
+                || style1.BorderLeft != style2.BorderLeft
+                || style1.BorderRight != style2.BorderRight
+                || style1.BorderTop != style2.BorderTop
+                || style1.FillPattern != style2.FillPattern
+                || style1.Indention != style2.Indention
+                || style1.IsHidden != style2.IsHidden
+                || style1.IsLocked != style2.IsLocked
+                || style1.Rotation != style2.Rotation
+                || style1.ShrinkToFit != style2.ShrinkToFit
+                || style1.VerticalAlignment != style2.VerticalAlignment
+                || style1.WrapText != style2.WrapText
                 )
                     continue;
 
-                if (!areStyleColorsEqual(style, style2))
+                if (!areStyleColorsEqual(style1, style2))
                     continue;
 
-                IFont font2 = searchWorkbook._GetFont(style2);
+                IFont font2 = workbook2._GetFont(style2);
                 if (!Excel.AreFontsEqual(font1, font2))
                     continue;
 
@@ -290,48 +293,48 @@ namespace Cliver
         /// Font, format and indexed colors, if do not exist in the destination workbook, will be created there.
         /// Allows copying between styles of different types.
         /// </summary>
-        /// <param name="workbook"></param>
-        /// <param name="style"></param>
-        /// <param name="style2"></param>
-        /// <param name="workbook2"></param>
+        /// <param name="workbook1">the workbook which style1 belongs to</param>
+        /// <param name="style1">the style to be copied</param>
+        /// <param name="style2">the style to copy to</param>
+        /// <param name="workbook2">the workbook which the style2 belongs to</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static public ICellStyle _CopyStyle(this IWorkbook workbook, ICellStyle style, ICellStyle style2, IWorkbook workbook2 = null)
+        static public ICellStyle _CopyStyle(this IWorkbook workbook1, ICellStyle style1, ICellStyle style2, IWorkbook workbook2 = null)
         {
             if (workbook2 == null)
-                workbook2 = workbook;
+                workbook2 = workbook1;
 
-            style2.Alignment = style.Alignment;
-            style2.BorderBottom = style.BorderBottom;
-            style2.BorderDiagonal = style.BorderDiagonal;
-            style2.BorderDiagonalLineStyle = style.BorderDiagonalLineStyle;
-            style2.BorderLeft = style.BorderLeft;
-            style2.BorderRight = style.BorderRight;
-            style2.BorderTop = style.BorderTop;
-            if (workbook2 == workbook)
-                style2.DataFormat = style.DataFormat;
+            style2.Alignment = style1.Alignment;
+            style2.BorderBottom = style1.BorderBottom;
+            style2.BorderDiagonal = style1.BorderDiagonal;
+            style2.BorderDiagonalLineStyle = style1.BorderDiagonalLineStyle;
+            style2.BorderLeft = style1.BorderLeft;
+            style2.BorderRight = style1.BorderRight;
+            style2.BorderTop = style1.BorderTop;
+            if (workbook2 == workbook1)
+                style2.DataFormat = style1.DataFormat;
             else
             {
-                var dataFormat1 = workbook.CreateDataFormat();
+                var dataFormat1 = workbook1.CreateDataFormat();
                 var dataFormat2 = workbook2.CreateDataFormat();
                 string sDataFormat;
                 try
                 {
-                    sDataFormat = dataFormat1.GetFormat(style.DataFormat);
+                    sDataFormat = dataFormat1.GetFormat(style1.DataFormat);
                 }
                 catch (Exception e)
                 {
-                    throw new Exception("Style fromStyle has DataFormat=" + style.DataFormat + " that does not exists in the workbook.", e);
+                    throw new Exception("Style fromStyle has DataFormat=" + style1.DataFormat + " that does not exists in the workbook.", e);
                 }
                 style2.DataFormat = dataFormat2.GetFormat(sDataFormat);
             }
 
-            if (style is XSSFCellStyle xcs)
+            if (style1 is XSSFCellStyle xcs)
             {
                 if (style2 is XSSFCellStyle xcs2)
                 {
-                    xcs2.FillForegroundColorColor = style.FillForegroundColorColor;
-                    xcs2.FillBackgroundColorColor = style.FillBackgroundColorColor;
+                    xcs2.FillForegroundColorColor = style1.FillForegroundColorColor;
+                    xcs2.FillBackgroundColorColor = style1.FillBackgroundColorColor;
                     xcs2.SetDiagonalBorderColor(xcs.DiagonalBorderXSSFColor);
                     xcs2.SetBottomBorderColor(xcs.BottomBorderXSSFColor);
                     xcs2.SetLeftBorderColor(xcs.LeftBorderXSSFColor);
@@ -358,30 +361,30 @@ namespace Cliver
                 else
                     throw new Exception("Unsupported workbook type: " + workbook2.GetType().FullName);
             }
-            else if (style is HSSFCellStyle)
+            else if (style1 is HSSFCellStyle)
             {
                 if (style2 is XSSFCellStyle xcs2)
                 {
-                    HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
+                    HSSFPalette palette = ((HSSFWorkbook)workbook1).GetCustomPalette();
                     XSSFColor getHSSFXSSFColor(short color)
                     {
                         if (color == 0)
                             return null;
                         return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB, null);
                     }
-                    xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(style.FillForegroundColor);
-                    xcs2.FillBackgroundXSSFColor = getHSSFXSSFColor(style.FillBackgroundColor);
-                    xcs2.SetDiagonalBorderColor(getHSSFXSSFColor(style.BorderDiagonalColor));
-                    xcs2.SetBottomBorderColor(getHSSFXSSFColor(style.BottomBorderColor));
-                    xcs2.SetLeftBorderColor(getHSSFXSSFColor(style.LeftBorderColor));
-                    xcs2.SetRightBorderColor(getHSSFXSSFColor(style.RightBorderColor));
-                    xcs2.SetTopBorderColor(getHSSFXSSFColor(style.TopBorderColor));
+                    xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(style1.FillForegroundColor);
+                    xcs2.FillBackgroundXSSFColor = getHSSFXSSFColor(style1.FillBackgroundColor);
+                    xcs2.SetDiagonalBorderColor(getHSSFXSSFColor(style1.BorderDiagonalColor));
+                    xcs2.SetBottomBorderColor(getHSSFXSSFColor(style1.BottomBorderColor));
+                    xcs2.SetLeftBorderColor(getHSSFXSSFColor(style1.LeftBorderColor));
+                    xcs2.SetRightBorderColor(getHSSFXSSFColor(style1.RightBorderColor));
+                    xcs2.SetTopBorderColor(getHSSFXSSFColor(style1.TopBorderColor));
                 }
                 else if (style2 is HSSFCellStyle)
                 {
-                    if (workbook2 != workbook)
+                    if (workbook2 != workbook1)
                     {
-                        HSSFPalette palette = ((HSSFWorkbook)workbook).GetCustomPalette();
+                        HSSFPalette palette = ((HSSFWorkbook)workbook1).GetCustomPalette();
                         short getHSSFHSSFColor(short color)
                         {
                             if (color == 0)
@@ -389,41 +392,41 @@ namespace Cliver
                             HSSFColor c = Excel.GetRegisteredHSSFColor((HSSFWorkbook)workbook2, new Excel.Color(palette.GetColor(color)));
                             return c.Indexed;//(!)might be not exactly same color
                         }
-                        style2.FillForegroundColor = getHSSFHSSFColor(style.FillForegroundColor);
-                        style2.FillBackgroundColor = getHSSFHSSFColor(style.FillBackgroundColor);
-                        style2.BorderDiagonalColor = getHSSFHSSFColor(style.BorderDiagonalColor);
-                        style2.BottomBorderColor = getHSSFHSSFColor(style.BottomBorderColor);
-                        style2.LeftBorderColor = getHSSFHSSFColor(style.LeftBorderColor);
-                        style2.RightBorderColor = getHSSFHSSFColor(style.RightBorderColor);
-                        style2.TopBorderColor = getHSSFHSSFColor(style.TopBorderColor);
+                        style2.FillForegroundColor = getHSSFHSSFColor(style1.FillForegroundColor);
+                        style2.FillBackgroundColor = getHSSFHSSFColor(style1.FillBackgroundColor);
+                        style2.BorderDiagonalColor = getHSSFHSSFColor(style1.BorderDiagonalColor);
+                        style2.BottomBorderColor = getHSSFHSSFColor(style1.BottomBorderColor);
+                        style2.LeftBorderColor = getHSSFHSSFColor(style1.LeftBorderColor);
+                        style2.RightBorderColor = getHSSFHSSFColor(style1.RightBorderColor);
+                        style2.TopBorderColor = getHSSFHSSFColor(style1.TopBorderColor);
                     }
                     else
                     {
-                        style2.FillForegroundColor = style.FillForegroundColor;
-                        style2.FillBackgroundColor = style.FillBackgroundColor;
-                        style2.BorderDiagonalColor = style.BorderDiagonalColor;
-                        style2.BottomBorderColor = style.BottomBorderColor;
-                        style2.LeftBorderColor = style.LeftBorderColor;
-                        style2.RightBorderColor = style.RightBorderColor;
-                        style2.TopBorderColor = style.TopBorderColor;
+                        style2.FillForegroundColor = style1.FillForegroundColor;
+                        style2.FillBackgroundColor = style1.FillBackgroundColor;
+                        style2.BorderDiagonalColor = style1.BorderDiagonalColor;
+                        style2.BottomBorderColor = style1.BottomBorderColor;
+                        style2.LeftBorderColor = style1.LeftBorderColor;
+                        style2.RightBorderColor = style1.RightBorderColor;
+                        style2.TopBorderColor = style1.TopBorderColor;
                     }
                 }
                 else
                     throw new Exception("Unsupported workbook type: " + workbook2.GetType().FullName);
             }
             else
-                throw new Exception("Unsupported workbook type: " + workbook.GetType().FullName);
+                throw new Exception("Unsupported workbook type: " + workbook1.GetType().FullName);
 
-            style2.FillPattern = style.FillPattern;
-            style2.Indention = style.Indention;
-            style2.IsHidden = style.IsHidden;
-            style2.IsLocked = style.IsLocked;
-            style2.Rotation = style.Rotation;
-            style2.ShrinkToFit = style.ShrinkToFit;
-            style2.VerticalAlignment = style.VerticalAlignment;
-            style2.WrapText = style.WrapText;
-            IFont f1 = workbook._GetFont(style);
-            if (workbook2 == workbook)
+            style2.FillPattern = style1.FillPattern;
+            style2.Indention = style1.Indention;
+            style2.IsHidden = style1.IsHidden;
+            style2.IsLocked = style1.IsLocked;
+            style2.Rotation = style1.Rotation;
+            style2.ShrinkToFit = style1.ShrinkToFit;
+            style2.VerticalAlignment = style1.VerticalAlignment;
+            style2.WrapText = style1.WrapText;
+            IFont f1 = workbook1._GetFont(style1);
+            if (workbook2 == workbook1)
                 style2.SetFont(f1);
             else
             {
@@ -434,62 +437,62 @@ namespace Cliver
         }
 
         /// <summary>
-        /// (!)Experimental. Copies listes properties from maskStyle to style. Both styles can be unregistered.
+        /// (!)Experimental. Copies listes properties from style1 to style. Both styles can be unregistered.
         /// </summary>
-        /// <param name="maskWorkbook"></param>
+        /// <param name="workbook1">the workbook which style1 belongs to</param>
         /// <param name="stylePropertieNames"></param>
-        /// <param name="maskStyle"></param>
-        /// <param name="style2"></param>
-        /// <param name="workbook2"></param>
+        /// <param name="style1">the style to be copied</param>
+        /// <param name="style2">the style to copy into</param>
+        /// <param name="workbook2">the workbook which the style2 belongs to</param>
         /// <exception cref="Exception"></exception>
-        static public void _BlendStyle(this IWorkbook maskWorkbook, IEnumerable<string> stylePropertieNames, ICellStyle maskStyle, ICellStyle style2, IWorkbook workbook2 = null)
+        static public void _BlendStyle(this IWorkbook workbook1, IEnumerable<string> stylePropertieNames, ICellStyle style1, ICellStyle style2, IWorkbook workbook2 = null)
         {
             if (workbook2 == null)
-                workbook2 = maskWorkbook;
+                workbook2 = workbook1;
 
             HashSet<string> spns = new HashSet<string>(stylePropertieNames);
 
             if (spns.Contains("Alignment"))
-                style2.Alignment = maskStyle.Alignment;
+                style2.Alignment = style1.Alignment;
             if (spns.Contains("BorderBottom"))
-                style2.BorderBottom = maskStyle.BorderBottom;
+                style2.BorderBottom = style1.BorderBottom;
             if (spns.Contains("BorderDiagonal"))
-                style2.BorderDiagonal = maskStyle.BorderDiagonal;
+                style2.BorderDiagonal = style1.BorderDiagonal;
             if (spns.Contains("BorderDiagonalLineStyle"))
-                style2.BorderDiagonalLineStyle = maskStyle.BorderDiagonalLineStyle;
+                style2.BorderDiagonalLineStyle = style1.BorderDiagonalLineStyle;
             if (spns.Contains("BorderLeft"))
-                style2.BorderLeft = maskStyle.BorderLeft;
+                style2.BorderLeft = style1.BorderLeft;
             if (spns.Contains("BorderRight"))
-                style2.BorderRight = maskStyle.BorderRight;
+                style2.BorderRight = style1.BorderRight;
             if (spns.Contains("BorderTop"))
-                style2.BorderTop = maskStyle.BorderTop;
+                style2.BorderTop = style1.BorderTop;
 
-            if (maskWorkbook == workbook2)
-                style2.DataFormat = maskStyle.DataFormat;
+            if (workbook1 == workbook2)
+                style2.DataFormat = style1.DataFormat;
             else
             {
-                var dataFormat1 = maskWorkbook.CreateDataFormat();
+                var dataFormat1 = workbook1.CreateDataFormat();
                 var dataFormat2 = workbook2.CreateDataFormat();
                 string sDataFormat;
                 try
                 {
-                    sDataFormat = dataFormat1.GetFormat(maskStyle.DataFormat);
+                    sDataFormat = dataFormat1.GetFormat(style1.DataFormat);
                 }
                 catch (Exception e)
                 {
-                    throw new Exception("Style maskStyle has DataFormat=" + maskStyle.DataFormat + " that does not exists in the maskWorkbook.", e);
+                    throw new Exception("Style style1 has DataFormat=" + style1.DataFormat + " that does not exists in the workbook1.", e);
                 }
                 style2.DataFormat = dataFormat2.GetFormat(sDataFormat);
             }
 
-            if (maskStyle is XSSFCellStyle xcs)
+            if (style1 is XSSFCellStyle xcs)
             {
                 if (style2 is XSSFCellStyle xcs2)
                 {
                     if (spns.Contains("FillForegroundColorColor"))
-                        xcs2.FillForegroundColorColor = maskStyle.FillForegroundColorColor;
+                        xcs2.FillForegroundColorColor = style1.FillForegroundColorColor;
                     if (spns.Contains("FillBackgroundColorColor"))
-                        xcs2.FillBackgroundColorColor = maskStyle.FillBackgroundColorColor;
+                        xcs2.FillBackgroundColorColor = style1.FillBackgroundColorColor;
                     if (spns.Contains("DiagonalBorderXSSFColor"))
                         xcs2.SetDiagonalBorderColor(xcs.DiagonalBorderXSSFColor);
                     if (spns.Contains("BottomBorderXSSFColor"))
@@ -528,11 +531,11 @@ namespace Cliver
                 else
                     throw new Exception("Unsupported workbook2 type: " + workbook2.GetType().FullName);
             }
-            else if (maskStyle is HSSFCellStyle)
+            else if (style1 is HSSFCellStyle)
             {
                 if (style2 is XSSFCellStyle xcs2)
                 {
-                    HSSFPalette palette = ((HSSFWorkbook)maskWorkbook).GetCustomPalette();
+                    HSSFPalette palette = ((HSSFWorkbook)workbook1).GetCustomPalette();
                     XSSFColor getHSSFXSSFColor(short color)
                     {
                         if (color == 0)
@@ -540,25 +543,25 @@ namespace Cliver
                         return new XSSFColor(new Excel.Color(palette.GetColor(color)).RGB, null);
                     }
                     if (spns.Contains("FillForegroundColor"))
-                        xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(maskStyle.FillForegroundColor);
+                        xcs2.FillForegroundXSSFColor = getHSSFXSSFColor(style1.FillForegroundColor);
                     if (spns.Contains("FillBackgroundColor"))
-                        xcs2.FillBackgroundXSSFColor = getHSSFXSSFColor(maskStyle.FillBackgroundColor);
+                        xcs2.FillBackgroundXSSFColor = getHSSFXSSFColor(style1.FillBackgroundColor);
                     if (spns.Contains("BorderDiagonalColor"))
-                        xcs2.SetDiagonalBorderColor(getHSSFXSSFColor(maskStyle.BorderDiagonalColor));
+                        xcs2.SetDiagonalBorderColor(getHSSFXSSFColor(style1.BorderDiagonalColor));
                     if (spns.Contains("BottomBorderColor"))
-                        xcs2.SetBottomBorderColor(getHSSFXSSFColor(maskStyle.BottomBorderColor));
+                        xcs2.SetBottomBorderColor(getHSSFXSSFColor(style1.BottomBorderColor));
                     if (spns.Contains("LeftBorderColor"))
-                        xcs2.SetLeftBorderColor(getHSSFXSSFColor(maskStyle.LeftBorderColor));
+                        xcs2.SetLeftBorderColor(getHSSFXSSFColor(style1.LeftBorderColor));
                     if (spns.Contains("RightBorderColor"))
-                        xcs2.SetRightBorderColor(getHSSFXSSFColor(maskStyle.RightBorderColor));
+                        xcs2.SetRightBorderColor(getHSSFXSSFColor(style1.RightBorderColor));
                     if (spns.Contains("TopBorderColor"))
-                        xcs2.SetTopBorderColor(getHSSFXSSFColor(maskStyle.TopBorderColor));
+                        xcs2.SetTopBorderColor(getHSSFXSSFColor(style1.TopBorderColor));
                 }
                 else if (style2 is HSSFCellStyle)
                 {
-                    if (workbook2 != maskWorkbook)
+                    if (workbook2 != workbook1)
                     {
-                        HSSFPalette palette = ((HSSFWorkbook)maskWorkbook).GetCustomPalette();
+                        HSSFPalette palette = ((HSSFWorkbook)workbook1).GetCustomPalette();
                         short getHSSFHSSFColor(short color)
                         {
                             if (color == 0)
@@ -567,64 +570,64 @@ namespace Cliver
                             return c.Indexed;//(!)might be not exactly same color
                         }
                         if (spns.Contains("FillForegroundColor"))
-                            style2.FillForegroundColor = getHSSFHSSFColor(maskStyle.FillForegroundColor);
+                            style2.FillForegroundColor = getHSSFHSSFColor(style1.FillForegroundColor);
                         if (spns.Contains("FillBackgroundColor"))
-                            style2.FillBackgroundColor = getHSSFHSSFColor(maskStyle.FillBackgroundColor);
+                            style2.FillBackgroundColor = getHSSFHSSFColor(style1.FillBackgroundColor);
                         if (spns.Contains("BorderDiagonalColor"))
-                            style2.BorderDiagonalColor = getHSSFHSSFColor(maskStyle.BorderDiagonalColor);
+                            style2.BorderDiagonalColor = getHSSFHSSFColor(style1.BorderDiagonalColor);
                         if (spns.Contains("BottomBorderColor"))
-                            style2.BottomBorderColor = getHSSFHSSFColor(maskStyle.BottomBorderColor);
+                            style2.BottomBorderColor = getHSSFHSSFColor(style1.BottomBorderColor);
                         if (spns.Contains("LeftBorderColor"))
-                            style2.LeftBorderColor = getHSSFHSSFColor(maskStyle.LeftBorderColor);
+                            style2.LeftBorderColor = getHSSFHSSFColor(style1.LeftBorderColor);
                         if (spns.Contains("RightBorderColor"))
-                            style2.RightBorderColor = getHSSFHSSFColor(maskStyle.RightBorderColor);
+                            style2.RightBorderColor = getHSSFHSSFColor(style1.RightBorderColor);
                         if (spns.Contains("TopBorderColor"))
-                            style2.TopBorderColor = getHSSFHSSFColor(maskStyle.TopBorderColor);
+                            style2.TopBorderColor = getHSSFHSSFColor(style1.TopBorderColor);
                     }
                     else
                     {
                         if (spns.Contains("FillForegroundColor"))
-                            style2.FillForegroundColor = maskStyle.FillForegroundColor;
+                            style2.FillForegroundColor = style1.FillForegroundColor;
                         if (spns.Contains("FillBackgroundColor"))
-                            style2.FillBackgroundColor = maskStyle.FillBackgroundColor;
+                            style2.FillBackgroundColor = style1.FillBackgroundColor;
                         if (spns.Contains("BorderDiagonalColor"))
-                            style2.BorderDiagonalColor = maskStyle.BorderDiagonalColor;
+                            style2.BorderDiagonalColor = style1.BorderDiagonalColor;
                         if (spns.Contains("BottomBorderColor"))
-                            style2.BottomBorderColor = maskStyle.BottomBorderColor;
+                            style2.BottomBorderColor = style1.BottomBorderColor;
                         if (spns.Contains("LeftBorderColor"))
-                            style2.LeftBorderColor = maskStyle.LeftBorderColor;
+                            style2.LeftBorderColor = style1.LeftBorderColor;
                         if (spns.Contains("RightBorderColor"))
-                            style2.RightBorderColor = maskStyle.RightBorderColor;
+                            style2.RightBorderColor = style1.RightBorderColor;
                         if (spns.Contains("TopBorderColor"))
-                            style2.TopBorderColor = maskStyle.TopBorderColor;
+                            style2.TopBorderColor = style1.TopBorderColor;
                     }
                 }
                 else
                     throw new Exception("Unsupported workbook2 type: " + workbook2.GetType().FullName);
             }
             else
-                throw new Exception("Unsupported maskWorkbook type: " + maskWorkbook.GetType().FullName);
+                throw new Exception("Unsupported workbook1 type: " + workbook1.GetType().FullName);
 
             if (spns.Contains("FillPattern"))
-                style2.FillPattern = maskStyle.FillPattern;
+                style2.FillPattern = style1.FillPattern;
             if (spns.Contains("Indention"))
-                style2.Indention = maskStyle.Indention;
+                style2.Indention = style1.Indention;
             if (spns.Contains("IsHidden"))
-                style2.IsHidden = maskStyle.IsHidden;
+                style2.IsHidden = style1.IsHidden;
             if (spns.Contains("IsLocked"))
-                style2.IsLocked = maskStyle.IsLocked;
+                style2.IsLocked = style1.IsLocked;
             if (spns.Contains("Rotation"))
-                style2.Rotation = maskStyle.Rotation;
+                style2.Rotation = style1.Rotation;
             if (spns.Contains("ShrinkToFit"))
-                style2.ShrinkToFit = maskStyle.ShrinkToFit;
+                style2.ShrinkToFit = style1.ShrinkToFit;
             if (spns.Contains("VerticalAlignment"))
-                style2.VerticalAlignment = maskStyle.VerticalAlignment;
+                style2.VerticalAlignment = style1.VerticalAlignment;
             if (spns.Contains("WrapText"))
-                style2.WrapText = maskStyle.WrapText;
+                style2.WrapText = style1.WrapText;
             if (spns.Contains("FontIndex"))
             {
-                IFont f1 = maskWorkbook._GetFont(maskStyle);
-                if (workbook2 == maskWorkbook)
+                IFont f1 = workbook1._GetFont(style1);
+                if (workbook2 == workbook1)
                     style2.SetFont(f1);
                 else
                 {
@@ -675,17 +678,19 @@ namespace Cliver
         }
 
         /// <summary>
-        /// Creates an unregistered copy of a style.
+        /// Creates an unregistered copy of a style which can be unregistered or registered. 
+        /// (!)However, font, format and indexed colors used by it must exist in the source workbook.
         /// </summary>
-        /// <param name="style">can be unregistered</param>
-        /// <param name="clonedStyleWorkbook"></param>
+        /// <param name="workbook1">workbook which style1 belongs to</param>
+        /// <param name="style1">style to be copied</param>
+        /// <param name="workbook2">workbook where style1 to be copied to</param>
         /// <returns></returns>
-        static public ICellStyle _CloneUnregisteredStyle(this IWorkbook workbook, ICellStyle style, IWorkbook clonedStyleWorkbook = null)
+        static public ICellStyle _CloneUnregisteredStyle(this IWorkbook workbook1, ICellStyle style1, IWorkbook workbook2 = null)
         {
-            if (clonedStyleWorkbook == null)
-                clonedStyleWorkbook = workbook;
-            ICellStyle toStyle = clonedStyleWorkbook._CreateUnregisteredStyle();
-            return workbook._CopyStyle(style, toStyle, clonedStyleWorkbook);
+            if (workbook2 == null)
+                workbook2 = workbook1;
+            ICellStyle style2 = workbook2._CreateUnregisteredStyle();
+            return workbook1._CopyStyle(style1, style2, workbook2);
         }
 
         static public IEnumerable<ICellStyle> _GetStyles(this IWorkbook workbook)

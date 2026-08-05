@@ -15,11 +15,11 @@ namespace Cliver
 {
     static public partial class ExcelExtensions
     {
-        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope, bool reuseUnusedStyle = false) where T : Excel.StyleCache.IKey
+        static public void _SetAlteredStyles<T>(this IRow row, T alterationKey, Excel.StyleCache.AlterStyle<T> alterStyle, CellScope cellScope/*, bool reuseUnusedStyle = false*/) where T : Excel.StyleCache.IKey
         {
             var styleCache = row.Sheet.Workbook._Excel().OneWorkbookStyleCache;
             foreach (ICell cell in row._GetCells(cellScope))
-                cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle, reuseUnusedStyle);
+                cell.CellStyle = styleCache.GetAlteredStyle(cell.CellStyle, alterationKey, alterStyle/*, reuseUnusedStyle*/);
         }
 
         static public IRow _Copy(this IRow row1, int y2, CopyCellMode copyCellMode = null, ISheet sheet2 = null, StyleMap styleMap = null)
