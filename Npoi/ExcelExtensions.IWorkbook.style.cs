@@ -62,7 +62,7 @@ namespace Cliver
         /// Looks for an equal style in the workbook and, if it does not exists, creates a new one.
         /// (!)Incidentally, there is a somewhat analogous method NPOI.SS.Util.CellUtil.SetCellStyleProperties() which is not as handy in use though.
         /// </summary>
-        /// <param name="workbook1">workbook which style1 belongs to</param>
+        /// <param name="workbook1">workbook which style1 belongs to (even if it is not registered)</param>
         /// <param name="style1">it can be either a unregistered style created by CreateUnregisteredStyle() and modified as needed, or a registered style.</param>
         ///// <param name="reuseUnusedStyle">(!)slows down performance. It makes sense ony when styles need optimization</param>
         /// <param name="workbook2">workbook where an equivalent of style1 to be registered</param>
@@ -437,10 +437,10 @@ namespace Cliver
         }
 
         /// <summary>
-        /// (!)Experimental. Copies listes properties from style1 to style. Both styles can be unregistered.
+        /// (!)Experimental. Copies listes properties from style1 to style2. Both styles can be unregistered.
         /// </summary>
         /// <param name="workbook1">the workbook which style1 belongs to</param>
-        /// <param name="stylePropertieNames"></param>
+        /// <param name="stylePropertieNames">properties to be copied</param>
         /// <param name="style1">the style to be copied</param>
         /// <param name="style2">the style to copy into</param>
         /// <param name="workbook2">the workbook which the style2 belongs to</param>
@@ -683,7 +683,7 @@ namespace Cliver
         /// </summary>
         /// <param name="workbook1">workbook which style1 belongs to</param>
         /// <param name="style1">style to be copied</param>
-        /// <param name="workbook2">workbook where style1 to be copied to</param>
+        /// <param name="workbook2">workbook where the cloned style will belong to</param>
         /// <returns></returns>
         static public ICellStyle _CloneUnregisteredStyle(this IWorkbook workbook1, ICellStyle style1, IWorkbook workbook2 = null)
         {

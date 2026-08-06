@@ -399,5 +399,52 @@ namespace Cliver
             /// </summary>
             WithinAnchor,
         }
+
+
+        //static public void _CreateDropdown<T>(this ISheet sheet, CellRangeAddressList cellRangeAddressList, IEnumerable<T> values, T value, bool allowBlank = true)
+        //{
+        //    _ = sheet ?? throw new ArgumentNullException(nameof(sheet));
+
+        //    List<string> vs = values.Select(a => a?.ToString()).ToList();
+
+        //    IDataValidationHelper dvh = sheet.GetDataValidationHelper();
+        //    //string dvs = string.Join(",", vs);
+        //    //IDataValidationConstraint dvc = Sheet.GetDataValidations().Find(a => string.Join(",", a.ValidationConstraint.ExplicitListValues) == dvs)?.ValidationConstraint;
+        //    //if (dvc == null)
+        //    //dvc = dvh.CreateCustomConstraint(dvs);
+        //    IDataValidationConstraint dvc = dvh.CreateExplicitListConstraint(vs.ToArray());
+        //    IDataValidation dv = dvh.CreateValidation(dvc, cellRangeAddressList);
+        //    dv.SuppressDropDownArrow = true;
+        //    dv.EmptyCellAllowed = allowBlank;
+        //    ((XSSFSheet)sheet).AddValidationData(dv);
+
+        //    cell.SetCellValue(value?.ToString());
+        //}
+
+        //static public void _RemoveDropdown<T>(this ISheet sheet, CellRangeAddressList cellRangeAddressList)
+        //{
+        //    _ = sheet ?? throw new ArgumentNullException(nameof(sheet));
+
+        //    var dvs = sheet.GetDataValidations().Where(a => a.SuppressDropDownArrow
+        //         && areEqual(a.Regions, cellRangeAddressList)
+        //         );
+
+        //    bool areEqual(CellRangeAddressList cs1, CellRangeAddressList cs2)
+        //    {
+        //        if (cs1.CellRangeAddresses.Length != cs2.CellRangeAddresses.Length)
+        //            return false;
+        //        foreach (var b in cs1.CellRangeAddresses)
+        //            foreach (var c in cs2.CellRangeAddresses)
+        //            {
+        //                if (c.FirstRow == b.FirstRow && c.LastRow == b.LastRow && c.FirstColumn == b.FirstColumn && c.LastColumn == b.LastColumn)
+        //                    continue;
+        //                return false;
+        //            }
+        //        return true;
+        //    }
+
+        //    foreach (var dv in dvs)
+        //        sheet.RemoveDataValidation(dv);
+        //}
     }
 }

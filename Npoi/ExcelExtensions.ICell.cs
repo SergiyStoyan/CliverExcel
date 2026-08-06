@@ -434,9 +434,7 @@ namespace Cliver
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
 
-            List<string> vs = new List<string>();
-            foreach (object v in values)
-                vs.Add(v?.ToString());
+            List<string> vs = values.Select(a => a?.ToString()).ToList();
 
             IDataValidationHelper dvh = cell.Sheet.GetDataValidationHelper();
             //string dvs = string.Join(",", vs);
@@ -457,7 +455,12 @@ namespace Cliver
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
 
-            throw new NotImplementedException();
+            var dvs = cell.Sheet.GetDataValidations().Where(a => a.SuppressDropDownArrow
+                 && a.Regions.CellRangeAddresses.Length == 1
+                 && a.Regions.CellRangeAddresses.FirstOrDefault(b => b.FirstRow == cell.RowIndex && b.LastRow == cell.RowIndex && b.FirstColumn == cell.ColumnIndex && b.LastColumn == cell.ColumnIndex) != null
+                 );
+            foreach (var dv in dvs)
+                cell.Sheet.RemoveDataValidation(dv);
         }
 
         static public IEnumerable<Excel.Image> _GetImages(this ICell cell, ImageLocationType imageLocationType)
