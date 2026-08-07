@@ -294,15 +294,14 @@ namespace Cliver
         /// !!!NOT TESTED
         /// </summary>
         /// <param name="sheet"></param>
-        /// <param name="y"></param>
-        /// <param name="x"></param>
+        /// <param name="r"></param>
         /// <exception cref="Exception"></exception>
-        static public void _RemoveImages(this ISheet sheet, int y, int x)
+        static public void _RemoveImages(this ISheet sheet, Range r)
         {
             var drawing = sheet.CreateDrawingPatriarch();
             if (drawing is XSSFDrawing xssfDrawing)
             {
-                var ps = xssfDrawing.GetShapes().Where(a => a is XSSFPicture p && p.ClientAnchor.Row1 + 1 == y && p.ClientAnchor.Col1 + 1 == x);
+                var ps = xssfDrawing.GetShapes().Where(a => a is XSSFPicture p && r.IsIn(p.ClientAnchor.Row1 + 1, p.ClientAnchor.Col1 + 1));
                 foreach (XSSFPicture p in ps)
                 {
                     XSSFDrawing d = p.GetDrawing();
@@ -320,7 +319,7 @@ namespace Cliver
             }
             else if (drawing is HSSFPatriarch hssfDrawing)
             {
-                var ps = hssfDrawing.Children.Where(a => a is HSSFPicture p && p.ClientAnchor.Row1 + 1 == y && p.ClientAnchor.Col1 + 1 == x).ToList();
+                var ps = hssfDrawing.Children.Where(a => a is HSSFPicture p && r.IsIn(p.ClientAnchor.Row1 + 1, p.ClientAnchor.Col1 + 1)).ToList();
                 ps.ForEach(a => hssfDrawing.RemoveShape(a));
             }
             else

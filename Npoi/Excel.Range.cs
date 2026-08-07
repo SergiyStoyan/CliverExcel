@@ -84,6 +84,11 @@ namespace Cliver
                 Sheet.AddMergedRegion(GetCellRangeAddress());
             }
 
+            public bool IsIn(int y, int x)
+            {
+                return y >= Y1 && (Y2 == null || y <= Y2.Value) && x >= X1 && (X2 == null || x <= X2.Value);
+            }
+
             public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
             {
                 int maxY = Y2 != null ? Y2.Value : Sheet.LastRowNum + 1;
