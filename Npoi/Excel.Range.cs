@@ -7,6 +7,12 @@ using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using System.Collections.Generic;
 using System;
+using NPOI.XSSF.UserModel;
+using NPOI.HSSF.UserModel;
+using System.Linq;
+using NPOI.OpenXmlFormats.Wordprocessing;
+using NPOI.OpenXml4Net.OPC;
+using NPOI;
 
 namespace Cliver
 {
@@ -84,9 +90,24 @@ namespace Cliver
                 Sheet.AddMergedRegion(GetCellRangeAddress());
             }
 
-            public bool IsIn(int y, int x)
+            public bool Contains(CellAddress cellAddress)
+            {
+                return Contains(cellAddress.Row + 1, cellAddress.Column + 1);
+            }
+
+            public bool Contains(ICell c)
+            {
+                return Contains(c.RowIndex + 1, c.ColumnIndex + 1);
+            }
+
+            public bool Contains(int y, int x)
             {
                 return y >= Y1 && (Y2 == null || y <= Y2.Value) && x >= X1 && (X2 == null || x <= X2.Value);
+            }
+
+            public bool Contains(Range r)
+            {
+                return r.Y1 >= Y1 && (Y2 == null || r.Y1 <= Y2.Value) && r.X1 >= X1 && (X2 == null || r.X2 <= X2.Value);
             }
 
             public void ReplaceStyle(ICellStyle style1, ICellStyle style2)
@@ -319,6 +340,224 @@ namespace Cliver
                 //        }
                 //    }
                 //}
+            }
+
+            public void RemoveComments()
+            {
+                //Sheet.GetCellComments().Where(a => IsIn(a.Key)).ToList().ForEach(a => Sheet._GetCell(a.Key, false).RemoveCellComment());
+                GetCells(CellScope.NotNull).ForEach(a => a.RemoveCellComment());
+            }
+
+            public void RemoveImages(ImageLocationType imageLocationType)
+            {
+                var ps = GetPictures(imageLocationType).ToList();
+                if (ps.Count < 1)
+                    return;
+                var drawing = Sheet.CreateDrawingPatriarch();
+                if (drawing is XSSFDrawing xssfDrawing)
+                {
+                    Dictionary<POIXMLDocumentPart, HashSet<string>> parts2embedIds = new Dictionary<POIXMLDocumentPart, HashSet<string>>();
+                    foreach (var sh in Sheet.Workbook._GetSheets())
+                    {
+                        var ctD = ((XSSFDrawing)sh.CreateDrawingPatriarch())?.GetCTDrawing();
+                        for (int ai = ctD.CellAnchors.Count - 1; ai >= 0; ai--)
+                        {
+                            var embedId = ctD.CellAnchors[ai]?.picture?.blipFill?.blip?.embed;
+                            if (string.IsNullOrEmpty(embedId))
+                                continue;
+                            var pn = xssfDrawing.GetRelationById(embedId);
+                            if (pn == null)
+                                continue;
+                            if (!parts2embedIds.TryGetValue(pn, out var embedIds))
+                            {
+                                embedIds = new HashSet<string>();
+                                parts2embedIds[pn] = embedIds;
+                            }
+                            embedIds.Add(embedId);
+                        }
+                    }
+
+                    var ctDrawing = xssfDrawing.GetCTDrawing();
+                    foreach (XSSFPicture p in ps)
+                    {
+                        var ctP = p.GetCTPicture();
+                        var embedId = ctP?.blipFill?.blip?.embed;
+                        if (string.IsNullOrEmpty(embedId))
+                            continue;
+
+                        for (int i = ctDrawing.CellAnchors.Count - 1; i >= 0; i--)
+                            if (ctDrawing.CellAnchors[i].picture?.blipFill?.blip?.embed?.Equals(embedId) == true)
+                                ctDrawing.CellAnchors.RemoveAt(i);
+                        var pp = xssfDrawing.GetPackagePart();
+                        pp.RemoveRelationship(embedId);
+
+                        var pn = xssfDrawing.GetRelationById(embedId);
+                        if (pn != null)
+                        {
+                            var embedIds = parts2embedIds[pn];
+                            embedIds.Remove(embedId);
+                            if (embedIds.Count <= 0)//delete the image itself only when it has no reference remaining
+                                pp.Package.DeletePartRecursive(pn.GetPackagePart().PartName);
+                        }
+                    }
+                }
+                else if (drawing is HSSFPatriarch hssfDrawing)
+                {
+                    foreach (HSSFPicture p in ps)
+                        hssfDrawing.RemoveShape(p);
+                }
+                else
+                    throw new Exception("Unsupported type: " + drawing.GetType());
+            }
+            public void RemoveImages3(ImageLocationType imageLocationType)
+            {
+                var ps = GetPictures(imageLocationType).ToList();
+                if (ps.Count < 1)
+                    return;
+                var drawing = Sheet.CreateDrawingPatriarch();
+                if (drawing is XSSFDrawing xssfDrawing)
+                {
+                    var ctDrawing = xssfDrawing.GetCTDrawing();
+                    var xssfWorkbook = Sheet.Workbook as XSSFWorkbook;
+                    foreach (XSSFPicture p in ps)
+                    {
+                        var ctP = p.GetCTPicture();
+                        var embedId = ctP?.blipFill?.blip?.embed;
+                        if (string.IsNullOrEmpty(embedId))
+                            continue;
+
+                        // remove only the anchor node that corresponds to this picture instance
+                        if (ctDrawing != null)
+                        {
+                            for (int i = ctDrawing.CellAnchors.Count - 1; i >= 0; i--)
+                            {
+                                var anchor = ctDrawing.CellAnchors[i];
+                                // remove the anchor only when it contains the very same CT picture object
+                                if (ReferenceEquals(anchor.picture, ctP))
+                                    ctDrawing.CellAnchors.RemoveAt(i);
+                            }
+                        }
+
+                        // check whether the embedId is still referenced anywhere in the workbook
+                        bool stillUsed = false;
+                        if (xssfWorkbook != null)
+                        {
+                            for (int si = 0; si < xssfWorkbook.NumberOfSheets && !stillUsed; si++)
+                            {
+                                var sh = xssfWorkbook.GetSheetAt(si) as XSSFSheet;
+                                if (sh == null)
+                                    continue;
+                                var dr = (XSSFDrawing)sh.CreateDrawingPatriarch();
+                                var ctDr = dr?.GetCTDrawing();
+                                if (ctDr == null)
+                                    continue;
+                                for (int ai = ctDr.CellAnchors.Count - 1; ai >= 0; ai--)
+                                {
+                                    var a = ctDr.CellAnchors[ai];
+                                    if (a?.picture?.blipFill?.blip?.embed == embedId)
+                                    {
+                                        stillUsed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        // if no remaining references, remove the relationship and delete the image part
+                        if (!stillUsed)
+                        {
+                            var pp = xssfDrawing.GetPackagePart();
+                            pp.RemoveRelationship(embedId);
+                            var pn = xssfDrawing.GetRelationById(embedId)?.GetPackagePart()?.PartName;
+                            if (pn != null)
+                                pp.Package.DeletePartRecursive(pn);
+                        }
+                    }
+                }
+                else if (drawing is HSSFPatriarch hssfDrawing)
+                {
+                    foreach (HSSFPicture p in ps)
+                        hssfDrawing.RemoveShape(p);
+                }
+                else
+                    throw new Exception("Unsupported type: " + drawing.GetType());
+            }
+
+            public IEnumerable<Image> GetImages(ImageLocationType imageLocationType)
+            {
+                foreach (IPicture p in GetPictures(imageLocationType))
+                {
+                    var a = p.ClientAnchor;
+                    IPictureData pictureData = p.PictureData;
+                    yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
+                }
+            }
+
+            public IEnumerable<IPicture> GetPictures(ImageLocationType imageLocationType)
+            {
+                IEnumerable<IPicture> pictures;
+                if (Sheet.Workbook is XSSFWorkbook xSSFWorkbook)
+                {
+                    XSSFDrawing dp = (XSSFDrawing)Sheet.CreateDrawingPatriarch();
+                    pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
+                }
+                else if (Sheet.Workbook is HSSFWorkbook hWorkbook)
+                {
+                    HSSFPatriarch dp = (HSSFPatriarch)Sheet.CreateDrawingPatriarch();
+                    pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
+                }
+                else
+                    throw new Exception("Unsupported workbook type: " + Sheet.Workbook.GetType().FullName);
+
+                switch (imageLocationType)
+                {
+                    case ImageLocationType.AnchorTopLeft:
+                        foreach (IPicture p in pictures)
+                        {
+                            var a = p.ClientAnchor;
+                            if (Contains(a.Row1 + 1, a.Col1 + 1))
+                                yield return p;
+                        }
+                        break;
+                    case ImageLocationType.WithinAnchor:
+                        foreach (IPicture p in pictures)
+                        {
+                            var a = p.ClientAnchor;
+                            if (Sheet._GetRange(a.Row1 + 1, a.Col1 + 1, a.Row2 + 1, a.Col2 + 1).Contains(this))
+                                yield return p;
+                        }
+                        break;
+                    case ImageLocationType.WithinRange:
+                        foreach (IPicture p in pictures)
+                        {
+                            var a = p.ClientAnchor;
+                            if (Contains(Sheet._GetRange(a.Row1 + 1, a.Col1 + 1, a.Row2 + 1, a.Col2 + 1)))
+                                yield return p;
+                        }
+                        break;
+                    default:
+                        throw new Exception("Unknown " + nameof(imageLocationType) + ": " + imageLocationType);
+                }
+            }
+
+            /// <summary>
+            /// !!!it is a bug in NPOI-2.7 that Resize() changes picture's anchor ignoring AnchorType. 
+            /// So, the pictures that belong to the cell should be rather filtered by the top-left anchor.
+            /// </summary>
+            public enum ImageLocationType
+            {
+                /// <summary>
+                /// the picture's anchor Top-Left is within the range
+                /// </summary>
+                AnchorTopLeft,
+                /// <summary>
+                /// the range is within the picture's anchor (the anchors covers the range)
+                /// </summary>
+                WithinAnchor,
+                /// <summary>
+                /// picture's anchor is within the range (Top-Left and Bottom-Right are within the range)
+                /// </summary>
+                WithinRange,
             }
         }
     }

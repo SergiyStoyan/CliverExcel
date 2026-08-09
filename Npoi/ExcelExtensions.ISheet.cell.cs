@@ -188,7 +188,7 @@ namespace Cliver
 
             if (copyCellMode?.CopyImage == true)
             {
-                var i = sheet._GetImages(y1, x1, ImageLocationType.AnchorTopLeft).FirstOrDefault();
+                var i = sheet._GetImages(y1, x1, Range.ImageLocationType.AnchorTopLeft).FirstOrDefault();
                 if (i != null)
                 {
                     i.Y = y1;
@@ -290,42 +290,6 @@ namespace Cliver
             //p.ClientAnchor.Col2 = image.X - 1;
         }
 
-        /// <summary>
-        /// !!!NOT TESTED
-        /// </summary>
-        /// <param name="sheet"></param>
-        /// <param name="r"></param>
-        /// <exception cref="Exception"></exception>
-        static public void _RemoveImages(this ISheet sheet, Range r)
-        {
-            var drawing = sheet.CreateDrawingPatriarch();
-            if (drawing is XSSFDrawing xssfDrawing)
-            {
-                var ps = xssfDrawing.GetShapes().Where(a => a is XSSFPicture p && r.IsIn(p.ClientAnchor.Row1 + 1, p.ClientAnchor.Col1 + 1));
-                foreach (XSSFPicture p in ps)
-                {
-                    XSSFDrawing d = p.GetDrawing();
-                    var ctP = p.GetCTPicture();
-                    var rId = ctP?.blipFill?.blip.embed;
-                    if (rId != null)
-                    {
-                        var pp = d.GetPackagePart();
-                        pp.RemoveRelationship(rId);
-                        pp.Package.DeletePartRecursive(d.GetRelationById(rId).GetPackagePart().PartName);
-                    }
-
-                    d.GetCTDrawing().CellAnchors = null;
-                }
-            }
-            else if (drawing is HSSFPatriarch hssfDrawing)
-            {
-                var ps = hssfDrawing.Children.Where(a => a is HSSFPicture p && r.IsIn(p.ClientAnchor.Row1 + 1, p.ClientAnchor.Col1 + 1)).ToList();
-                ps.ForEach(a => hssfDrawing.RemoveShape(a));
-            }
-            else
-                throw new Exception("Unsupported type: " + drawing.GetType());
-        }
-
         static public Range _GetMergedRange(this ISheet sheet, int y, int x)
         {
             foreach (var mr in sheet.MergedRegions)
@@ -343,62 +307,11 @@ namespace Cliver
         /// <param name="imageLocationType">!!!it is a bug in NPOI-2.7 that Resize() changes picture's anchor ignoring AnchorType. So, the pictures that belong to the cell should be rather filtered by the top-left anchor.</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x, ImageLocationType imageLocationType)
+        static public IEnumerable<Image> _GetImages(this ISheet sheet, int y, int x, Range.ImageLocationType imageLocationType)
         {
-            IEnumerable<IPicture> pictures;
-            if (sheet.Workbook is XSSFWorkbook xSSFWorkbook)
-            {
-                XSSFDrawing dp = (XSSFDrawing)sheet.CreateDrawingPatriarch();
-                pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
-            }
-            else if (sheet.Workbook is HSSFWorkbook hSSFWorkbook)
-            {
-                HSSFPatriarch dp = (HSSFPatriarch)sheet.CreateDrawingPatriarch();
-                pictures = dp.GetShapes().Where(a => a is IPicture).Select(a => (IPicture)a);
-            }
-            else
-                throw new Exception("Unsupported workbook type: " + sheet.Workbook.GetType().FullName);
-
-            switch (imageLocationType)
-            {
-                case ImageLocationType.AnchorTopLeft:
-                    foreach (IPicture p in pictures)
-                    {
-                        var a = p.ClientAnchor;
-                        if (y - 1 == a.Row1 && x - 1 == a.Col1)
-                        {
-                            IPictureData pictureData = p.PictureData;
-                            yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
-                        }
-                    }
-                    break;
-                case ImageLocationType.WithinAnchor:
-                    foreach (IPicture p in pictures)
-                    {
-                        var a = p.ClientAnchor;
-                        if (y - 1 >= a.Row1 && y - 1 <= a.Row2 && x - 1 >= a.Col1 && x - 1 <= a.Col2)
-                        {
-                            IPictureData pictureData = p.PictureData;
-                            yield return new Image { Data = pictureData.Data, Name = null, Type = pictureData.PictureType, X = a.Col1, Y = a.Row1/*, Anchor = a*/ };
-                        }
-                    }
-                    break;
-                default:
-                    throw new Exception("Unknown imageLocationType: " + imageLocationType);
-            }
+            foreach (var i in sheet._GetRange(y, x, y, x).GetImages(imageLocationType))
+                yield return i;
         }
-        public enum ImageLocationType
-        {
-            /// <summary>
-            /// get pictures by their anchor's Top-Left (From) equals the cell
-            /// </summary>
-            AnchorTopLeft,
-            /// <summary>
-            /// get pictures if their anchor covers the cell
-            /// </summary>
-            WithinAnchor,
-        }
-
 
         //static public void _CreateDropdown<T>(this ISheet sheet, CellRangeAddressList cellRangeAddressList, IEnumerable<T> values, T value, bool allowBlank = true)
         //{

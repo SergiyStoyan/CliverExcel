@@ -75,7 +75,7 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        static public IEnumerable<Excel.Image> _GetImages(this IRow row, Excel.Table.Column c, ExcelExtensions.ImageLocationType imageLocationType)
+        static public IEnumerable<Excel.Image> _GetImages(this IRow row, Excel.Table.Column c, Range.ImageLocationType imageLocationType)
         {
             return row._GetImages(c.X, imageLocationType);
         }

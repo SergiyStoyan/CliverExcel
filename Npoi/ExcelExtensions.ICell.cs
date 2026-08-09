@@ -224,7 +224,7 @@ namespace Cliver
             //        .LastOrDefault(a => a.FirstColumn == cell.ColumnIndex && a.FirstRow == cell.RowIndex && a.LastColumn == cell.ColumnIndex && a.LastRow == cell.RowIndex)
             //        ?.Address;//(!)HACK: third-party files can have multiple links where the last one seems to be correct
 
-            if (urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links (too, unescaped % may lead to confusion) so such paths are url-escaped.
+            if (link != null && urlUnescapeFileType && h.Type == HyperlinkType.File && link.Contains('%'))//(!)# cannot be used in excel links (too, unescaped % may lead to confusion) so such paths are url-escaped.
                 link = Uri.UnescapeDataString(link);
             return link;
         }
@@ -463,11 +463,16 @@ namespace Cliver
                 cell.Sheet.RemoveDataValidation(dv);
         }
 
-        static public IEnumerable<Excel.Image> _GetImages(this ICell cell, ImageLocationType imageLocationType)
+        static public IEnumerable<Excel.Image> _GetImages(this ICell cell, Range.ImageLocationType imageLocationType)
         {
             _ = cell ?? throw new ArgumentNullException(nameof(cell));
 
             return cell.Sheet._GetImages(cell._Y(), cell._X(), imageLocationType);
+        }
+
+        static public void _RemoveImages(this ICell cell, Range.ImageLocationType imageLocationType)
+        {
+            cell.Sheet._GetRange(cell.RowIndex + 1, cell.ColumnIndex + 1, cell.RowIndex + 1, cell.ColumnIndex + 1).RemoveImages(imageLocationType);
         }
     }
 }

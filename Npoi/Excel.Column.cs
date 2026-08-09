@@ -267,7 +267,7 @@ namespace Cliver
             /// <param name="row"></param>
             /// <param name="x"></param>
             /// <returns></returns>
-            public IEnumerable<Excel.Image> GetImages(int y, ExcelExtensions.ImageLocationType imageLocationType)
+            public IEnumerable<Excel.Image> GetImages(int y, Range.ImageLocationType imageLocationType)
             {
                 return Sheet._GetImages(y, X, imageLocationType);
             }

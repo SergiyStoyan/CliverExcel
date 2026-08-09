@@ -265,9 +265,24 @@ namespace Cliver
         /// <param name="row"></param>
         /// <param name="x"></param>
         /// <returns></returns>
-        static public IEnumerable<Excel.Image> _GetImages(this IRow row, int x, ImageLocationType imageLocationType)
+        static public IEnumerable<Excel.Image> _GetImages(this IRow row, int x, Range.ImageLocationType imageLocationType)
         {
             return row.Sheet._GetImages(row._Y(), x, imageLocationType);
+        }
+
+        static public void _RemoveImages(this IRow row, Range.ImageLocationType imageLocationType)
+        {
+            row._GetRange().RemoveImages(imageLocationType);
+        }
+
+        static public void _RemoveComments(this IRow row)
+        {
+            row._GetRange().RemoveComments();
+        }
+
+        static public Range _GetRange(this IRow row)
+        {
+            return new Range(row.Sheet, row.RowNum + 1, 1, row.RowNum + 1);
         }
 
         static public string _GetLink(this IRow row, int x, bool urlUnescapeFileType = true)
