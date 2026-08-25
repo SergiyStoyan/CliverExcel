@@ -7,7 +7,11 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>8.2.0</Version>
+	  <Version>8.2.1.
+$([MSBuild]::Divide($([MSBuild]::Subtract($([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()), 1787830000)), 600))</Version>
+
+
+
 	  <PackageProjectUrl>https://github.com/sergiystoyan/CliverExcel</PackageProjectUrl>
 	  <Description>Excel routines</Description>
 	  <PackageTags>Excel routines</PackageTags>
@@ -51,7 +55,7 @@ v6 =&gt; v7
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CliverRoutines" Version="6.56.0" />
+    <PackageReference Include="CliverRoutines" Version="6.60.0" />
     <PackageReference Include="NPOI" Version="2.7.6" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
   </ItemGroup>
