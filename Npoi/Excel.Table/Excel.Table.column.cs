@@ -22,6 +22,9 @@ namespace Cliver
             /// </summary>
             public ReadOnlyCollection<Column> Columns { get; private set; }
 
+            /// <summary>
+            /// Load columns from the headers row to Columns.
+            /// </summary>
             void loadColumns()
             {
                 IRow headersRow = Sheet._GetRow(1, true);
@@ -156,15 +159,15 @@ namespace Cliver
                                 {
                                     null0Count--;
                                     if (null0Count < 0)
-                                        throw new Exception("NULL column[X=" + (i + 1) + "] has no match in the table.");
+                                        throw new Exception($"NULL column[X={i + 1}] has no match in the table.");
                                     continue;
                                 }
                                 Column c0 = c0s.FirstOrDefault(b => b.Header == c.Header);
                                 if (c0 == null)
-                                    throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
+                                    throw new Exception($"Column[X={i + 1}] '{c.Header}' has no match in the table.");
                                 c0s.Remove(c0);
                                 c0s.Insert(c0.X - 1, c);
-                            };
+                            }
 
                             setColumns(c0s, false);
                         }
@@ -188,7 +191,7 @@ namespace Cliver
                                             break;
                                     }
                                     if (i0 >= c0s.Count)
-                                        throw new Exception("NULL column[X=" + (i + 1) + "] has no match in the table.");
+                                        throw new Exception($"NULL column[X={i + 1}] has no match in the table.");
                                 }
                                 else
                                 {
@@ -203,7 +206,7 @@ namespace Cliver
                                         }
                                     }
                                     if (i0 >= c0s.Count)
-                                        throw new Exception("Column[X=" + (i + 1) + "] '" + c.Header + "' has no match in the table.");
+                                        throw new Exception($"Column[X={i + 1}] '{c.Header}' has no match in the table.");
                                 }
                             }
 
@@ -276,8 +279,8 @@ namespace Cliver
                     {
                         var c = r._GetCell(column.X, true);
                         c._SetValue(column.Header);
-                        if (column.HeaderStyle != null)
-                            c.CellStyle = column.HeaderStyle;
+                        //if (column.HeaderStyle != null)
+                        c.CellStyle = column.HeaderStyle;
                     }
                 }
 
@@ -364,151 +367,141 @@ namespace Cliver
                 return c;
             }
 
-            /// <summary>
-            /// Safe: if the column already exists, it is moved to the destination.
-            /// (!)column can be NULL. 
-            /// </summary>
-            public bool InsertColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
+            //public int FindHeaderX(string header)
+            //{
+            //    IRow headersRow = Sheet._GetRow(1, true);
+            //    var c = headersRow._GetCells(CellScope.NotNull).FirstOrDefault(a => a._GetValueAsString() == header);
+            //    return c == null ? -1 : c._X();
+            //}
+
+            public void AddColumn(Column column, MoveRegionMode moveRegionMode)
             {
-                int columnX = GetColumnX(column, false);
-                if (columnX > 0)
-                    return MoveColumn(column, beforeColumn, moveRegionMode);
+                if (column.Registered())
+                    throw new Exception($"Column (parameter name '{nameof(column)}') must not be registerd.");
 
-                int beforeColumnX = GetColumnX(beforeColumn, false);
-                if (beforeColumnX < 1)
-                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
+                //if (FindHeaderX(column.Header) > 0)
+                //    //throw new Exception($"Header {column.Header} already exists.");
+                //    return;
 
-                Sheet._ShiftColumnsRight(beforeColumnX, 1, moveRegionMode);
-                if (column != null)
-                    Sheet._GetCell(1, beforeColumnX, true)._SetValue(column.Header);
-                if (Columns.Count > 0)//if initialized, re-initialize
-                {
-                    var registredCs = Columns.ToList();
-                    registredCs.Insert(beforeColumnX - 1, column);
-                    loadColumns();
-                    SetColumns(SetColumnMode.Find, registredCs);
-                }
-                else
-                    loadColumns();
-                return true;
+                int x = Sheet._GetLastNotEmptyColumnInRow(true, 1) + 1;
+                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
+                Sheet._GetCell(1, x, true)._SetValue(column?.Header);
+
+                var registredCs = Columns.ToList();
+                registredCs.Add(column);
+                loadColumns();
+                SetColumns(SetColumnMode.FindOrAppend, registredCs);
+            }
+
+            public void InsertColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
+            {
+                if (column.Registered())
+                    throw new Exception($"Column (parameter name '{nameof(column)}') must not be registerd.");
+                if (!beforeColumn.Registered())
+                    throw new Exception($"Column (parameter name '{nameof(beforeColumn)}') must be registerd.");
+
+                Sheet._ShiftColumnsRight(beforeColumn.X, 1, moveRegionMode);
+                Sheet._GetCell(1, beforeColumn.X, true)._SetValue(column?.Header);
+
+                var registredCs = Columns.ToList();
+                registredCs.Insert(beforeColumn.X - 1, column);
+                loadColumns();
+                SetColumns(SetColumnMode.FindOrAppend, registredCs);
             }
 
             /// <summary>
             /// Always inserts one more empty column.
             /// </summary>
-            public void InsertEmptyColumn(Column beforeColumn, MoveRegionMode moveRegionMode)
+            public void InsertEmptyColumn(int x, MoveRegionMode moveRegionMode)
             {
-                int beforeColumnX = GetColumnX(beforeColumn, false);
-                if (beforeColumnX < 1)
-                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
-                Sheet._ShiftColumnsRight(beforeColumnX, 1, moveRegionMode);
-                if (Columns.Count > 0)//if initialized, re-initialize
-                {
-                    var registredCs = Columns.ToList();
-                    registredCs.Insert(beforeColumnX - 1, null);
-                    loadColumns();
-                    SetColumns(SetColumnMode.Find, registredCs);
-                }
-                else
-                    loadColumns();
+                if (x < 1)
+                    x = Sheet._GetLastNotEmptyColumnInRow(true, 1) + 1;
+                Sheet._ShiftColumnsRight(x, 1, moveRegionMode);
+                Sheet._GetCell(1, x, true)._SetValue(null);
+
+                var registredCs = Columns.ToList();
+                registredCs.Insert(x - 1, null);
+                loadColumns();
+                SetColumns(SetColumnMode.FindOrAppend, registredCs);
             }
 
             /// <summary>
-            /// Safe: if the column is already at the destination, just returns.
+            /// Safe: if the column is already at the destination, do nothing.
             /// </summary>
             /// <param name="column"></param>
-            /// <param name="beforeColumn"></param>
+            /// <param name="x2"></param>
             /// <param name="moveRegionMode"></param>
             /// <exception cref="Exception"></exception>
-            public bool MoveColumn(Column column, Column beforeColumn, MoveRegionMode moveRegionMode)
+            public void MoveColumn(Column column, int x2, MoveRegionMode moveRegionMode)
             {
-                int columnX = GetColumnX(column, false);
-                if (columnX < 1)
-                    throw new Exception2("Column '" + column?.Header + "' not found.");
-                int beforeColumnX = GetColumnX(beforeColumn, false);
-                if (beforeColumnX < 1)
-                    beforeColumnX = Sheet._GetLastNotEmptyColumnInRow(true, 1);
-                if (columnX + 1 == beforeColumnX)
-                    return false;
-                Sheet._MoveColumn(columnX, beforeColumnX, true, moveRegionMode);
-                if (column.Table != null)//if initialized, re-initialize
-                {
-                    var registredCs = Columns.ToList();
-                    loadColumns();
-                    SetColumns(SetColumnMode.Find, registredCs);
-                }
-                else
-                    loadColumns();
-                return true;
+                if (!column.Registered())
+                    throw new Exception($"Column must be registerd.");
+
+                if (x2 < 1)
+                    x2 = Sheet._GetLastNotEmptyColumnInRow(true, 1) + 1;
+                if (column.X + 1 == x2)
+                    return;
+                Sheet._MoveColumn(column.X, x2, true, moveRegionMode);
+
+                var registredCs = Columns.ToList();
+                registredCs.Insert(x2 - 1, column);
+                registredCs.RemoveAt(column.X - 1);
+                loadColumns();
+                SetColumns(SetColumnMode.FindOrAppend, registredCs);
             }
 
-            /// <summary>
-            /// Safe: if not column found, just returns.
-            /// </summary>
-            /// <param name="column"></param>
-            /// <param name="moveRegionMode"></param>
-            public bool RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
+            public void RemoveColumn(Column column, MoveRegionMode moveRegionMode = null)
             {
-                int columnX = GetColumnX(column, false);
-                if (columnX < 1)
-                    return false;
-                ICell h = Sheet._GetCell(1, columnX, false);
-                Sheet._ShiftColumnsLeft(columnX, 1, moveRegionMode);
-                if (column.Table != null)//if initialized, re-initialize
-                {
-                    var registredCs = Columns.Where(a => a.X != columnX).ToList();
-                    loadColumns();
-                    SetColumns(SetColumnMode.Find, registredCs);
-                }
-                else
-                    loadColumns();
-                return true;
+                if (!column.Registered())
+                    throw new Exception($"Column must be registerd.");
+
+                ICell h = Sheet._GetCell(1, column.X, false);
+                Sheet._ShiftColumnsLeft(column.X, 1, moveRegionMode);
+
+                var registredCs = Columns.ToList();
+                registredCs.Remove(column);
+                loadColumns();
+                SetColumns(SetColumnMode.FindOrAppend, registredCs);
+                column.Table = null;
+                column.X = -1;
             }
 
-            /// <summary>
-            /// Either finds by the header or returns column.X if set.
-            /// </summary>
-            /// <param name="column"></param>
-            /// <returns></returns>
-            int GetColumnX(Column column, bool ignoreColumnX)
+            public void RenameColumn(Column column, string name2)
             {
-                if (!ignoreColumnX && column?.X > 0)
-                    return column.X;
-                IRow r = Sheet._GetRow(1, true);
-                ICell c = r.FirstOrDefault(a => column != null ? a._GetValueAsString() == column.Header : string.IsNullOrWhiteSpace(a._GetValueAsString()));
-                return c != null ? c.RowIndex + 1 : -1;
-            }
+                if (column.X < 1)
+                    throw new Exception($"Column must be registerd.");
 
-            /// <summary>
-            /// Safe: if not column found, just returns.
-            /// </summary>
-            /// <param name="column"></param>
-            /// <param name="name2"></param>
-            public bool RenameColumn(Column column, string name2)
-            {
-                int columnX = GetColumnX(column, false);
-                if (columnX < 1)
-                    return false;
-                ICell c = Sheet._GetCell(1, columnX, true);
+                ICell c = Sheet._GetCell(1, column.X, true);
                 c.SetCellValue(name2);
-                if (column.Table != null)//if initialized, re-initialize
-                {
-                    var registredCs = Columns.ToList();
-                    loadColumns();
-                    SetColumns(SetColumnMode.Find, registredCs);
-                }
-                else
-                    loadColumns();
-                return true;
+                column.Header = name2;
             }
+
+            ///// <summary>
+            ///// Either finds by the header or returns column.X if set.
+            ///// </summary>
+            ///// <param name="column"></param>
+            ///// <returns></returns>
+            //int GetColumnX(Column column, bool ignoreColumnX)
+            //{
+            //    if (!ignoreColumnX && column?.X > 0)
+            //        return column.X;
+            //    IRow r = Sheet._GetRow(1, true);
+            //    ICell c = r.FirstOrDefault(a => column != null ? a._GetValueAsString() == column.Header : string.IsNullOrWhiteSpace(a._GetValueAsString()));
+            //    return c != null ? c.RowIndex + 1 : -1;
+            //}
 
             public class Column
             {
-                public readonly string Header;
+                public bool Registered()
+                {
+                    return Table?.Columns.Contains(this) == true;
+                }
+
+                public string Header { get; internal set; }
                 public int X { get; internal set; } = -1;
 
                 /// <summary>
-                /// (!)Unregistered style will be registered when setting.
+                /// (!)Unregistered style will be registered while setting.
                 /// </summary>
                 public ICellStyle Style
                 {
