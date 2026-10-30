@@ -16,6 +16,9 @@ namespace Cliver
 {
     public partial class Excel : IDisposable
     {
+        /// <summary>
+        /// A table where headers are added dynamically while writing.
+        /// </summary>
         public class DynamicTable : Excel.Table
         {
             public DynamicTable(ISheet sheet) : base(sheet)
