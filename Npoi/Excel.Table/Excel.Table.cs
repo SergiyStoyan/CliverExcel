@@ -108,19 +108,21 @@ namespace Cliver
                 /// <param name="cell"></param>
                 public Key(Cell cell) : this(cell.Column, cell.Value) { }
 
-                /// <summary>
-                /// Key that matches by isValueMatch().
-                /// </summary>
-                /// <param name="cell"></param>
-                /// <param name="isValueMatch"></param>
-                public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
+                //!!!looks confusing and not much difference with the base constructors
+                ///// <summary>
+                ///// Key that matches by isValueMatch().
+                ///// </summary>
+                ///// <param name="cell"></param>
+                ///// <param name="isValueMatch"></param>
+                //public Key(Cell cell, Func<ICell, bool> isValueMatch) : this(cell.Column, isValueMatch) { }
 
-                /// <summary>
-                /// Key that matches by valueMatchRegex().
-                /// </summary>
-                /// <param name="cell"></param>
-                /// <param name="valueMatchRegex"></param>
-                public Key(Cell cell, Regex valueMatchRegex) : this(cell.Column, getIsValueMatch(valueMatchRegex)) { }
+                //!!!looks confusing and not much difference with the base constructors
+                ///// <summary>
+                ///// Key that matches by valueMatchRegex().
+                ///// </summary>
+                ///// <param name="cell"></param>
+                ///// <param name="valueMatchRegex"></param>
+                //public Key(Cell cell, Regex valueMatchRegex) : this(cell.Column, getIsValueMatch(valueMatchRegex)) { }
             }
 
             public class Cell

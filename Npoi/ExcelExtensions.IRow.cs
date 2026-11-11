@@ -9,6 +9,7 @@ using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using static Cliver.Excel;
 
 namespace Cliver
@@ -256,7 +257,7 @@ namespace Cliver
         static public string _GetValueAsString(this IRow row, int x, StringMode stringMode = DefaultStringMode)
         {
             ICell c = row._GetCell(x, false);
-            return c._GetValueAsString(stringMode);
+            return _GetValueAsString(c, stringMode);
         }
 
         /// <summary>
@@ -293,6 +294,11 @@ namespace Cliver
         static public void _SetLink(this IRow row, int x, string link, HyperlinkType hyperlinkType = HyperlinkType.Unknown)
         {
             row._GetCell(x, true)._SetLink(link, hyperlinkType);
+        }
+
+        static public string _ToString(this IRow row, string separator = ", ", string separatorReplacer = " ")
+        {
+            return string.Join(separator, row.Cells.Select(c => Regex.Replace(c._GetValueAsString(), Regex.Escape(separator), separatorReplacer)));
         }
     }
 }

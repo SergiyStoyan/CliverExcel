@@ -49,7 +49,7 @@ namespace Cliver
                 Sheet._SetStyleInRow(HeaderStyle, true, 1);
             }
 
-            public void AppendRow(Dictionary<string, object> rowObject)
+            public IRow AppendRow(Dictionary<string, object> rowObject)
             {
                 List<Cell> cells = new List<Cell>();
                 foreach (var nv in rowObject)
@@ -62,7 +62,7 @@ namespace Cliver
                     }
                     cells.Add(new Cell(c, nv.Value));
                 }
-                AppendRow(cells);
+                return AppendRow(cells);
             }
         }
     }
