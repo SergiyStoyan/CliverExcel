@@ -7,7 +7,7 @@
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>8.4.1
+	  <Version>8.4.2
 .$([MSBuild]::Divide($([MSBuild]::Subtract($([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()), 1787830000)), 600))</Version>
 
 
@@ -55,7 +55,7 @@ v6 =&gt; v7
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CliverRoutines" Version="6.64.1.12008" />
+    <PackageReference Include="CliverRoutines" Version="7.0.0" />
     <PackageReference Include="NPOI" Version="2.7.6" />
   </ItemGroup>
 
