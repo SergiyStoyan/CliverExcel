@@ -11,7 +11,7 @@
 <body>
 <script src="prism.js"></script>
 <div class='header'>
-<div class='mainHeader'>Cliver Excel 7.*</div>
+<div class='mainHeader'>Cliver Excel 8.*</div>
 </div>
 
 <div class='content'>
@@ -29,9 +29,13 @@ It is based on the NPOI lib and allows accessing the NPOI API, too.
 
 
 
-            <h2><a name='licensing'>Licensing</a></h2>
+            <h2><a name='licensing'>License</a></h2>
 			
 			 See in <a href='#source'>the repository</a>.
+			 
+			 <br>
+			 <br>
+			 (!)As of 2026-11-25, CliverExcel builds NPOI directly from its Apache-2.0 licensed source code rather than referencing the official NPOI NuGet binary package. If you replace this source reference with an official pre-compiled NPOI NuGet package, you are subject to NPOI's binary EULA.
 			
 	
             <h2><a name='source'>Source code</a></h2>
@@ -40,6 +44,18 @@ It is based on the NPOI lib and allows accessing the NPOI API, too.
             Do not download the latest code from a branch because it may be under development. Instead, use the latest (pre-)release code.
 
 
+            <h2><a name='build'>Build</a></h2>
+			CliverExcel references NPOI projects directly.
+			 <br>
+			 <br>
+			If you want to build CliverExcel by yourself, you have to:
+			 <br>
+- clone https://github.com/sergiystoyan/CliverExcel
+			 <br>
+- clone https://github.com/SergiyStoyan/npoi and select the branch 'no-package-license';
+			 <br>
+- set the correct reference paths to NPOI projects in CliverExcel project
+			 <br>
 		
 			
 <h1>Usage</h1>

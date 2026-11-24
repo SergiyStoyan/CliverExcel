@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 	  <RepositoryUrl>https://github.com/sergiystoyan/CliverExcel.git</RepositoryUrl>
 	  <Copyright>Sergiy Stoyan</Copyright>
 	  <Authors>Sergiy Stoyan</Authors>
 	  <Company>CliverSoft</Company>
-	  <Version>8.4.2
+	  <Version>8.5.0
 .$([MSBuild]::Divide($([MSBuild]::Subtract($([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()), 1787830000)), 600))</Version>
 
 
@@ -55,8 +55,14 @@ v6 =&gt; v7
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CliverRoutines" Version="7.0.0" />
-    <PackageReference Include="NPOI" Version="2.7.6" />
+    <PackageReference Include="CliverRoutines" Version="6.62.0.9376" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\npoi\main\NPOI.Core.csproj" />
+    <ProjectReference Include="..\npoi\ooxml\NPOI.OOXML.Core.csproj" />
+    <ProjectReference Include="..\npoi\openxml4Net\NPOI.OpenXml4Net.Core.csproj" />
+    <ProjectReference Include="..\npoi\OpenXmlFormats\NPOI.OpenXmlFormats.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

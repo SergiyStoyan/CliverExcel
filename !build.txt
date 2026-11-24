@@ -1,0 +1,12 @@
+﻿(!)Note for CliverExcel developer.
+
+CliverExcel references NPOI projects directly to build them to avoid the pre-built NuGet package license.
+ 
+HOW TO BUILD NPOI WITHOUT THE PACKAGE LICENSE:
+- if npoi is not locally forked, fork https://github.com/nissl-lab/npoi, otherwise synchronize the fork to the latest release;
+- if the no-package-license branch does not exist in the fork then create it;
+- merge the release to the branch and make sure:
+	- PackageLicenseFile is not required in NPOI.Core.csproj;
+	- (?)NPOI.targets has no AcceptNPOIOSMFLicense tag; 
+- NPOI version is set in Directory.Build.props: specify the version's 4 octet to indicate it was modified comparing to the official package;
+- commit; 
